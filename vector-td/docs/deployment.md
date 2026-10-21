@@ -11,25 +11,24 @@
 
 不要把私钥、`.env` 内容、服务器密码或 API Key 提交到本仓库或静态部署目录。
 
-## 1. 部署目标
+## 1. 部署目标与 URL 映射
 
 ```text
-服务器目录：/usr/local/compose/www/games-vector-td
-公网地址：https://xiaoniu.tech/games/vector-td/
-Nginx 配置：/usr/local/compose/conf/nginx/conf.d/vector-td.location
+游戏数据目录：/usr/local/compose/www/games-vector-td
+公开入口：    /usr/local/compose/www/games/vector-td -> ../games-vector-td
+游戏 URL：    https://xiaoniu.tech/games/vector-td/
+游戏集合页：  https://xiaoniu.tech/games/
 ```
 
-Nginx 使用 `alias` 映射：
+现在由主站的 `location / { try_files $uri $uri/ /index.html; }` 直接服务，不再依赖 `alias`。
 
-```nginx
-location ^~ /games/vector-td/ {
-    alias /usr/share/nginx/html/games-vector-td/;
-    index index.html;
-    try_files $uri $uri/index.html =404;
-}
+旧的 `vector-td.location` 已禁用并备份到：
+
+```text
+/usr/local/compose/bak/vector-td.location.disabled.<timestamp>
 ```
 
-不要把它改成 `root`。该目录是 `www` bind mount 的一部分；**只覆盖静态文件不需要重启 Nginx**。只有修改 Nginx 配置时才需要额外检查并重载 Nginx。
+只覆盖静态文件不需要重启 Nginx。只有修改 Nginx 配置或增加新的游戏路由时才需要检查并重载 Nginx。
 
 ## 2. 连接服务器
 
@@ -178,6 +177,7 @@ chmod -R u+rwX,go+rX "$TARGET"
 ## 7. 部署边界
 
 - 只覆盖 `/usr/local/compose/www/games-vector-td/`。
+- 公开入口依赖 `/usr/local/compose/www/games/vector-td` 这个相对软链；不要在覆盖时删除它。
 - 不要动 `/usr/local/compose/www` 下的其他站点目录。
 - 不要动 `/usr/local/compose/conf`、`docker-compose.yml`、`.env`，除非任务明确要求。
 - 不要把 `backend/.env`、私钥、API Key 上传到 `www`。
@@ -188,6 +188,8 @@ chmod -R u+rwX,go+rX "$TARGET"
 - 部署时间：2026-10-21
 - 版本：1.6.2
 - 目标：`/usr/local/compose/www/games-vector-td`
+- 映射：`/usr/local/compose/www/games/vector-td -> ../games-vector-td`
 - 公网：`https://xiaoniu.tech/games/vector-td/`
+- 集合页：`https://xiaoniu.tech/games/`
 - 备份：`/usr/local/compose/bak/games-vector-td-<timestamp>.tar.gz`
 - 部署方式：静态 tar 上传 → 服务器备份 → staging 校验 → 原子替换

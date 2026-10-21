@@ -28,7 +28,8 @@ python -m http.server 5180 --bind 127.0.0.1
 ## 目录结构
 
 ```text
-README.md                   游戏集合首页
+README.md                   游戏集合说明
+index.html                  游戏集合入口页
 AGENTS.md                   开发约定与部署入口
 .gitignore                  隐私与临时文件忽略规则
 vector-td/
@@ -137,12 +138,12 @@ README.md
 https://xiaoniu.tech/games/vector-td/
 ```
 
-Nginx 配置位于服务器：
+公开入口由主站 `location /` 直接服务：
 
 ```text
-/usr/local/compose/conf/nginx/conf.d/vector-td.location
+/usr/local/compose/www/games/vector-td -> ../games-vector-td
 ```
 
-注意该目录使用 `alias` 映射，不要改成 `root`。静态目录是 `www` bind mount，覆盖文件后不需要重启 Nginx；如修改 Nginx 配置则需要检查/重载 Nginx。
+旧的 `vector-td.location` 已禁用并备份到 `/usr/local/compose/bak/`，不再使用 `alias`。静态目录是 `www` bind mount，覆盖文件后不需要重启 Nginx；如修改 Nginx 配置则需要检查/重载 Nginx。
 
 部署前先备份旧目录，上传并校验新 `index.html` 与 `src/*.js`，再替换；替换后访问公网 URL 验证 `BUILD` 版本与资源 200。部署包与 `dist/` 必须保持一致。

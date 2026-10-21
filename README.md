@@ -26,8 +26,9 @@
 ## 仓库结构
 
 ```text
+index.html      游戏集合入口页（可静态托管）
+README.md       游戏集合说明
 vector-td/      当前游戏：源码、dist、release、截图与文档
-README.md       游戏集合首页
 AGENTS.md       仓库开发约定与部署入口
 .gitignore      隐私与临时文件忽略规则
 ```
@@ -49,6 +50,7 @@ python -m http.server 5180 --bind 127.0.0.1
 
 打开：
 
+- 游戏集合页：`http://127.0.0.1:5180/`
 - 游戏源码：`http://127.0.0.1:5180/vector-td/`
 - 部署镜像：`http://127.0.0.1:5180/vector-td/dist/`
 

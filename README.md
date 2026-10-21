@@ -26,11 +26,12 @@
 ## 仓库结构
 
 ```text
-index.html      游戏集合入口页（可静态托管）
-README.md       游戏集合说明
-vector-td/      当前游戏：源码、dist、release、截图与文档
-AGENTS.md       仓库开发约定与部署入口
-.gitignore      隐私与临时文件忽略规则
+index.html               游戏集合入口页（可静态托管）
+README.md                游戏集合说明
+AGENTS.md                仓库通用约定（所有游戏）
+.gitignore               隐私与临时文件忽略规则
+vector-td/               当前游戏：源码、dist、release、截图与文档
+  AGENTS.md              游戏专属开发约定
 ```
 
 后续新增游戏直接在根目录建立独立文件夹，例如：
@@ -57,6 +58,7 @@ python -m http.server 5180 --bind 127.0.0.1
 ## 文档
 
 - [游戏说明](vector-td/README.md)
-- [开发约定](AGENTS.md)
+- [仓库通用约定](AGENTS.md)
+- [游戏开发约定](vector-td/AGENTS.md)
 - [游戏部署说明](vector-td/docs/deployment.md)
 - [UI/视觉评审文档](vector-td/docs/prd/)

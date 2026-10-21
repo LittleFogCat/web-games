@@ -27,7 +27,7 @@
 /usr/local/compose/bak/vector-td.location.disabled.<timestamp>
 ```
 
-只覆盖静态文件不需要重启 Nginx。只有修改 Nginx 配置或增加新的游戏路由时才需要检查并重载 Nginx。
+只覆盖静态文件不需要重启 Nginx；把游戏目录放进 `www/games/` 也不需要新增 Nginx 配置。只有修改 Nginx 配置本身才需要检查并重载 Nginx。
 
 ## 2. 连接服务器
 

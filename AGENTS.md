@@ -1,16 +1,51 @@
 # AGENTS.md
 
+本文件是仓库的**通用约定**，面向所有游戏。单个游戏的玩法、UI、版本号、打包和专属部署细节，放在该游戏目录下的 `AGENTS.md`：
+
+- [vector-td/AGENTS.md](vector-td/AGENTS.md) — VECTOR // 矢界防线
+
 ## 仓库概览
 
 - 仓库：**LittleFogCat/web-games**
 - 类型：纯静态 Web 游戏集合
-- 当前游戏：**VECTOR // 矢界防线**
-- 游戏目录：`vector-td/`
-- 当前版本：**1.6.2**
-- 线上地址：`https://xiaoniu.tech/games/vector-td/`
-- 服务器目录：`/usr/local/compose/www/games/vector-td`
+- 默认分支：`main`
+- 线上入口：<https://xiaoniu.tech/games/>
+- 组织方式：**每个游戏一个仓库根级目录**，互不依赖
 
-游戏使用 HTML + CSS + 原生 JavaScript，无构建系统、无框架、无外部图片或字体资源；所有几何图形由 Canvas 2D 程序化绘制。
+| 游戏 | 目录 | 线上地址 |
+| --- | --- | --- |
+| VECTOR // 矢界防线 | `vector-td/` | <https://xiaoniu.tech/games/vector-td/> |
+
+版本号、玩法数值与 UI 约定以各游戏目录的 `AGENTS.md` 和 `README.md` 为准。
+
+## 目录约定
+
+```text
+index.html                 游戏集合入口页
+README.md                  游戏列表与仓库说明
+AGENTS.md                  本文件：仓库通用约定
+.gitignore                 隐私与临时文件忽略
+vector-td/                 游戏目录（示例）
+  AGENTS.md                该游戏的开发约定
+  index.html
+  ...
+```
+
+规则：
+
+- 游戏目录名使用小写 kebab-case，例如 `vector-td/`、`neon-runner/`。
+- 游戏目录必须自包含、可直接静态托管；不要依赖仓库根目录的运行时文件。
+- 根目录只放集合入口和公共文档，不放某个游戏的源码。
+- 新游戏必须同时更新：根 `index.html` 的入口卡片、根 `README.md` 的游戏列表、本文件的游戏表。
+- 每个游戏目录应有自己的 `AGENTS.md`；根文件不写具体玩法数值和 UI 细节。
+
+## 技术基线
+
+- 优先 HTML + CSS + 原生 JavaScript，无框架、无构建步骤。
+- 不依赖外部 CDN、图片、字体或音频；资源必须随仓库分发。
+- 使用相对路径，保证部署在 `/games/<name>/` 这类子路径下仍可运行。
+- 如需 `localStorage`，键名加游戏前缀，避免同域下多个游戏冲突。
+- 面向移动端优先，至少检查 320×568、390×667、390×844，不得横向溢出。
 
 ## 本地运行
 
@@ -20,130 +55,67 @@
 python -m http.server 5180 --bind 127.0.0.1
 ```
 
-- 游戏源码：`http://127.0.0.1:5180/vector-td/`
-- 部署镜像：`http://127.0.0.1:5180/vector-td/dist/`
+- 集合页：<http://127.0.0.1:5180/>
+- 单个游戏：`http://127.0.0.1:5180/<game>/`
 
-不要在 `vector-td` 里直接双击 `index.html` 作为最终验证；必须通过 HTTP 检查相对资源和缓存行为。
+必须通过 HTTP 验证，不要用 `file://` 双击页面作为最终结果；子路径、缓存和 MIME 行为只有 HTTP 下才真实。
 
-## 目录结构
+## 新增游戏
+
+1. 在根目录创建 `<game>/`，放入自包含的 `index.html` 与资源。
+2. 在 `<game>/AGENTS.md` 写明玩法约束、UI 约定、版本与构建方式。
+3. 更新根 `index.html`、`README.md`、本文件的游戏表。
+4. 本地 HTTP 验证：入口可点、控制台无错误、移动端无溢出。
+5. 如需发布包，在游戏目录内生成 `dist/`、`release/`；不要把测试产物或临时截图提交进去。
+6. 部署到 `/usr/local/compose/www/games/<game>/`，验证公网 URL。
+
+## 部署模型
+
+所有游戏共用一个站点级 Nginx，**不需要为单个游戏新增配置**：
 
 ```text
-README.md                   游戏集合说明
-index.html                  游戏集合入口页
-AGENTS.md                   开发约定与部署入口
-.gitignore                  隐私与临时文件忽略规则
-vector-td/
-  index.html                页面结构、HUD、暂停条、建造栏、弹窗
-  styles.css                全部 UI、响应式、全屏布局与视觉状态
-  src/util.js               数学、格式化、缓动、随机数
-  src/config.js             防御塔/敌人/全局技能/10 个关卡波次数据
-  src/pathgrid.js           9×16 网格、障碍、出生门、核心、BFS 寻路、建造校验
-  src/game.js               战斗模拟、塔与敌人、波次、经济、撤销、结算
-  src/render.js             Canvas 背景、路径、塔、敌人、特效、范围、选择框
-  src/app.js                DOM 绑定、HUD、建造栏、暂停、关卡/技能界面、存档
-  screenshots/              README 用首页与实机截图
-  release/                  静态部署包与 SHA-256
-  dist/                     可直接部署的镜像目录
-  docs/prd/                 UI/视觉评审文档
-  docs/deployment.md        游戏专属部署、备份、回滚与线上验证文档
-  docs/reference/           XiaoniuTech 运维文档快照
+宿主机 /usr/local/compose/www  →  容器 /usr/share/nginx/html
+Nginx 容器：nginx（80/443）
+配置目录：/usr/local/compose/conf/nginx
 ```
 
-存档键：`vector_geotd_save_v1`（localStorage）。
+站点已有的兜底规则：
 
-## 核心玩法约束
+```nginx
+root /usr/share/nginx/html;
 
-- 10 个星区；每关 12–18 波。
-- 7 种防御塔，每种 5 级；全局技能矩阵 7×5。
-- 局内资源：晶元；元资源：金币。
-- 防御塔上限 12 座，壁垒不占上限。
-- 波次默认自动开始，顶部倒计时卡可点击立即发兵。
-- 全额撤销只允许：**准备阶段最后放下的一座未升级塔**；其他情况回收 60%。
-- 后期波次有额外生命/速度曲线；不能封死所有航线。
-- 第 10 关最终波必须保留 Boss。
-
-## 当前 UI 约定
-
-- 主游戏页为**全屏 Canvas**，不再有占据布局的 header/footer。
-- 顶部 HUD 是透明浮层；底部建造栏是常驻浮层。
-- 建造栏始终显示 8 个栏位，并显示 `塔 x/12` 与最低费用。
-- 暂停后左上按钮切换为**播放/恢复图标**。
-- 暂停条只保留 `重开 / 星图 / 手册`，不再有「继续」按钮；恢复方式为播放图标、`P` 或 `Esc`。
-- 暂停期间允许建造、升级、回收。
-- 鼠标右键取消选择；左键建造或选中设施。
-- HUD 语义色：友方/交互青色，资源金色，危险/核心告急红色，选中白色。
-- 路径是发光通道 + 流动箭头；出生门为危险色；障碍物必须保持暗色、无发光。
-- 移动端必须检查 320×568、390×667、390×844；不得出现横向溢出。
-
-## 修改流程
-
-1. 先读相关文件，避免整文件重写。
-2. 修改后检查语法：
-
-```powershell
-Get-ChildItem vector-td\src\*.js | ForEach-Object {
-  node --check $_.FullName
-  if ($LASTEXITCODE -ne 0) { throw "Syntax failed: $($_.Name)" }
+location / {
+    try_files $uri $uri/ /index.html;
 }
 ```
 
-3. 用 Playwright 做行为与布局回归：
-   - 首页可见、正常选关、进入游戏。
-   - Canvas 尺寸等于视口。
-   - HUD/建造栏/暂停条不互相遮挡。
-   - 建造、暂停建造、右键取消、容量上限、升级/回收。
-   - 控制台无错误。
-4. 更新版本号时，必须同步：
-   - `vector-td/index.html` 页脚 `BUILD x.y.z`
-   - `vector-td/styles.css?v=x.y.z`
-   - `vector-td/src/*.js?v=x.y.z`
-   - `vector-td/README.md` 包链接
-   - `vector-td/dist/README.md` 版本
-   - `vector-td/screenshots/home.png` 页脚截图
-5. 生成新的静态包。
+因此只要游戏是 `www/games/<game>/` 下的真实目录，就能通过 `https://xiaoniu.tech/games/<game>/` 访问。
 
-## 打包
+硬性约束：
 
-在 `vector-td/` 内，将运行时文件复制到 `dist/`：
+- 不使用 `alias`，不使用软链；游戏必须落在 `www/games/<game>/` 真实目录内。
+- 只替换静态文件不需要重启 Nginx；`www` 是 bind mount，文件立即生效。
+- 只有修改 Nginx 配置本身才需要重载：
 
-```text
-index.html
-styles.css
-src/*.js
-README.md
+```bash
+docker exec nginx nginx -s reload
 ```
 
-然后创建 `release/vector-td-v<version>-static.zip`，并生成对应 `.sha256`。不要包含测试产物、临时截图或服务器密钥。
+- 以下情况才需要新增 `location`：新域名/端口、文件不在 `www` 下、前端 History 路由深链接、反代/WebSocket/鉴权、自定义 MIME（wasm/mjs）、特殊 CORS/CSP/缓存头。
+- `try_files ... /index.html` 对缺失资源返回根 `index.html` + 200，不是 404；部署校验要看 `BUILD` 版本或文件内容，不能只看状态码。
+- 部署前备份旧目录，先 staging 校验再原子替换；失败不要删除线上目录。
 
-## 部署
+具体到 VECTOR 的上传、备份、回滚命令见 [vector-td/docs/deployment.md](vector-td/docs/deployment.md)。
 
-游戏专属部署文档：[vector-td/docs/deployment.md](vector-td/docs/deployment.md)。
+## 隐私与提交
 
-服务器接入方式参考：
+- 禁止提交 `.env`、SSH 私钥、证书私钥、服务器密码、API Key、访问令牌。
+- 服务器连接参数只从团队内部配置读取，不写进仓库、不打印到日志。
+- `.gitignore` 已覆盖常见密钥与本地文件；提交前仍要检查 `git status` 和暂存区 diff。
+- 文档可以写部署路径，但不要写私钥路径、主机凭据或内网地址。
 
-- 游戏专属部署文档：[vector-td/docs/deployment.md](vector-td/docs/deployment.md)
-- 运维文档本地快照：[vector-td/docs/reference/xiaoniuTech-ops.md](vector-td/docs/reference/xiaoniuTech-ops.md)
-- 原始位置：团队内部 XiaoniuTech 运维仓库的 `doc/ops/README.md`
-- 连接参数：团队内部 `.env`（不要提交、输出或上传私钥）
+## Git 约定
 
-部署目标：
-
-```text
-/usr/local/compose/www/games/vector-td
-```
-
-公网访问路径：
-
-```text
-https://xiaoniu.tech/games/vector-td/
-```
-
-`vector-td` 是真实目录，由主站 `location /` 直接服务；不是软链，也不使用 `alias`：
-
-```text
-/usr/local/compose/www/games/vector-td
-```
-
-旧的 `vector-td.location` 已禁用并备份到 `/usr/local/compose/bak/`。静态目录是 `www` bind mount，覆盖文件后不需要重启 Nginx；如修改 Nginx 配置则需要检查/重载 Nginx。
-
-部署前先备份旧目录，上传并校验新 `index.html` 与 `src/*.js`，再替换；替换后访问公网 URL 验证 `BUILD` 版本与资源 200。部署包与 `dist/` 必须保持一致。
+- 直接提交到 `main`，不做无意义的强制推送。
+- 提交信息使用 `type: summary`，例如 `feat: ...`、`fix: ...`、`docs: ...`、`chore: ...`。
+- PowerShell 下 `git push` 可能因 stderr 输出返回非零退出码，但推送成功；以 `git ls-remote origin main` 和 `git log` 为准。

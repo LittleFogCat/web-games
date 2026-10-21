@@ -1,0 +1,31 @@
+# Secrets and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.ppk
+id_rsa*
+id_ed25519*
+secrets/
+private/
+docs/private/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs and temporary files
+*.log
+tmp/
+temp/
+node_modules/
+
+# Test artifacts
+test-results/
+playwright-report/
+*.webm

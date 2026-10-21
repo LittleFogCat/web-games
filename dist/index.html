@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#04070f">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="description" content="VECTOR / 矢界防线 — 一款霓虹几何风格的深空塔防游戏。建造防御塔与偏折壁垒，守卫最后的星域核心。">
+  <title>VECTOR // 矢界防线</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23030811'/%3E%3Cpath d='M32 8 56 32 32 56 8 32Z' fill='none' stroke='%235ef2ff' stroke-width='3'/%3E%3Cpath d='m32 20 12 12-12 12-12-12Z' fill='none' stroke='%23ff5fd2' stroke-width='2'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css?v=1.6.2">
+</head>
+<body>
+  <canvas id="ambient-canvas" aria-hidden="true"></canvas>
+  <div class="global-scanlines" aria-hidden="true"></div>
+  <div class="frame-corners" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+
+  <div id="app">
+    <!-- ============================ HOME ============================ -->
+    <section id="screen-home" class="screen screen-home active">
+      <header class="home-top">
+        <div class="brandmark">
+          <span class="brandmark-glyph" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="brandmark-text">VECTOR <b>//</b> 矢界防线</span>
+        </div>
+        <button id="home-sound" class="icon-button sound-button" type="button" aria-label="切换音效">
+          <svg class="ico ico-sound-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h3l4-4v14l-4-4H4z"/><path d="M15 8.5c1.2 1 1.8 2.2 1.8 3.5s-.6 2.5-1.8 3.5"/><path d="M18 5.8c1.8 1.6 2.8 3.8 2.8 6.2s-1 4.6-2.8 6.2"/></svg>
+          <svg class="ico ico-sound-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h3l4-4v14l-4-4H4z"/><path d="m15 9 6 6m0-6-6 6"/></svg>
+        </button>
+      </header>
+
+      <div class="home-main">
+        <div class="home-hero-copy">
+          <div class="eyebrow"><span class="eyebrow-mark"></span>DEEP SPACE DEFENSE PROTOCOL</div>
+          <h1 class="hero-title">
+            <span class="hero-cn">矢界<span>防线</span></span>
+            <em>VECTOR</em>
+          </h1>
+          <p class="hero-sub">在深空裂隙之间，重写敌人的航线。</p>
+          <p class="hero-desc">七种几何防御单元 · 五阶局内进化 · 十片终焉星区</p>
+        </div>
+
+        <div class="home-orbit" aria-hidden="true">
+          <div class="orbit-ring orbit-ring-a"></div>
+          <div class="orbit-ring orbit-ring-b"></div>
+          <div class="orbit-ring orbit-ring-c"></div>
+          <div class="orbit-core"><canvas id="home-core-canvas" width="220" height="220"></canvas></div>
+          <span class="orbit-tag orbit-tag-a">T-07</span>
+          <span class="orbit-tag orbit-tag-b">Δ 0.003</span>
+          <span class="orbit-tag orbit-tag-c">CORE / SAFE</span>
+        </div>
+
+        <div class="home-progress-panel">
+          <div class="progress-cell">
+            <span class="cell-label">金币储备</span>
+            <span class="cell-value"><svg class="ico ico-gold" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 9v6l8 6 8-6V9z"/><path d="M12 7v10M8 11h8"/></svg><b data-gold>0</b></span>
+          </div>
+          <div class="progress-cell">
+            <span class="cell-label">星图进度</span>
+            <span class="cell-value"><b data-progress>0 / 10</b></span>
+          </div>
+          <div class="progress-cell">
+            <span class="cell-label">收集星芒</span>
+            <span class="cell-value"><span class="star-mini">✦</span><b data-stars>0</b><small>/30</small></span>
+          </div>
+        </div>
+
+        <div class="home-actions">
+          <button id="btn-deploy" class="primary-button hero-button" type="button">
+            <span class="button-ornament" aria-hidden="true"></span>
+            <span class="button-copy"><b>进入作战星图</b><small>SELECT SECTOR</small></span>
+            <svg class="ico button-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+          </button>
+          <div class="home-secondary-actions">
+            <button id="btn-skills-home" class="secondary-button" type="button">
+              <span class="btn-glyph" aria-hidden="true">◇</span>
+              <span><b>全局技能矩阵</b><small>SKILL MATRIX</small></span>
+            </button>
+            <button id="btn-help" class="secondary-button" type="button">
+              <span class="btn-glyph" aria-hidden="true">⌁</span>
+              <span><b>作战手册</b><small>FIELD MANUAL</small></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <footer class="home-foot">
+        <span>BUILD 1.6.2 // SIGNAL CLARITY</span>
+        <span class="foot-coord">RA 17h 45m · DEC −29°</span>
+      </footer>
+    </section>
+
+    <!-- ============================ LEVEL SELECT ============================ -->
+    <section id="screen-levels" class="screen screen-levels">
+      <header class="page-header">
+        <button class="icon-button nav-back" type="button" data-nav="home" aria-label="返回主界面">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7M7 12h13"/></svg>
+        </button>
+        <div class="page-heading">
+          <div class="eyebrow">MISSION SELECT</div>
+          <h2>作战星图</h2>
+        </div>
+        <div class="wallet-pill" title="金币">
+          <svg class="ico ico-gold" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 9v6l8 6 8-6V9z"/><path d="M12 7v10M8 11h8"/></svg>
+          <b data-gold>0</b>
+        </div>
+      </header>
+
+      <div class="page-scroll level-scroll">
+        <div class="sector-summary">
+          <div>
+            <span class="eyebrow">AVAILABLE ORBIT</span>
+            <h3>选择坠落星区</h3>
+            <p>清剿全部波次即可解锁下一片星区。首次肃清获得完整金币奖励。</p>
+          </div>
+          <div class="sector-summary-stat">
+            <span>最高推进</span>
+            <strong data-sector-progress>01</strong>
+            <small>SECTOR</small>
+          </div>
+        </div>
+
+        <div id="level-list" class="level-list"></div>
+
+        <button id="levels-skills-shortcut" class="inline-link" type="button">
+          <span class="inline-link-line"></span>
+          前往全局技能矩阵升级外围科技
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+        </button>
+        <div class="scroll-spacer"></div>
+      </div>
+    </section>
+
+    <!-- ============================ SKILLS ============================ -->
+    <section id="screen-skills" class="screen screen-skills">
+      <header class="page-header">
+        <button id="skills-back" class="icon-button nav-back" type="button" aria-label="返回">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7M7 12h13"/></svg>
+        </button>
+        <div class="page-heading">
+          <div class="eyebrow">PERMANENT UPGRADES</div>
+          <h2>全局技能矩阵</h2>
+        </div>
+        <div class="wallet-pill" title="金币">
+          <svg class="ico ico-gold" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 9v6l8 6 8-6V9z"/><path d="M12 7v10M8 11h8"/></svg>
+          <b data-gold>0</b>
+        </div>
+      </header>
+
+      <div class="page-scroll skills-scroll">
+        <div class="skill-hero">
+          <div class="skill-hero-glyph" aria-hidden="true"><canvas id="skill-hero-canvas" width="160" height="160"></canvas></div>
+          <div class="skill-hero-copy">
+            <span class="eyebrow">COMMAND MATRIX</span>
+            <h3>将胜利兑换成长期优势</h3>
+            <p>完成星区获得金币。金币只用于全局技能，晶元只用于当前局内的建造与升级。</p>
+          </div>
+          <div class="skill-wallet">
+            <svg class="ico ico-gold" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 9v6l8 6 8-6V9z"/><path d="M12 7v10M8 11h8"/></svg>
+            <span id="skills-gold-big">0</span>
+            <small>AVAILABLE GOLD</small>
+          </div>
+        </div>
+
+        <div id="skill-list" class="skill-list"></div>
+        <div class="skill-footnote">
+          <span class="footnote-mark">i</span>
+          技能等级永久保留。所有节点最高 5 阶，效果会在下次作战中生效。
+        </div>
+        <div class="scroll-spacer"></div>
+      </div>
+    </section>
+
+    <!-- ============================ GAME ============================ -->
+    <section id="screen-game" class="screen screen-game">
+      <header class="game-hud">
+        <div class="hud-topline">
+          <button id="btn-game-pause" class="icon-button hud-pause" type="button" aria-label="暂停作战">
+            <svg class="ico pause-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg>
+            <svg class="ico play-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <div class="hud-mission">
+            <div class="hud-eyebrow"><span id="hud-level-code">SECTOR 01</span><i></i><span>ORBITAL DEFENSE</span></div>
+            <div class="hud-mission-name"><b id="hud-level-name">初次接触</b><span id="hud-level-en">FIRST CONTACT</span></div>
+            <div class="hud-inline-stats">
+              <span class="hud-inline-core" title="核心完整度"><span class="hud-inline-label">核心</span><b id="hud-core-value">100</b><span id="hud-core-delta" class="hud-core-delta"></span></span>
+              <span class="hud-inline-crystal" title="晶元：用于建造与升级">
+                <svg class="ico ico-crystal" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 7 6-7 12L5 9z"/><path d="M5 9h14M12 3v18"/></svg>
+                <b id="hud-crystals">190</b>
+                <span id="hud-crystal-delta" class="crystal-delta"></span>
+              </span>
+              <span class="hud-inline-wave"><span class="hud-inline-label">波次</span><b id="hud-wave">1/12</b></span>
+            </div>
+          </div>
+          <button id="wave-status" class="wave-status prep" type="button" aria-label="第 1 波将在 25 秒后自动来袭，点击立即发兵" title="点击立即发兵">
+            <span class="wave-status-kicker" id="wave-status-kicker">自动发兵</span>
+            <strong class="wave-status-value" id="wave-status-value">25s</strong>
+            <svg class="wave-skip-ico" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5v9L10 6z"/></svg>
+            <i class="wave-status-progress" id="wave-status-progress" aria-hidden="true"></i>
+          </button>
+          <div class="hud-controls">
+            <button id="btn-game-speed" class="square-button" type="button" aria-label="切换游戏速度"><span id="speed-label">×1</span></button>
+            <button id="btn-game-sound" class="icon-button sound-button" type="button" aria-label="切换音效">
+              <svg class="ico ico-sound-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h3l4-4v14l-4-4H4z"/><path d="M15 8.5c1.2 1 1.8 2.2 1.8 3.5s-.6 2.5-1.8 3.5"/><path d="M18 5.8c1.8 1.6 2.8 3.8 2.8 6.2s-1 4.6-2.8 6.2"/></svg>
+              <svg class="ico ico-sound-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h3l4-4v14l-4-4H4z"/><path d="m15 9 6 6m0-6-6 6"/></svg>
+            </button>
+          </div>
+        </div>
+        <i class="hud-core-line" aria-hidden="true"><b id="hud-core-fill"></b></i>
+      </header>
+
+      <div id="pause-bar" class="pause-bar hidden" role="region" aria-label="作战暂停">
+        <div class="pause-bar-copy">
+          <span>PAUSED</span>
+          <b>已暂停</b>
+        </div>
+        <div class="pause-bar-actions">
+          <button id="btn-pause-restart" class="pause-bar-button" type="button">重开</button>
+          <button id="btn-pause-abandon" class="pause-bar-button" type="button">星图</button>
+          <button id="btn-pause-manual" class="pause-bar-button" type="button">手册</button>
+        </div>
+      </div>
+
+      <div id="arena-wrap" class="arena-wrap">
+        <div id="arena-frame" class="arena-frame">
+          <canvas id="game-canvas" aria-label="塔防战场"></canvas>
+          <div class="arena-vignette" aria-hidden="true"></div>
+          <div class="arena-corner arena-corner-tl" aria-hidden="true"></div>
+          <div class="arena-corner arena-corner-tr" aria-hidden="true"></div>
+          <div class="arena-corner arena-corner-bl" aria-hidden="true"></div>
+          <div class="arena-corner arena-corner-br" aria-hidden="true"></div>
+          <div id="arena-toast" class="arena-toast" role="status" aria-live="polite"></div>
+          <div id="wave-banner" class="wave-banner">
+            <span class="wave-banner-kicker" id="wave-banner-kicker">INCOMING</span>
+            <strong id="wave-banner-title">WAVE 01</strong>
+            <span class="wave-banner-sub" id="wave-banner-sub">敌群进入航道</span>
+          </div>
+          <div id="level-intro" class="level-intro">
+            <span class="level-intro-code" id="intro-code">SECTOR 01</span>
+            <strong id="intro-title">初次接触</strong>
+            <span class="level-intro-line"></span>
+            <small id="intro-en">FIRST CONTACT</small>
+            <p class="level-intro-intel" id="intro-intel"></p>
+          </div>
+          <div id="placement-legend" class="placement-legend">
+            <span class="legend-dot"></span>点击高亮星格部署 · 点击设施查看升级
+          </div>
+        </div>
+      </div>
+
+      <div id="intel-panel" class="intel-panel">
+        <div id="intel-content" class="intel-content"></div>
+      </div>
+
+      <div id="build-dock" class="build-dock" role="region" aria-label="常驻建造栏">
+        <div class="build-dock-head">
+          <span class="build-dock-title">建造阵列</span>
+          <span class="build-dock-capacity">塔 <b id="build-dock-capacity">0/12</b></span>
+          <span class="build-dock-cost">
+            <svg class="ico ico-crystal" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 7 6-7 12L5 9z"/><path d="M5 9h14M12 3v18"/></svg>
+            <b id="build-dock-cost">55</b><i>起</i>
+          </span>
+        </div>
+        <div id="build-list" class="build-list" role="toolbar" aria-label="建造菜单"></div>
+      </div>
+
+      <div id="pause-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="pause-title">
+        <div class="overlay-scrim"></div>
+        <div class="modal-card pause-card">
+          <div class="modal-kicker">TACTICAL HOLD</div>
+          <h2 class="modal-title" id="pause-title">作战暂停</h2>
+          <p class="modal-copy">星域时间已冻结。检查航线，再继续抵抗。</p>
+          <div class="pause-readout">
+            <div><span>当前波次</span><b id="pause-wave">1 / 12</b></div>
+            <div><span>歼灭数</span><b id="pause-kills">0</b></div>
+            <div><span>晶元</span><b id="pause-crystals">0</b></div>
+          </div>
+          <div class="modal-actions">
+            <button id="btn-resume" class="primary-button compact" type="button"><span class="button-copy"><b>继续作战</b><small>RESUME</small></span></button>
+            <button id="btn-pause-help" class="secondary-button compact" type="button"><span><b>作战手册</b><small>FIELD MANUAL</small></span></button>
+            <button id="btn-restart" class="ghost-button compact danger-ghost" type="button">重新部署</button>
+            <button id="btn-abandon" class="ghost-button compact" type="button">放弃并返回星图</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="result-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="result-title">
+        <div class="overlay-scrim"></div>
+        <div id="result-card" class="modal-card result-card">
+          <div class="result-sigil" aria-hidden="true"><canvas id="result-canvas" width="200" height="150"></canvas></div>
+          <div class="modal-kicker" id="result-kicker">MISSION COMPLETE</div>
+          <h2 class="modal-title" id="result-title">星区肃清</h2>
+          <p class="modal-copy" id="result-copy">核心仍在你手中。</p>
+          <div class="result-stars" id="result-stars" aria-label="评价"></div>
+          <div class="result-stats">
+            <div><span>波次</span><b id="result-waves">12 / 12</b></div>
+            <div><span>歼灭</span><b id="result-kills">0</b></div>
+            <div><span>完整度</span><b id="result-core">100%</b></div>
+            <div><span>用时</span><b id="result-time">0:00</b></div>
+          </div>
+          <div class="reward-strip" id="reward-strip">
+            <span>本次指令奖励</span>
+            <b><svg class="ico ico-gold" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 9v6l8 6 8-6V9z"/><path d="M12 7v10M8 11h8"/></svg><span id="result-gold">+0</span></b>
+          </div>
+          <div class="modal-actions result-actions">
+            <button id="result-primary" class="primary-button compact" type="button"><span class="button-copy"><b>下一星区</b><small>CONTINUE</small></span></button>
+            <button id="result-skills" class="secondary-button compact" type="button"><span><b>技能矩阵</b><small>UPGRADE</small></span></button>
+            <button id="result-levels" class="ghost-button compact" type="button">返回星图</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="onboarding" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
+        <div class="overlay-scrim"></div>
+        <div class="modal-card onboarding-card">
+          <div class="modal-kicker">DEPLOYMENT PROTOCOL</div>
+          <h2 class="modal-title" id="onboarding-title">部署协议</h2>
+          <div class="onboarding-steps">
+            <div class="onboarding-step">
+              <span class="step-index">01</span>
+              <div><b>部署防御单元</b><p>在下方常驻建造栏中选择防御单元，再点击战场上的高亮星格。每局最多同时部署 12 座防御塔。准备阶段最后放下的一座未升级塔可原价撤销；开战后或升级后回收只返还 60%。</p></div>
+            </div>
+            <div class="onboarding-step">
+              <span class="step-index">02</span>
+              <div><b>用壁垒重写航线</b><p>偏折壁垒会阻挡通行并迫使敌人绕路，且不占火力单元。无论怎么建造，都不能封死全部通路。</p></div>
+            </div>
+            <div class="onboarding-step">
+              <span class="step-index">03</span>
+              <div><b>击杀 · 升级 · 迎击</b><p>击杀敌人获得晶元，点击已建造的塔可升到五级；四级与五级升级更昂贵。波次会在倒计时结束后自动发兵；点击顶部倒计时可立即提前发兵。</p></div>
+            </div>
+          </div>
+          <button id="btn-onboarding-close" class="primary-button compact" type="button"><span class="button-copy"><b>开始部署</b><small>BEGIN</small></span></button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============================ HELP MODAL ============================ -->
+  <div id="help-modal" class="modal-shell hidden" role="dialog" aria-modal="true" aria-labelledby="help-title">
+    <div class="overlay-scrim"></div>
+    <div class="modal-card help-card">
+      <header class="help-header">
+        <div>
+          <div class="modal-kicker">FIELD MANUAL</div>
+          <h2 class="modal-title" id="help-title">作战手册</h2>
+        </div>
+        <button id="help-close" class="icon-button" type="button" aria-label="关闭手册">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+      </header>
+      <div class="help-body">
+        <div class="help-section">
+          <h3><span>01</span> 胜利条件</h3>
+          <p>守住底部的<b>星域核心</b>，清剿全部来袭波次。任何敌人抵达核心都会削减完整度；核心归零则防线失守。每波之间只有短暂部署时间，倒计时结束后会发出警报并自动发兵。</p>
+        </div>
+        <div class="help-section">
+          <h3><span>02</span> 两种资源</h3>
+          <div class="help-resource-grid">
+            <div><span class="res-swatch crystal"></span><b>晶元</b><p>击杀敌人获得，仅在当前局内使用。用于建造防御塔、壁垒，以及把塔升到五级。</p></div>
+            <div><span class="res-swatch gold"></span><b>金币</b><p>完成星区获得，永久保存。前往全局技能矩阵购买五阶永久强化。</p></div>
+          </div>
+        </div>
+        <div class="help-section">
+          <h3><span>03</span> 阻挡与航线</h3>
+          <p>防御塔与壁垒都会占据星格，并迫使敌人重新寻路。你无法封死所有从裂口通往核心的通路；尝试拉长路线，把敌人送进射程交汇处。每局最多同时部署 <b>12 座防御塔</b>，偏折壁垒不占火力单元；四级与五级升级需要更多晶元。</p>
+          <p>准备阶段最后部署的一座<b>未升级防御塔</b>可以原价撤销；放下其他设施、升级该塔或进入战斗后，撤销机会消失，回收只返还 60% 投入。</p>
+        </div>
+        <div class="help-section">
+          <h3><span>04</span> 相位抗性</h3>
+          <p><b>相位哨卫</b>与最终首领拥有能量抗性，会削弱激光、电弧与震荡塔的伤害。棱镜、机炮、重炮和冻结塔不受抗性影响。</p>
+        </div>
+        <div class="help-section">
+          <h3><span>05</span> 敌情图鉴</h3>
+          <div id="help-enemy-list" class="enemy-manual"></div>
+        </div>
+        <div class="help-section">
+          <h3><span>06</span> 波次节奏</h3>
+          <p>关卡开始时有 25 秒初始部署时间，之后清空一波会获得 12 秒整备时间。顶部会显示自动发兵倒计时；剩余 3 秒时发出警报，倒计时归零后敌群直接进入航道。也可以点击顶部倒计时卡，立即发起下一波。</p>
+          <p>每个星区内，越靠后的波次会获得额外生命与速度增幅。从第 7 星区开始，后期增幅显著提高；最终首领波会检验你的完整防线。</p>
+          <p>战役已扩充：每个星区会插入额外的强化波次，单关共有 12–18 波，敌军总量比早期版本更高。</p>
+        </div>
+        <div class="help-section">
+          <h3><span>07</span> 快捷操作</h3>
+          <p>数字键 <kbd>1</kbd>–<kbd>7</kbd> 选择塔，<kbd>W</kbd> 选择壁垒，<kbd>P</kbd> / <kbd>Esc</kbd> 暂停或继续。鼠标<b>右键</b>取消当前选择，<b>左键</b>建造或选中设施。战场全屏显示，顶部 HUD 与下方常驻建造栏都浮在战场上方。暂停只会冻结战场，不会弹窗遮挡画面；<b>暂停期间仍可部署、升级和回收设施</b>。波次会自动开始：每波准备阶段结束时先发出 3 秒警报，随后直接发兵；点击顶部倒计时卡可立即提前发兵。触屏设备可直接点按所有目标。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="src/util.js?v=1.6.2"></script>
+  <script src="src/config.js?v=1.6.2"></script>
+  <script src="src/pathgrid.js?v=1.6.2"></script>
+  <script src="src/audio.js?v=1.6.2"></script>
+  <script src="src/render.js?v=1.6.2"></script>
+  <script src="src/game.js?v=1.6.2"></script>
+  <script src="src/app.js?v=1.6.2"></script>
+</body>
+</html>

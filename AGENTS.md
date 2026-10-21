@@ -12,11 +12,13 @@
 - 线上入口：<https://xiaoniu.tech/games/>
 - 组织方式：**每个游戏一个仓库根级目录**，互不依赖
 
-| 游戏 | 目录 | 线上地址 |
-| --- | --- | --- |
-| VECTOR // 矢界防线 | `vector-td/` | <https://xiaoniu.tech/games/vector-td/> |
+## 游戏列表
 
-版本号、玩法数值与 UI 约定以各游戏目录的 `AGENTS.md` 和 `README.md` 为准。
+| 游戏 | 目录 | 类型 | 线上地址 | 文档 |
+| --- | --- | --- | --- | --- |
+| VECTOR // 矢界防线 | [`vector-td/`](vector-td/) | 竖版深空塔防 | <https://xiaoniu.tech/games/vector-td/> | [开发约定](vector-td/AGENTS.md) · [游戏说明](vector-td/README.md) |
+
+新增游戏时在表格追加一行。版本号、玩法数值与 UI 约定以各游戏目录的 `AGENTS.md` 和 `README.md` 为准。
 
 ## 目录约定
 

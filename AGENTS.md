@@ -8,7 +8,7 @@
 - 游戏目录：`vector-td/`
 - 当前版本：**1.6.2**
 - 线上地址：`https://xiaoniu.tech/games/vector-td/`
-- 服务器目录：`/usr/local/compose/www/games-vector-td`
+- 服务器目录：`/usr/local/compose/www/games/vector-td`
 
 游戏使用 HTML + CSS + 原生 JavaScript，无构建系统、无框架、无外部图片或字体资源；所有几何图形由 Canvas 2D 程序化绘制。
 
@@ -129,7 +129,7 @@ README.md
 部署目标：
 
 ```text
-/usr/local/compose/www/games-vector-td
+/usr/local/compose/www/games/vector-td
 ```
 
 公网访问路径：
@@ -138,12 +138,12 @@ README.md
 https://xiaoniu.tech/games/vector-td/
 ```
 
-公开入口由主站 `location /` 直接服务：
+`vector-td` 是真实目录，由主站 `location /` 直接服务；不是软链，也不使用 `alias`：
 
 ```text
-/usr/local/compose/www/games/vector-td -> ../games-vector-td
+/usr/local/compose/www/games/vector-td
 ```
 
-旧的 `vector-td.location` 已禁用并备份到 `/usr/local/compose/bak/`，不再使用 `alias`。静态目录是 `www` bind mount，覆盖文件后不需要重启 Nginx；如修改 Nginx 配置则需要检查/重载 Nginx。
+旧的 `vector-td.location` 已禁用并备份到 `/usr/local/compose/bak/`。静态目录是 `www` bind mount，覆盖文件后不需要重启 Nginx；如修改 Nginx 配置则需要检查/重载 Nginx。
 
 部署前先备份旧目录，上传并校验新 `index.html` 与 `src/*.js`，再替换；替换后访问公网 URL 验证 `BUILD` 版本与资源 200。部署包与 `dist/` 必须保持一致。

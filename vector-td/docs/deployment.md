@@ -11,16 +11,15 @@
 
 不要把私钥、`.env` 内容、服务器密码或 API Key 提交到本仓库或静态部署目录。
 
-## 1. 部署目标与 URL 映射
+## 1. 部署目标
 
 ```text
-游戏数据目录：/usr/local/compose/www/games-vector-td
-公开入口：    /usr/local/compose/www/games/vector-td -> ../games-vector-td
+游戏实际目录：/usr/local/compose/www/games/vector-td
 游戏 URL：    https://xiaoniu.tech/games/vector-td/
 游戏集合页：  https://xiaoniu.tech/games/
 ```
 
-现在由主站的 `location / { try_files $uri $uri/ /index.html; }` 直接服务，不再依赖 `alias`。
+`vector-td` 是 `www/games/` 下的真实目录，不是软链。由主站的 `location / { try_files $uri $uri/ /index.html; }` 直接服务，不使用 `alias`。
 
 旧的 `vector-td.location` 已禁用并备份到：
 
@@ -101,12 +100,12 @@ scp -i $env:ALIYUN_SSH_KEY_PATH -P $env:ALIYUN_SSH_PORT `
 ```bash
 set -e
 TS=$(date +%Y%m%d-%H%M%S)
-TARGET=/usr/local/compose/www/games-vector-td
-NEW=/usr/local/compose/www/games-vector-td.new
+TARGET=/usr/local/compose/www/games/vector-td
+NEW=/usr/local/compose/www/games/vector-td.new
 BAK=/usr/local/compose/bak
 
 mkdir -p "$BAK"
-tar -czf "$BAK/games-vector-td-$TS.tar.gz" -C /usr/local/compose/www games-vector-td
+tar -czf "$BAK/vector-td-$TS.tar.gz" -C "$TARGET" .
 
 rm -rf "$NEW"
 mkdir -p "$NEW"
@@ -126,7 +125,7 @@ chmod -R u+rwX,go+rX "$TARGET"
 ## 5. 部署后验证
 
 ```bash
-grep -m1 'BUILD ' /usr/local/compose/www/games-vector-td/index.html
+grep -m1 'BUILD ' /usr/local/compose/www/games/vector-td/index.html
 curl -skS -o /dev/null -w '%{http_code}\n' https://127.0.0.1/games/vector-td/ -H 'Host: xiaoniu.tech'
 curl -skS -o /dev/null -w '%{http_code}\n' 'https://127.0.0.1/games/vector-td/styles.css?v=1.6.2' -H 'Host: xiaoniu.tech'
 ```
@@ -151,16 +150,16 @@ https://xiaoniu.tech/games/vector-td/?v=1.6.2
 每次部署前在 `/usr/local/compose/bak/` 生成旧目录压缩包：
 
 ```text
-/usr/local/compose/bak/games-vector-td-YYYYMMDD-HHMMSS.tar.gz
+/usr/local/compose/bak/vector-td-YYYYMMDD-HHMMSS.tar.gz
 ```
 
 回滚时先确认目标路径，再解压并替换：
 
 ```bash
 TS=YYYYMMDD-HHMMSS
-BACKUP=/usr/local/compose/bak/games-vector-td-$TS.tar.gz
-TARGET=/usr/local/compose/www/games-vector-td
-STAGE=/usr/local/compose/www/games-vector-td.rollback
+BACKUP=/usr/local/compose/bak/vector-td-$TS.tar.gz
+TARGET=/usr/local/compose/www/games/vector-td
+STAGE=/usr/local/compose/www/games/vector-td.rollback
 
 test -s "$BACKUP"
 rm -rf "$STAGE"
@@ -176,8 +175,8 @@ chmod -R u+rwX,go+rX "$TARGET"
 
 ## 7. 部署边界
 
-- 只覆盖 `/usr/local/compose/www/games-vector-td/`。
-- 公开入口依赖 `/usr/local/compose/www/games/vector-td` 这个相对软链；不要在覆盖时删除它。
+- 只覆盖 `/usr/local/compose/www/games/vector-td/`。
+- 这个目录是真实目录，不是软链；不要把它改成指向旧 `games-vector-td` 的链接。
 - 不要动 `/usr/local/compose/www` 下的其他站点目录。
 - 不要动 `/usr/local/compose/conf`、`docker-compose.yml`、`.env`，除非任务明确要求。
 - 不要把 `backend/.env`、私钥、API Key 上传到 `www`。
@@ -187,9 +186,8 @@ chmod -R u+rwX,go+rX "$TARGET"
 
 - 部署时间：2026-10-21
 - 版本：1.6.2
-- 目标：`/usr/local/compose/www/games-vector-td`
-- 映射：`/usr/local/compose/www/games/vector-td -> ../games-vector-td`
+- 目标：`/usr/local/compose/www/games/vector-td`（真实目录）
 - 公网：`https://xiaoniu.tech/games/vector-td/`
 - 集合页：`https://xiaoniu.tech/games/`
-- 备份：`/usr/local/compose/bak/games-vector-td-<timestamp>.tar.gz`
+- 备份：`/usr/local/compose/bak/vector-td-<timestamp>.tar.gz`
 - 部署方式：静态 tar 上传 → 服务器备份 → staging 校验 → 原子替换

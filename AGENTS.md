@@ -1,9 +1,11 @@
 # AGENTS.md
 
-## 项目概览
+## 仓库概览
 
-- 名称：**VECTOR // 矢界防线**
-- 类型：纯静态、竖屏深空塔防网页游戏
+- 仓库：**LittleFogCat/web-games**
+- 类型：纯静态 Web 游戏集合
+- 当前游戏：**VECTOR // 矢界防线**
+- 游戏目录：`vector-td/`
 - 当前版本：**1.6.2**
 - 线上地址：`https://xiaoniu.tech/games/vector-td/`
 - 服务器目录：`/usr/local/compose/www/games-vector-td`
@@ -12,34 +14,38 @@
 
 ## 本地运行
 
-在项目根目录启动静态服务器：
+在仓库根目录启动静态服务器：
 
 ```powershell
 python -m http.server 5180 --bind 127.0.0.1
 ```
 
-- 源码预览：`http://127.0.0.1:5180/`
-- 打包产物预览：`http://127.0.0.1:5180/dist/`
+- 游戏源码：`http://127.0.0.1:5180/vector-td/`
+- 部署镜像：`http://127.0.0.1:5180/vector-td/dist/`
 
-不要直接双击 `index.html` 作为最终验证；必须通过 HTTP 检查相对资源和缓存行为。
+不要在 `vector-td` 里直接双击 `index.html` 作为最终验证；必须通过 HTTP 检查相对资源和缓存行为。
 
 ## 目录结构
 
 ```text
-index.html          页面结构、HUD、暂停条、建造栏、弹窗
-styles.css          全部 UI、响应式、全屏布局与视觉状态
-src/util.js         数学、格式化、缓动、随机数
-src/config.js       防御塔/敌人/全局技能/10 个关卡波次数据
-src/pathgrid.js     9×16 网格、障碍、出生门、核心、BFS 寻路、建造校验
-src/game.js         战斗模拟、塔与敌人、波次、经济、撤销、结算
-src/render.js       Canvas 背景、路径、塔、敌人、特效、范围、选择框
-src/app.js          DOM 绑定、HUD、建造栏、暂停、关卡/技能界面、存档
-screenshots/        README 用首页与实机截图
-release/            静态部署包与 SHA-256
-dist/               可直接部署的镜像目录
-docs/prd/           UI/视觉评审文档
-docs/deployment.md  游戏专属部署、备份、回滚与线上验证文档
-docs/reference/     XiaoniuTech 运维文档快照
+README.md                   游戏集合首页
+AGENTS.md                   开发约定与部署入口
+.gitignore                  隐私与临时文件忽略规则
+vector-td/
+  index.html                页面结构、HUD、暂停条、建造栏、弹窗
+  styles.css                全部 UI、响应式、全屏布局与视觉状态
+  src/util.js               数学、格式化、缓动、随机数
+  src/config.js             防御塔/敌人/全局技能/10 个关卡波次数据
+  src/pathgrid.js           9×16 网格、障碍、出生门、核心、BFS 寻路、建造校验
+  src/game.js               战斗模拟、塔与敌人、波次、经济、撤销、结算
+  src/render.js             Canvas 背景、路径、塔、敌人、特效、范围、选择框
+  src/app.js                DOM 绑定、HUD、建造栏、暂停、关卡/技能界面、存档
+  screenshots/              README 用首页与实机截图
+  release/                  静态部署包与 SHA-256
+  dist/                     可直接部署的镜像目录
+  docs/prd/                 UI/视觉评审文档
+  docs/deployment.md        游戏专属部署、备份、回滚与线上验证文档
+  docs/reference/           XiaoniuTech 运维文档快照
 ```
 
 存档键：`vector_geotd_save_v1`（localStorage）。
@@ -74,7 +80,7 @@ docs/reference/     XiaoniuTech 运维文档快照
 2. 修改后检查语法：
 
 ```powershell
-Get-ChildItem src\*.js | ForEach-Object {
+Get-ChildItem vector-td\src\*.js | ForEach-Object {
   node --check $_.FullName
   if ($LASTEXITCODE -ne 0) { throw "Syntax failed: $($_.Name)" }
 }
@@ -87,17 +93,17 @@ Get-ChildItem src\*.js | ForEach-Object {
    - 建造、暂停建造、右键取消、容量上限、升级/回收。
    - 控制台无错误。
 4. 更新版本号时，必须同步：
-   - `index.html` 页脚 `BUILD x.y.z`
-   - `styles.css?v=x.y.z`
-   - 所有 `src/*.js?v=x.y.z`
-   - `README.md` 包链接
-   - `dist/README.md` 版本
-   - `screenshots/home.png` 页脚截图
+   - `vector-td/index.html` 页脚 `BUILD x.y.z`
+   - `vector-td/styles.css?v=x.y.z`
+   - `vector-td/src/*.js?v=x.y.z`
+   - `vector-td/README.md` 包链接
+   - `vector-td/dist/README.md` 版本
+   - `vector-td/screenshots/home.png` 页脚截图
 5. 生成新的静态包。
 
 ## 打包
 
-将运行时文件复制到 `dist/`：
+在 `vector-td/` 内，将运行时文件复制到 `dist/`：
 
 ```text
 index.html
@@ -110,12 +116,12 @@ README.md
 
 ## 部署
 
-游戏专属部署文档：[docs/deployment.md](docs/deployment.md)。
+游戏专属部署文档：[vector-td/docs/deployment.md](vector-td/docs/deployment.md)。
 
 服务器接入方式参考：
 
-- 游戏专属部署文档：[docs/deployment.md](docs/deployment.md)
-- 运维文档本地快照：[docs/reference/xiaoniuTech-ops.md](docs/reference/xiaoniuTech-ops.md)
+- 游戏专属部署文档：[vector-td/docs/deployment.md](vector-td/docs/deployment.md)
+- 运维文档本地快照：[vector-td/docs/reference/xiaoniuTech-ops.md](vector-td/docs/reference/xiaoniuTech-ops.md)
 - 原始位置：团队内部 XiaoniuTech 运维仓库的 `doc/ops/README.md`
 - 连接参数：团队内部 `.env`（不要提交、输出或上传私钥）
 

@@ -1,6 +1,6 @@
 # VECTOR // 矢界防线 — 部署文档
 
-本文是游戏项目自己的部署说明，部署方式来自团队内部 XiaoniuTech 运维文档。运维文档已在本地保留一份原样快照：[reference/xiaoniuTech-ops.md](reference/xiaoniuTech-ops.md)。
+本文是游戏项目自己的部署说明。游戏源码位于仓库的 `vector-td/` 目录；以下打包、上传和校验命令均在该目录内执行。部署方式来自团队内部 XiaoniuTech 运维文档，运维文档已在本地保留一份原样快照：[reference/xiaoniuTech-ops.md](reference/xiaoniuTech-ops.md)。
 
 完整服务器接入文档仍以团队内部原文为准：
 

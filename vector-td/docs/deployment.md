@@ -191,7 +191,19 @@ chmod -R u+rwX,go+rX "$TARGET"
 
 ## 8. 当前线上记录
 
-### 0.14.1-dev（当前）
+### 0.14.2-dev（当前）
+
+- 部署时间：2026-10-29 00:55（调试面板命令行 REPL + `debug()` 控制台入口；无玩法数值改动）
+- 版本：**0.14.2-dev**
+- 目标：`/usr/local/compose/www/games/vector-td`（真实目录）
+- 公网：`https://xiaoniu.tech/games/vector-td/`
+- 备份：`/usr/local/compose/bak/vector-td-20261029-005436.tar.gz`
+- 发布包：`release/vector-td-v0.14.2-dev-static.zip`，SHA-256 `064a1b508963f160a572747763c98761b37ca63c9f23e6829fb8bb00e3b81a12`（16 个条目，POSIX 路径，Python zipfile 生成）
+- 部署方式：静态 tar 上传 → 服务器备份 → staging 校验（`BUILD 0.14.2-dev`、16 个文件、index/styles/app/render/game 五文件 SHA-256 与本地一致、`manifest.json` 存在、无嵌套 `icons/icons`、`index.html` 无 U+FFFD）→ 原子替换
+- 线上验证：服务器本机 Host 头验证 `page 200 text/html`、`css 200 text/css`、`app 200 application/javascript`、`manifest 200 application/json`；公网页脚 `BUILD 0.14.2-dev`
+- 内容摘要：调试面板底部新增命令行（`help/status/gold/crystals/heal/spawn/towers/wave/kill/win/lose/god/free/skill/skills/unlock/level/speed/clear`，↑/↓ 历史，日志上限 120 行）；控制台 `debug()` 入口（调试模式关闭时静默返回 `null` 并提示，不弹 UI）；命令输入拥有战场快捷键焦点保护（输入框内打字不触发 `P`/`W`/数字键/Space，`Esc` 仍可关闭面板）
+
+### 0.14.1-dev（上一版）
 
 - 部署时间：2026-10-28 22:41（平衡修正 + 小行星可见性 + 灯塔可升阶 + 技能减价文案修复）
 - 版本：**0.14.1-dev**

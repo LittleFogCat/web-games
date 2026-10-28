@@ -107,6 +107,7 @@ docker exec nginx nginx -s reload
 - 以下情况才需要新增 `location`：新域名/端口、文件不在 `www` 下、前端 History 路由深链接、反代/WebSocket/鉴权、自定义 MIME（wasm/mjs）、特殊 CORS/CSP/缓存头。
 - `try_files ... /index.html` 对缺失资源返回根 `index.html` + 200，不是 404；部署校验要看 `BUILD` 版本或文件内容，不能只看状态码。
 - 部署前备份旧目录，先 staging 校验再原子替换；失败不要删除线上目录。
+- **新包自动部署**：任务生成了新的版本化发布包并通过本地验证后，按该游戏的部署文档**自主完成部署，无需询问用户**——先在服务器备份旧目录，staging 校验通过再原子替换；部署后验证公网 `BUILD` 版本与资源 200，并更新该游戏 `docs/deployment.md` 的线上记录。校验失败必须停止，不能删除线上目录。
 
 具体到 VECTOR 的上传、备份、回滚命令见 [vector-td/docs/deployment.md](vector-td/docs/deployment.md)。
 

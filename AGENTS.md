@@ -122,3 +122,4 @@ docker exec nginx nginx -s reload
 - 直接提交到 `main`，不做无意义的强制推送。
 - 提交信息使用 `type: summary`，例如 `feat: ...`、`fix: ...`、`docs: ...`、`chore: ...`。
 - PowerShell 下 `git push` 可能因 stderr 输出返回非零退出码，但推送成功；以 `git ls-remote origin main` 和 `git log` 为准。
+- **任务完成后自主推送**：任务完成并验证后，执行提交前检查——工作区与暂存区无隐私数据（密钥、凭据、令牌、内网地址），无测试产物、临时文件等垃圾文件（或已被 `.gitignore` 忽略）；检查通过后**无需再次询问**，只暂存本次任务相关文件，按上述提交信息规范 commit 并 push 到 `main`。与任务无关的本地改动保持不动，不要顺手提交。

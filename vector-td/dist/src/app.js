@@ -147,6 +147,10 @@
     panelOpen: false,
   };
 
+  // Debug command line (REPL) state. Lives outside #debug-body so panel
+  // re-renders never wipe history or the log.
+  const debugCli = { history: [], historyIndex: -1 };
+
   /* ============================================================
      Immersive shell: fullscreen API, standalone PWA mode, viewport
      height and wake lock. Mobile is the primary target: the browser
@@ -533,6 +537,9 @@
     debugHud: $('btn-game-debug'),
     debugBadge: $('hud-debug-badge'),
     debugClose: $('debug-close'),
+    debugCliLog: $('debug-cli-log'),
+    debugCliForm: $('debug-cli-form'),
+    debugCliInput: $('debug-cli-input'),
   };
 
   ['home', 'levels', 'skills', 'game'].forEach(function (name) {
@@ -1060,6 +1067,9 @@
     if (!debug.enabled) return;
     debug.panelOpen = true;
     renderDebugPanel();
+    if (els.debugCliLog && !els.debugCliLog.childNodes.length) {
+      debugCliPrint('[VECTOR CLI] 调试命令行就绪，输入 help 查看命令。', 'muted');
+    }
     if (els.debugPanel) els.debugPanel.classList.remove('hidden');
     updateDebugChrome();
     audio.play('ui');
@@ -1190,6 +1200,252 @@
       '<div class="debug-stat"><span>晶元</span><b>' + U.formatInt(s.crystals) + '</b></div>' +
       '<div class="debug-stat"><span>敌军</span><b>' + s.enemies + '</b></div>' +
       '<div class="debug-stat"><span>防御塔</span><b>' + s.towers + '</b></div>';
+  }
+
+  /* ============================================================
+     Debug command line (REPL)
+     Lives outside #debug-body so panel re-renders keep the log.
+     ============================================================ */
+  function debugCliPrint(text, cls) {
+    if (!els.debugCliLog) return;
+    const line = document.createElement('div');
+    line.className = 'debug-cli-line' + (cls ? ' ' + cls : '');
+    line.textContent = text;
+    els.debugCliLog.appendChild(line);
+    while (els.debugCliLog.childNodes.length > 120) {
+      els.debugCliLog.removeChild(els.debugCliLog.firstChild);
+    }
+    els.debugCliLog.scrollTop = els.debugCliLog.scrollHeight;
+  }
+
+  function debugCliExec(raw) {
+    const input = String(raw || '').trim();
+    if (!input) return;
+    debugCli.history.push(input);
+    if (debugCli.history.length > 50) debugCli.history.shift();
+    debugCli.historyIndex = -1;
+    debugCliPrint('> ' + input, 'input');
+    try {
+      const result = debugCliRun(input);
+      if (result) debugCliPrint(result, 'out');
+    } catch (error) {
+      debugCliPrint('ERR: ' + (error && error.message ? error.message : String(error)), 'error');
+    }
+  }
+
+  function debugCliRun(raw) {
+    const parts = raw.split(/\s+/);
+    const cmd = (parts[0] || '').toLowerCase();
+    const args = parts.slice(1);
+    const num = function (i, fallback) {
+      const value = Number(args[i]);
+      return Number.isFinite(value) ? value : fallback;
+    };
+    const game = currentGame;
+    const needGame = function () {
+      if (!game) throw new Error('尚未进入战斗，先用 level <id> 进入星区');
+      return game;
+    };
+    const flag = function (i, current) {
+      const value = arg(i);
+      if (value === 'on' || value === '1' || value === 'true') return true;
+      if (value === 'off' || value === '0' || value === 'false') return false;
+      return !current;
+    };
+    function arg(i) { return (args[i] || '').toLowerCase(); }
+
+    switch (cmd) {
+      case 'help':
+        return [
+          '可用命令：',
+          '  status               当前局摘要',
+          '  gold [n]             金币 +n（默认 1000）',
+          '  crystals [n]         晶元 +n（默认 500）',
+          '  heal [n]             核心修复 +n（默认 50）',
+          '  spawn <type> [n]     生成敌群（默认 5）',
+          '  towers               攻击塔全部升满',
+          '  wave                 立即发下一波',
+          '  kill                 清空敌军',
+          '  win / lose           直接判定胜负',
+          '  god [on|off]         无敌核心（缺省切换）',
+          '  free [on|off]        免费建造（缺省切换）',
+          '  skill <id> <rank>    设置技能阶数（0-' + C.SKILL_MAX + '）',
+          '  skills max|reset     全技能满阶 / 清零',
+          '  unlock               解锁全部星区',
+          '  level <id>           直达星区（1-' + C.LEVELS.length + '）',
+          '  speed <1|2|3>        战斗倍速',
+          '  clear                清空本日志',
+        ].join('\n');
+      case 'status': {
+        if (!game) return '尚未进入战斗。';
+        const s = game.debugStatus();
+        return '阶段 ' + s.phase + ' · 波次 ' + s.wave + '/' + s.totalWaves +
+          ' · 核心 ' + s.baseHp + '/' + s.baseMax +
+          ' · 晶元 ' + U.formatInt(s.crystals) +
+          ' · 敌军 ' + s.enemies + ' · 防御塔 ' + s.towers;
+      }
+      case 'gold': {
+        const amount = Math.floor(num(0, 1000));
+        if (amount <= 0) return '金额需为正数。';
+        save.gold += amount;
+        persist();
+        refreshMeta();
+        showGlobalToast('金币 +' + amount, 'success');
+        return '金币 +' + amount + '（当前 ' + U.formatInt(save.gold) + '）';
+      }
+      case 'crystals': case 'c': {
+        needGame();
+        const amount = Math.max(0, Math.floor(num(0, 500)));
+        const total = game.debugAddCrystals(amount);
+        showGlobalToast('晶元 +' + amount, 'success');
+        return '晶元 +' + amount + '（当前 ' + U.formatInt(total) + '）';
+      }
+      case 'heal': {
+        needGame();
+        const healed = game.debugHealCore(num(0, 50));
+        showGlobalToast('核心修复 +' + healed, 'success');
+        return '核心修复 +' + healed;
+      }
+      case 'spawn': {
+        needGame();
+        const type = arg(0);
+        if (!type || !C.ENEMIES[type] || type === 'shard') {
+          return '未知敌人类型：' + (type || '(空)') + '。可用：' + C.ENEMY_ORDER.filter(function (t) { return t !== 'shard'; }).join(', ');
+        }
+        const count = num(1, 5);
+        const ok = game.debugSpawn(type, count);
+        refreshDebugStatus();
+        return ok ? '已生成 ' + count + ' 个 ' + C.ENEMIES[type].name : '生成失败（战斗已结束）';
+      }
+      case 'towers': {
+        needGame();
+        const count = game.debugMaxTowers();
+        showGlobalToast('已将 ' + count + ' 座攻击塔升满（灯塔不参与）', 'success');
+        return '已升满 ' + count + ' 座攻击塔。';
+      }
+      case 'wave': {
+        needGame();
+        const started = game.debugNextWave();
+        return started ? '已立即发兵。' : '当前无法发兵（仅准备阶段可用）。';
+      }
+      case 'kill': {
+        needGame();
+        const killed = game.debugKillAll();
+        refreshDebugStatus();
+        return '已清除 ' + killed + ' 个敌军。';
+      }
+      case 'win': {
+        needGame();
+        return game.debugWin() ? '判定胜利。' : '战斗已有结果。';
+      }
+      case 'lose': {
+        needGame();
+        return game.debugLose() ? '判定失败。' : '战斗已有结果。';
+      }
+      case 'god': {
+        needGame();
+        debug.godMode = flag(0, debug.godMode);
+        game.setGodMode(debug.godMode);
+        renderDebugPanel();
+        return '无敌核心：' + (debug.godMode ? 'ON' : 'OFF');
+      }
+      case 'free': {
+        needGame();
+        debug.freeBuild = flag(0, debug.freeBuild);
+        game.setFreeBuild(debug.freeBuild);
+        renderDebugPanel();
+        return '免费建造：' + (debug.freeBuild ? 'ON' : 'OFF');
+      }
+      case 'skill': {
+        const id = arg(0);
+        if (!id || !save.skills.hasOwnProperty(id)) {
+          return '未知技能 id。可用：' + C.SKILLS.map(function (s) { return s.id; }).join(', ');
+        }
+        const rank = U.clamp(Math.floor(num(1, C.SKILL_MAX)), 0, C.SKILL_MAX);
+        save.skills[id] = rank;
+        persist();
+        refreshMeta();
+        renderSkills();
+        renderDebugPanel();
+        return '技能 ' + id + ' → ' + rank + ' 阶。';
+      }
+      case 'skills': {
+        const mode = arg(0) || 'max';
+        if (mode === 'reset') {
+          debugSetAllSkills(0);
+          return '全部技能已清零并返还金币。';
+        }
+        if (mode === 'max') {
+          debugSetAllSkills(C.SKILL_MAX);
+          return '全部技能已提升至 ' + C.SKILL_MAX + ' 阶。';
+        }
+        return '用法：skills max|reset';
+      }
+      case 'unlock': {
+        save.unlocked = C.LEVELS.length;
+        persist();
+        refreshMeta();
+        renderLevelList();
+        showGlobalToast('已解锁全部星区', 'success');
+        return '已解锁全部 ' + C.LEVELS.length + ' 个星区。';
+      }
+      case 'level': {
+        const levelId = Math.floor(num(0, 0));
+        if (!C.LEVELS[levelId - 1]) return '星区编号需为 1-' + C.LEVELS.length + '。';
+        startLevel(levelId);
+        return '进入 SECTOR ' + pad2(levelId) + ' · ' + C.LEVELS[levelId - 1].name;
+      }
+      case 'speed': {
+        const value = Math.floor(num(0, 1));
+        if (value !== 1 && value !== 2 && value !== 3) return '倍速仅支持 1 / 2 / 3。';
+        gameSpeed = value;
+        if (currentGame) currentGame.setSpeed(value);
+        els.speedLabel.textContent = '×' + value;
+        return '战斗倍速 ×' + value;
+      }
+      case 'clear': {
+        if (els.debugCliLog) els.debugCliLog.innerHTML = '';
+        return null;
+      }
+      default:
+        return '未知命令：' + cmd + '。输入 help 查看命令。';
+    }
+  }
+
+  function bindDebugCli() {
+    if (els.debugCliForm) {
+      els.debugCliForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        if (!debug.enabled) return;
+        const input = els.debugCliInput;
+        if (!input) return;
+        debugCliExec(input.value);
+        input.value = '';
+        input.focus();
+      });
+    }
+    if (els.debugCliInput) {
+      els.debugCliInput.addEventListener('keydown', function (event) {
+        // Escape bubbles up so the document handler can still close the panel.
+        if (event.key === 'Escape') return;
+        // Keep battlefield shortcuts (P / W / 1-9 / Space) out of the CLI.
+        event.stopPropagation();
+        if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+          event.preventDefault();
+          if (!debugCli.history.length) return;
+          if (debugCli.historyIndex === -1) debugCli.historyIndex = debugCli.history.length;
+          debugCli.historyIndex = U.clamp(
+            debugCli.historyIndex + (event.key === 'ArrowUp' ? -1 : 1),
+            0,
+            debugCli.history.length
+          );
+          const entry = debugCli.historyIndex === debugCli.history.length
+            ? ''
+            : debugCli.history[debugCli.historyIndex];
+          if (els.debugCliInput) els.debugCliInput.value = entry;
+        }
+      });
+    }
   }
 
   function debugSetAllSkills(rank) {
@@ -2886,6 +3142,7 @@
       if (save.settings.sound) audio.ensure();
     }, { capture: true, passive: true });
 
+    bindDebugCli();
     buildHelpManual();
     refreshMeta();
   }
@@ -2967,6 +3224,7 @@
       activeScreen === 'game' &&
       currentGame &&
       !helpOpen() &&
+      !isTextEntryTarget(event.target) &&
       els.onboarding.classList.contains('hidden') &&
       els.traitBriefing.classList.contains('hidden') &&
       els.resultOverlay.classList.contains('hidden')
@@ -2975,7 +3233,7 @@
       event.preventDefault();
       return;
     }
-    if (activeScreen !== 'game' || gameInputBlocked() || !currentGame) return;
+    if (activeScreen !== 'game' || gameInputBlocked() || !currentGame || isTextEntryTarget(event.target)) return;
     if (event.key >= '1' && event.key <= String(C.TOWER_ORDER.length)) {
       const type = C.TOWER_ORDER[Number(event.key) - 1];
       if (type) {
@@ -3122,6 +3380,25 @@
       nextWave: function () { if (currentGame) currentGame.debugNextWave(); },
       maxTowers: function () { if (currentGame) currentGame.debugMaxTowers(); },
     },
+  };
+
+  // Console entry point: F12 -> debug() opens the debug panel with the CLI.
+  // Silent no-op in production (debug mode off) to keep normal play clean.
+  window.debug = function () {
+    if (!debug.enabled) {
+      console.info(
+        '[VECTOR] 调试模式未开启。本地环境默认开启；线上可用 ?debug=1 或 Ctrl + Shift + D 临时开启（调试战斗不写入正式进度）。'
+      );
+      return null;
+    }
+    openDebugPanel();
+    return {
+      enabled: debug.enabled,
+      godMode: debug.godMode,
+      freeBuild: debug.freeBuild,
+      panelOpen: debug.panelOpen,
+      exec: function (command) { debugCliExec(command); },
+    };
   };
 
   boot();

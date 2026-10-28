@@ -6,7 +6,7 @@
 
 - 仓库：**LittleFogCat/web-games**
 - 游戏目录：`vector-td/`
-- 当前版本：**0.14.1-dev**（2026-10-28 起按 0.x 迭代；旧线 1.13.1 已归档，见 [扩容机制报告](docs/design/游戏扩容机制报告.md)）
+- 当前版本：**0.14.2-dev**（2026-10-28 起按 0.x 迭代；旧线 1.13.1 已归档，见 [扩容机制报告](docs/design/游戏扩容机制报告.md)）
 - 线上地址：<https://xiaoniu.tech/games/vector-td/>
 - 集合页：<https://xiaoniu.tech/games/>
 - 服务器目录：`/usr/local/compose/www/games/vector-td`
@@ -158,19 +158,22 @@ README.md
 控制台开发入口（不属于正常玩法）：
 
 ```js
-__VECTOR.game                       // 当前战斗实例
-__VECTOR.save                       // 存档对象
-__VECTOR.immersive                  // 全屏 / PWA / Wake Lock 状态
-__VECTOR.toggleImmersive()          // 切换全屏沉浸
-__VECTOR.addGold(500)               // 增加金币
-__VECTOR.unlockAll()                // 解锁全部星区
-__VECTOR.debug.enabled              // 调试模式状态
-__VECTOR.debug.maxSkills()          // 全技能 5 阶
-__VECTOR.debug.setSkill('core', 5)  // 指定技能阶数
-__VECTOR.debug.spawn('wraith', 5)   // 生成测试敌群
-__VECTOR.debug.win() / lose()       // 直接判定胜负
-__VECTOR.debug.status()             // 当前局内摘要
+debug()                             // F12 控制台调用：打开调试面板；调试模式关闭时静默返回 null 并提示
+window.__VECTOR.game                // 当前战斗实例
+window.__VECTOR.save                // 存档对象
+window.__VECTOR.immersive           // 全屏 / PWA / Wake Lock 状态
+window.__VECTOR.toggleImmersive()   // 切换全屏沉浸
+window.__VECTOR.addGold(500)        // 增加金币
+window.__VECTOR.unlockAll()         // 解锁全部星区
+window.__VECTOR.debug.enabled       // 调试模式状态
+window.__VECTOR.debug.maxSkills()   // 全技能 5 阶
+window.__VECTOR.debug.setSkill('core', 5)  // 指定技能阶数
+window.__VECTOR.debug.spawn('wraith', 5)   // 生成测试敌群
+window.__VECTOR.debug.win() / lose()       // 直接判定胜负
+window.__VECTOR.debug.status()             // 当前局内摘要
 ```
+
+调试面板底部有命令行（REPL），支持 ↑/↓ 历史回溯，命令：`help` / `status` / `gold` / `crystals` / `heal` / `spawn` / `towers` / `wave` / `kill` / `win` / `lose` / `god` / `free` / `skill` / `skills` / `unlock` / `level` / `speed` / `clear`；面板打开后命令输入拥有键盘焦点保护（在输入框打字不会触发 `P`/`W`/数字键等战场快捷键，`Esc` 仍可关闭面板）。
 
 调试模式默认在 `localhost` / `127.0.0.1` / `file://` 开启；可用 `?debug=1` / `?debug=0` 或 `Ctrl + Shift + D` 强制切换。调试战斗不写入正式进度。
 

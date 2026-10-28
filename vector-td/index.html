@@ -15,9 +15,9 @@
   <meta name="description" content="VECTOR / 矢界防线 — 一款霓虹几何风格的深空塔防游戏。建造防御塔与偏折壁垒，守卫最后的星域核心。">
   <title>VECTOR // 矢界防线</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23030811'/%3E%3Cpath d='M32 8 56 32 32 56 8 32Z' fill='none' stroke='%235ef2ff' stroke-width='3'/%3E%3Cpath d='m32 20 12 12-12 12-12-12Z' fill='none' stroke='%23ff5fd2' stroke-width='2'/%3E%3C/svg%3E">
-  <link rel="manifest" href="manifest.json?v=0.14.1-dev">
-  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png?v=0.14.1-dev">
-  <link rel="stylesheet" href="styles.css?v=0.14.1-dev">
+  <link rel="manifest" href="manifest.json?v=0.14.2-dev">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png?v=0.14.2-dev">
+  <link rel="stylesheet" href="styles.css?v=0.14.2-dev">
 </head>
 <body>
   <canvas id="ambient-canvas" aria-hidden="true"></canvas>
@@ -33,6 +33,14 @@
       <button id="debug-close" class="debug-close" type="button" aria-label="关闭调试面板">×</button>
     </header>
     <div id="debug-body" class="debug-body"></div>
+    <div class="debug-cli">
+      <div id="debug-cli-log" class="debug-cli-log" aria-live="polite"></div>
+      <form id="debug-cli-form" class="debug-cli-form" autocomplete="off">
+        <span class="debug-cli-prompt" aria-hidden="true">&gt;</span>
+        <input id="debug-cli-input" class="debug-cli-input" type="text" placeholder="help 查看命令" aria-label="调试命令行" spellcheck="false" autocomplete="off" enterkeyhint="send">
+        <button class="debug-cli-run" type="submit" aria-label="执行命令">RUN</button>
+      </form>
+    </div>
   </div>
 
   <div id="app">
@@ -120,7 +128,7 @@
       </div>
 
       <footer class="home-foot">
-        <span>BUILD 0.14.1-dev // BEACON PROTOCOL</span>
+        <span>BUILD 0.14.2-dev // BEACON PROTOCOL</span>
         <span class="foot-coord">RA 17h 45m · DEC −29°</span>
       </footer>
     </section>
@@ -498,12 +506,12 @@
     </div>
   </div>
 
-  <script src="src/util.js?v=0.14.1-dev"></script>
-  <script src="src/config.js?v=0.14.1-dev"></script>
-  <script src="src/pathgrid.js?v=0.14.1-dev"></script>
-  <script src="src/audio.js?v=0.14.1-dev"></script>
-  <script src="src/render.js?v=0.14.1-dev"></script>
-  <script src="src/game.js?v=0.14.1-dev"></script>
-  <script src="src/app.js?v=0.14.1-dev"></script>
+  <script src="src/util.js?v=0.14.2-dev"></script>
+  <script src="src/config.js?v=0.14.2-dev"></script>
+  <script src="src/pathgrid.js?v=0.14.2-dev"></script>
+  <script src="src/audio.js?v=0.14.2-dev"></script>
+  <script src="src/render.js?v=0.14.2-dev"></script>
+  <script src="src/game.js?v=0.14.2-dev"></script>
+  <script src="src/app.js?v=0.14.2-dev"></script>
 </body>
 </html>

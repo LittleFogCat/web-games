@@ -1,6 +1,6 @@
 # VECTOR // 矢界防线
 
-> 当前版本：**0.14.1-dev**（2026-10-28 起按 0.x 迭代）。扩容方向见 [扩容机制报告](../docs/游戏扩容机制报告.md)。
+> 当前版本：**0.14.1-dev**（2026-10-28 起按 0.x 迭代）。扩容方向见 [扩容机制报告](docs/design/游戏扩容机制报告.md)。
 
 一款可直接在浏览器运行的竖版深空塔防游戏。画面采用 2D 几何空心图形与霓虹线条风格，所有图形、图标、塔、敌人、特效和星空背景均由 Canvas / CSS 程序化绘制，没有外部图片、字体或音频素材。
 
@@ -181,16 +181,16 @@ src/audio.js        Web Audio 程序化音效
 src/render.js       Canvas 战场渲染器、五级塔体、特性敌人与弹道
 src/game.js         战斗模拟、护盾/抗性/隐匿结算、塔/敌/弹道、调试 API
 src/app.js          界面导航、存档、金币技能、调试面板、输入与主循环
-../docs/            仓库根目录策划文档与单位图鉴
+docs/design/        策划总案、单位图鉴与扩容文档
 docs/deployment.md  游戏专属部署文档
 docs/prd/           UI/视觉评审文档
 ```
 
-根目录 `docs/`：
+`docs/design/`（策划与图鉴）：
 
 ```text
-docs/游戏策划文档.md   玩法、关卡、数值、视觉与验收
-docs/单位图鉴.md       防御塔与敌人的完整数据
+docs/design/游戏策划文档.md   玩法、关卡、数值、视觉与验收
+docs/design/单位图鉴.md       防御塔与敌人的完整数据
 ```
 
 ## 开发备注
@@ -210,4 +210,4 @@ __VECTOR.debug.spawn('wraith', 5) // 生成测试敌群
 __VECTOR.debug.win()       // 直接胜利
 ```
 
-完整调试 API 见 `src/app.js` 末尾的 `window.__VECTOR`，以及根目录 `docs/游戏策划文档.md` 的“调试模式”一节。
+完整调试 API 见 `src/app.js` 末尾的 `window.__VECTOR`，以及 `docs/design/游戏策划文档.md` 的“调试模式”一节。

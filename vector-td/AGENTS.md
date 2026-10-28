@@ -6,7 +6,7 @@
 
 - 仓库：**LittleFogCat/web-games**
 - 游戏目录：`vector-td/`
-- 当前版本：**0.14.1-dev**（2026-10-28 起按 0.x 迭代；旧线 1.13.1 已归档，见 [扩容机制报告](../docs/游戏扩容机制报告.md)）
+- 当前版本：**0.14.1-dev**（2026-10-28 起按 0.x 迭代；旧线 1.13.1 已归档，见 [扩容机制报告](docs/design/游戏扩容机制报告.md)）
 - 线上地址：<https://xiaoniu.tech/games/vector-td/>
 - 集合页：<https://xiaoniu.tech/games/>
 - 服务器目录：`/usr/local/compose/www/games/vector-td`
@@ -47,9 +47,9 @@ vector-td/
   release/                  静态部署包与 SHA-256
   dist/                     可直接部署的镜像目录
   docs/deployment.md        游戏专属部署、备份、回滚与线上验证文档
+  docs/design/              策划总案、单位图鉴与扩容文档
   docs/prd/                 UI/视觉评审文档
   docs/reference/           XiaoniuTech 运维文档快照
-  ../docs/                  仓库级策划文档与单位图鉴
 ```
 
 ## 核心玩法约束
@@ -122,7 +122,7 @@ Get-ChildItem vector-td\src\*.js | ForEach-Object {
    - `vector-td/dist/README.md` 版本
    - `vector-td/screenshots/home.png` 页脚截图
    - `vector-td/screenshots/tower-tiers.png` / `enemy-traits.png`（视觉变化时）
-   - 根 `docs/` 策划文档与单位图鉴（数值 / 机制变化时）
+   - `docs/design/` 策划文档与单位图鉴（数值 / 机制变化时）
 5. 生成新的静态包。
 
 ## 打包
@@ -176,6 +176,6 @@ __VECTOR.debug.status()             // 当前局内摘要
 
 ## 文档维护
 
-- 策划总案：`../../docs/游戏策划文档.md`
-- 单位图鉴：`../../docs/单位图鉴.md`
+- 策划总案：`docs/design/游戏策划文档.md`
+- 单位图鉴：`docs/design/单位图鉴.md`
 - 修改塔 / 敌人 / 关卡数值后，必须同步这两份文档中的相关表格与“首次出现”信息。

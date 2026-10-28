@@ -16,7 +16,7 @@
 
 | 游戏 | 目录 | 类型 | 线上地址 | 文档 |
 | --- | --- | --- | --- | --- |
-| VECTOR // 矢界防线 | [`vector-td/`](vector-td/) | 竖版深空塔防 | <https://xiaoniu.tech/games/vector-td/> | [开发约定](vector-td/AGENTS.md) · [游戏说明](vector-td/README.md) · [策划文档](docs/游戏策划文档.md) · [单位图鉴](docs/单位图鉴.md) |
+| VECTOR // 矢界防线 | [`vector-td/`](vector-td/) | 竖版深空塔防 | <https://xiaoniu.tech/games/vector-td/> | [开发约定](vector-td/AGENTS.md) · [游戏说明](vector-td/README.md) · [策划文档](vector-td/docs/design/游戏策划文档.md) · [单位图鉴](vector-td/docs/design/单位图鉴.md) |
 
 新增游戏时在表格追加一行。版本号、玩法数值与 UI 约定以各游戏目录的 `AGENTS.md` 和 `README.md` 为准。
 
@@ -26,10 +26,10 @@
 index.html                 游戏集合入口页
 README.md                  游戏列表与仓库说明
 AGENTS.md                  本文件：仓库通用约定
-docs/                      仓库级游戏策划文档与单位图鉴
 .gitignore                 隐私与临时文件忽略
 vector-td/                 游戏目录（示例）
   AGENTS.md                该游戏的开发约定
+  docs/                    该游戏专属文档（策划、图鉴、部署等）
   index.html
   ...
 ```
@@ -38,7 +38,7 @@ vector-td/                 游戏目录（示例）
 
 - 游戏目录名使用小写 kebab-case，例如 `vector-td/`、`neon-runner/`。
 - 游戏目录必须自包含、可直接静态托管；不要依赖仓库根目录的运行时文件。
-- 根目录只放集合入口和公共文档，不放某个游戏的源码。
+- 根目录只放集合入口和公共文档，不放某个游戏的源码与专属文档（策划文档、单位图鉴等一律放 `<game>/docs/`）。
 - 新游戏必须同时更新：根 `index.html` 的入口卡片、根 `README.md` 的游戏列表、本文件的游戏表。
 - 每个游戏目录应有自己的 `AGENTS.md`；根文件不写具体玩法数值和 UI 细节。
 

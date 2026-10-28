@@ -1,6 +1,6 @@
 # VECTOR // 矢界防线
 
-> 当前版本：**0.14.2-dev**（2026-10-28 起按 0.x 迭代）。扩容方向见 [扩容机制报告](docs/design/游戏扩容机制报告.md)。
+> 当前版本：**0.14.3-dev**（2026-10-28 起按 0.x 迭代）。扩容方向见 [扩容机制报告](docs/design/游戏扩容机制报告.md)。
 
 一款可直接在浏览器运行的竖版深空塔防游戏。画面采用 2D 几何空心图形与霓虹线条风格，所有图形、图标、塔、敌人、特效和星空背景均由 Canvas / CSS 程序化绘制，没有外部图片、字体或音频素材。
 
@@ -24,8 +24,8 @@ python -m http.server 5180 --bind 127.0.0.1
 已生成并验证可直接上传的静态部署产物：
 
 - `dist/`：部署目录，包含 `index.html`、`styles.css`、`manifest.json`、`icons/`、`src/` 与部署说明；
-- [`release/vector-td-v0.14.2-dev-static.zip`](release/vector-td-v0.14.2-dev-static.zip)：压缩包，解压后即可作为静态站点内容；
-- [`release/vector-td-v0.14.2-dev-static.zip.sha256`](release/vector-td-v0.14.2-dev-static.zip.sha256)：SHA-256 校验文件。
+- [`release/vector-td-v0.14.3-dev-static.zip`](release/vector-td-v0.14.3-dev-static.zip)：压缩包，解压后即可作为静态站点内容；
+- [`release/vector-td-v0.14.3-dev-static.zip.sha256`](release/vector-td-v0.14.3-dev-static.zip.sha256)：SHA-256 校验文件。
 
 无需构建步骤、Node.js 或后端服务，可部署到 Nginx、Apache、Netlify、Vercel、Cloudflare Pages 或 GitHub Pages。具体说明见 `dist/README.md`。
 

@@ -191,7 +191,19 @@ chmod -R u+rwX,go+rX "$TARGET"
 
 ## 8. 当前线上记录
 
-### 0.14.2-dev（当前）
+### 0.14.3-dev（当前）
+
+- 部署时间：2026-10-29 01:23（调试面板字号可读性放大；补丁线收尾）
+- 版本：**0.14.3-dev**
+- 目标：`/usr/local/compose/www/games/vector-td`（真实目录）
+- 公网：`https://xiaoniu.tech/games/vector-td/`
+- 备份：`/usr/local/compose/bak/vector-td-20261029-012310.tar.gz`（220K）
+- 发布包：`release/vector-td-v0.14.3-dev-static.zip`，SHA-256 `1cf75e42fc9ca217664312dd21f7244cd455dd1d7ddc372cef85fd292101ccd3`（16 个条目，POSIX 路径，Python zipfile 生成）
+- 部署方式：静态 tar 上传 → 服务器备份 → staging 校验（`BUILD 0.14.3-dev`、16 个文件、index/styles/app/render/game 五文件 SHA-256 与本地一致、`manifest.json` 存在、无嵌套 `icons/icons`、无 U+FFFD）→ 原子替换
+- 线上验证：服务器本机 Host 头验证 `page 200 text/html`、`css 200 text/css`、`app 200 application/javascript`；公网页脚 `BUILD 0.14.3-dev`
+- 内容摘要：调试面板字号整体放大约 1.6 倍（标题 12px、按钮 11.5px、状态 11–12.5px、命令行输入 13px/日志 12px、标题区 17px），面板宽度 336px→380px（移动端仍受 `calc(100vw - 20px)` 约束），380px 以下基准字号 9px→12px；Playwright 回归 15 项通过（REPL、生成敌群、无敌、canvas 等宽、三档视口无溢出、生产环境静默）
+
+### 0.14.2-dev（上一版）
 
 - 部署时间：2026-10-29 00:55（调试面板命令行 REPL + `debug()` 控制台入口；无玩法数值改动）
 - 版本：**0.14.2-dev**

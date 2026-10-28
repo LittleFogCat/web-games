@@ -47,6 +47,7 @@ body {
 
 html {
   background: var(--bg-deep);
+  overscroll-behavior: none;
   -webkit-text-size-adjust: 100%;
 }
 
@@ -208,6 +209,7 @@ body::before {
   max-width: 560px;
   height: 100vh;
   height: 100dvh;
+  height: var(--app-height, 100dvh);
   margin: 0 auto;
   overflow: hidden;
 }
@@ -583,6 +585,13 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.home-top-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
 }
 
 .brandmark {
@@ -1771,6 +1780,113 @@ body::before {
   letter-spacing: 0.1em;
 }
 
+.skill-manage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 18px 2px 0;
+  padding: 10px 11px;
+  border: 1px solid rgba(112, 203, 230, 0.14);
+  background: rgba(7, 17, 28, 0.5);
+  clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px));
+}
+
+.skill-manage-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.skill-manage-copy b {
+  color: var(--text-soft);
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+.skill-manage-copy span {
+  color: var(--faint);
+  font-size: 8px;
+  line-height: 1.55;
+}
+
+.skill-reset {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  padding: 0 11px;
+  border: 1px solid rgba(255, 154, 98, 0.34);
+  color: #ffc7a2;
+  background: rgba(38, 20, 12, 0.42);
+  clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 5px 100%, 0 calc(100% - 5px));
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.skill-reset small {
+  color: #c99a7c;
+  font-family: var(--font-mono);
+  font-size: 7px;
+}
+
+.skill-reset b {
+  color: #ffd9bf;
+  font-weight: 500;
+}
+
+.skill-reset:hover:not(:disabled) {
+  border-color: rgba(255, 154, 98, 0.62);
+  color: #ffd9bf;
+}
+
+.skill-reset:disabled {
+  opacity: 0.36;
+  cursor: default;
+}
+
+.skill-reset.confirming {
+  border-color: rgba(255, 93, 122, 0.72);
+  color: #ffb0be;
+  background: rgba(50, 14, 22, 0.52);
+  animation: reset-confirm 1.1s ease-in-out infinite;
+}
+
+.skill-reset.confirming small,
+.skill-reset.confirming b {
+  color: #e3a0ad;
+}
+
+@keyframes reset-confirm {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(255, 93, 122, 0);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(255, 93, 122, 0.28);
+  }
+}
+
+@media (max-width: 380px) {
+  .skill-manage {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .skill-reset {
+    justify-content: center;
+  }
+}
+
 .skill-footnote {
   display: flex;
   gap: 7px;
@@ -2428,6 +2544,116 @@ body::before {
 .pause-bar-button.primary:hover {
   color: #031116;
   filter: brightness(1.08);
+}
+
+/* transient wave intel card, summoned by tapping the wave block mid-combat */
+.wave-intel {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 82px);
+  right: 8px;
+  z-index: 26;
+  display: none;
+  width: min(272px, calc(100% - 16px));
+  max-height: 46vh;
+  overflow: auto;
+  padding: 8px 10px 9px;
+  border: 1px solid color-mix(in srgb, var(--game-accent) 34%, transparent);
+  background:
+    linear-gradient(180deg, rgba(7, 19, 31, 0.97), rgba(4, 12, 21, 0.98)),
+    radial-gradient(ellipse at 12% 0, color-mix(in srgb, var(--game-accent) 9%, transparent), transparent 68%);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.46);
+  clip-path: polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 9px 100%, 0 calc(100% - 9px));
+}
+
+.wave-intel.show {
+  display: block;
+  animation: wave-intel-in 160ms ease;
+}
+
+.screen-game.pause-active .wave-intel {
+  top: calc(env(safe-area-inset-top, 0px) + 96px);
+}
+
+@keyframes wave-intel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.wave-intel-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(111, 186, 209, 0.14);
+}
+
+.wave-intel-kicker {
+  color: var(--game-accent);
+  font-family: var(--font-mono);
+  font-size: 7px;
+  letter-spacing: 0.1em;
+}
+
+.wave-intel-head b {
+  color: var(--text-soft);
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.wave-intel-close {
+  width: 18px;
+  height: 18px;
+  margin-left: auto;
+  padding: 0;
+  border: 1px solid rgba(120, 200, 226, 0.18);
+  color: var(--muted);
+  background: transparent;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.wave-intel-close:hover {
+  border-color: color-mix(in srgb, var(--game-accent) 46%, transparent);
+  color: var(--text);
+}
+
+.wave-intel-summary {
+  margin: 6px 0 5px;
+  color: var(--text-soft);
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.wave-intel .next-wave-preview {
+  display: flex;
+  max-width: none;
+  justify-content: flex-start;
+}
+
+.wave-intel .enemy-chip {
+  padding: 3px 5px;
+  font-size: 8px;
+}
+
+.wave-intel .next-wave-threats {
+  justify-content: flex-start;
+  margin-top: 4px;
+}
+
+.wave-intel-traits {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.55;
 }
 
 /* arena */
@@ -3238,7 +3464,7 @@ body::before {
 
 .build-list {
   display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-template-columns: repeat(9, minmax(0, 1fr));
   gap: 3px;
 }
 
@@ -5093,6 +5319,23 @@ kbd {
   filter: drop-shadow(0 0 3px color-mix(in srgb, var(--resource) 35%, transparent));
 }
 
+/* Crystal shards keep their blue mineral tint in every cost/price context. */
+.ico-crystal {
+  filter: drop-shadow(0 0 3px rgba(92, 198, 245, 0.42));
+}
+
+.ico-crystal path {
+  stroke: none;
+}
+
+.build-cost .ico-crystal,
+.intel-level.cost .ico-crystal,
+.mini-button .ico-crystal,
+.skill-cost .ico-crystal,
+.crystal-stat .ico-crystal {
+  filter: drop-shadow(0 0 3px rgba(92, 198, 245, 0.42));
+}
+
 /* primary build action: larger, brighter, with cost */
 .build-toggle {
   height: 50px;
@@ -5974,5 +6217,1776 @@ kbd {
 
   .placement-legend {
     bottom: calc(env(safe-area-inset-bottom, 0px) + 92px);
+  }
+}
+
+/* ============================================================
+   v1.7.0 — traits, codex, five-tier silhouettes, debug mode
+   ============================================================ */
+
+.hud-debug-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 13px;
+  margin-left: 6px;
+  padding: 0 5px;
+  border: 1px solid rgba(255, 154, 98, 0.56);
+  color: #ffb27d;
+  background: rgba(41, 17, 8, 0.62);
+  font-family: var(--font-mono);
+  font-size: 6px;
+  letter-spacing: 0.14em;
+}
+
+.debug-enabled .debug-fab {
+  display: inline-flex;
+}
+
+.debug-fab {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  padding: 0 7px;
+  border: 1px solid rgba(255, 154, 98, 0.66);
+  color: #ffbf92;
+  background: rgba(19, 9, 6, 0.9);
+  box-shadow: 0 0 10px rgba(255, 120, 62, 0.14);
+  font-family: var(--font-mono);
+  font-size: 6px;
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+}
+
+.debug-fab:hover,
+.debug-fab:focus-visible {
+  border-color: #ffb27d;
+  color: #ffe0c8;
+}
+
+.debug-hud-button {
+  width: 26px !important;
+  height: 26px !important;
+  border-color: rgba(255, 154, 98, 0.5) !important;
+  color: #ffbf92 !important;
+  background: rgba(38, 20, 12, 0.58) !important;
+  font-family: var(--font-mono);
+}
+
+.debug-hud-button span {
+  font-size: 7px;
+  letter-spacing: 0.08em;
+}
+
+body.help-open .debug-fab,
+body.help-open .debug-hud-button {
+  display: none !important;
+}
+
+.debug-panel {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 62px);
+  right: calc(env(safe-area-inset-right, 0px) + 10px);
+  z-index: 300;
+  width: min(336px, calc(100vw - 20px));
+  max-height: min(74vh, 640px);
+  overflow: auto;
+  border: 1px solid rgba(255, 154, 98, 0.44);
+  background:
+    linear-gradient(180deg, rgba(24, 13, 10, 0.97), rgba(5, 10, 16, 0.98) 24%),
+    var(--panel-solid);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.64), 0 0 0 1px rgba(0, 0, 0, 0.4), 0 0 34px rgba(255, 120, 62, 0.1);
+  font-family: var(--font-ui);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 154, 98, 0.35) transparent;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+}
+
+.debug-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.debug-panel::-webkit-scrollbar-thumb {
+  background: rgba(255, 154, 98, 0.3);
+}
+
+.debug-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 11px 9px;
+  border-bottom: 1px solid rgba(255, 154, 98, 0.2);
+  background: rgba(21, 11, 8, 0.98);
+}
+
+.debug-header b {
+  display: block;
+  margin-top: 2px;
+  color: #ffe6d5;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.debug-kicker {
+  display: block;
+  color: #ff9a62;
+  font-family: var(--font-mono);
+  font-size: 6px;
+  letter-spacing: 0.2em;
+}
+
+.debug-close {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 1px solid rgba(255, 154, 98, 0.3);
+  color: #ffc7a2;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.debug-body {
+  padding: 8px 10px 12px;
+}
+
+.debug-section {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 154, 98, 0.1);
+}
+
+.debug-section:last-child {
+  border-bottom: 0;
+}
+
+.debug-section h4 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 6px;
+  color: #ffccb0;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.debug-section h4 span {
+  color: rgba(255, 178, 125, 0.62);
+  font-size: 6.5px;
+  letter-spacing: 0.06em;
+}
+
+.debug-levels {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.debug-level {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 36px;
+  padding: 4px 5px;
+  border: 1px solid rgba(111, 186, 209, 0.16);
+  color: var(--text-soft);
+  background: rgba(7, 17, 28, 0.52);
+  text-align: left;
+}
+
+.debug-level b {
+  color: var(--cyan);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.debug-level small {
+  overflow: hidden;
+  width: 100%;
+  margin-top: 1px;
+  color: var(--muted);
+  font-size: 6.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.debug-level:hover,
+.debug-level:focus-visible {
+  border-color: rgba(94, 242, 255, 0.5);
+  color: var(--text);
+  background: rgba(13, 33, 48, 0.66);
+}
+
+.debug-level.active {
+  border-color: rgba(255, 154, 98, 0.62);
+  background: rgba(44, 23, 15, 0.62);
+}
+
+.debug-level.active b {
+  color: #ffb27d;
+}
+
+.debug-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.debug-actions button,
+.debug-toggle,
+.debug-enemy {
+  min-height: 25px;
+  padding: 4px 6px;
+  border: 1px solid rgba(111, 186, 209, 0.18);
+  color: var(--text-soft);
+  background: rgba(8, 20, 31, 0.62);
+  font-family: var(--font-mono);
+  font-size: 7.5px;
+  line-height: 1.25;
+  text-align: left;
+}
+
+.debug-actions button:hover,
+.debug-toggle:hover,
+.debug-enemy:hover {
+  border-color: rgba(94, 242, 255, 0.42);
+  color: var(--text);
+}
+
+.debug-actions button:disabled {
+  opacity: 0.34;
+  cursor: not-allowed;
+}
+
+.debug-actions button.danger {
+  border-color: rgba(255, 93, 122, 0.3);
+  color: #ffa8b7;
+}
+
+.debug-toggles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.debug-toggle[aria-pressed="true"] {
+  border-color: rgba(125, 244, 198, 0.6);
+  color: #b7ffe5;
+  background: rgba(13, 46, 38, 0.62);
+  box-shadow: inset 0 0 10px rgba(125, 244, 198, 0.08);
+}
+
+.debug-enemies {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.debug-enemy {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 4px 5px;
+}
+
+.debug-enemy i {
+  width: 5px;
+  height: 5px;
+  flex: 0 0 auto;
+  background: var(--enemy-color, var(--cyan));
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.debug-enemy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.debug-note {
+  margin: 5px 0 0;
+  color: var(--faint);
+  font-size: 7.5px;
+  line-height: 1.55;
+}
+
+.debug-status {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3px 8px;
+}
+
+.debug-stat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 3px 4px;
+  border-bottom: 1px dotted rgba(111, 186, 209, 0.12);
+}
+
+.debug-stat span {
+  color: var(--muted);
+  font-size: 7px;
+}
+
+.debug-stat b {
+  color: var(--cyan);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 500;
+}
+
+.debug-inline-note {
+  margin-top: 10px;
+  padding: 7px 9px;
+  border: 1px dashed rgba(255, 154, 98, 0.45);
+  color: #ffc7a2;
+  background: rgba(38, 20, 12, 0.45);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  line-height: 1.6;
+}
+
+.level-status.debug {
+  border-color: rgba(255, 154, 98, 0.42);
+  color: #ffb27d;
+  background: rgba(43, 22, 13, 0.38);
+}
+
+#result-card.debug-run {
+  border-color: rgba(255, 154, 98, 0.42);
+}
+
+#result-card.debug-run .modal-kicker {
+  color: #ffb27d;
+}
+
+#reward-strip.debug {
+  border-color: rgba(255, 154, 98, 0.34);
+  background: rgba(38, 20, 12, 0.36);
+}
+
+/* ---------- intel tags / trait chips ---------- */
+.intel-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 4px;
+}
+
+.intel-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 13px;
+  padding: 0 5px;
+  border: 1px solid rgba(111, 186, 209, 0.24);
+  color: var(--text-soft);
+  background: rgba(8, 20, 31, 0.55);
+  font-family: var(--font-mono);
+  font-size: 6.5px;
+  letter-spacing: 0.04em;
+}
+
+.intel-tag.damage {
+  border-color: color-mix(in srgb, var(--tag-color, var(--cyan)) 46%, transparent);
+  color: var(--tag-color, var(--cyan));
+}
+
+.intel-tag.detect {
+  border-color: rgba(154, 223, 255, 0.42);
+  color: #9adfff;
+}
+
+.intel-counter {
+  margin-top: 4px;
+  color: var(--faint);
+  font-size: 7px;
+  line-height: 1.45;
+}
+
+.next-wave-threats {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.next-wave-threats span {
+  padding: 1px 4px;
+  border: 1px solid color-mix(in srgb, var(--trait-color, #9adfff) 38%, transparent);
+  color: var(--trait-color, #9adfff);
+  font-family: var(--font-mono);
+  font-size: 6px;
+}
+
+.enemy-chip.has-traits {
+  gap: 2px;
+}
+
+.trait-mark {
+  display: inline-grid;
+  width: 10px;
+  height: 10px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--trait-color, #9adfff) 55%, transparent);
+  color: var(--trait-color, #9adfff);
+  font-family: var(--font-ui);
+  font-size: 6px;
+  font-style: normal;
+  line-height: 1;
+}
+
+.enemy-chip.shape-shield i,
+.enemy-chip.shape-kite i,
+.enemy-chip.shape-heptagon i {
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+
+/* ---------- field manual: towers and traits ---------- */
+.tower-manual,
+.trait-manual {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 9px;
+}
+
+.tower-manual-row,
+.trait-manual-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 9px;
+  border: 1px solid rgba(111, 186, 209, 0.1);
+  background: rgba(7, 17, 28, 0.42);
+}
+
+.tower-manual-row canvas {
+  width: 27px;
+  height: 27px;
+  flex: 0 0 auto;
+}
+
+.tower-manual-copy,
+.trait-manual-copy {
+  min-width: 0;
+}
+
+.tower-manual-copy b,
+.trait-manual-copy b {
+  color: var(--text-soft);
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.tower-manual-copy b span {
+  margin-left: 5px;
+  color: var(--tower-color, var(--muted));
+  font-family: var(--font-mono);
+  font-size: 6px;
+  font-weight: 400;
+}
+
+.tower-manual-copy p,
+.trait-manual-copy p {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.55;
+}
+
+.tower-manual-copy small,
+.trait-manual-copy small {
+  display: block;
+  margin-top: 3px;
+  color: var(--faint);
+  font-size: 7px;
+  line-height: 1.45;
+}
+
+.manual-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 4px;
+}
+
+.manual-tags span {
+  padding: 1px 4px;
+  border: 1px solid color-mix(in srgb, var(--tag-color, var(--mint)) 34%, transparent);
+  color: var(--tag-color, var(--mint));
+  font-family: var(--font-mono);
+  font-size: 6px;
+}
+
+.trait-swatch {
+  display: grid;
+  width: 25px;
+  height: 25px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--trait-color, #9adfff) 56%, transparent);
+  color: var(--trait-color, #9adfff);
+  background: color-mix(in srgb, var(--trait-color, #9adfff) 8%, rgba(4, 12, 20, 0.7));
+  font-family: var(--font-ui);
+  font-size: 10px;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+
+@media (max-width: 520px) {
+  .debug-panel {
+    top: calc(env(safe-area-inset-top, 0px) + 54px);
+    right: 6px;
+    left: 6px;
+    width: auto;
+    max-height: 76vh;
+  }
+
+  .debug-levels {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .debug-enemies {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 380px) {
+  .debug-panel {
+    font-size: 9px;
+  }
+
+  .debug-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   v1.9.0 — immersive HUD: no solid header band, transient core
+   telemetry, softer build tray, path calmed to leave combat the
+   brightest layer on screen.
+   ============================================================ */
+
+/* The HUD is a scrim, not a bar: the battlefield runs under it. */
+.game-hud {
+  padding: 5px 8px 7px;
+  background:
+    linear-gradient(178deg, rgba(3, 10, 18, 0.62), rgba(3, 10, 18, 0.18) 62%, transparent 100%),
+    radial-gradient(ellipse 120% 120% at 50% -20%, rgba(24, 92, 116, 0.16), transparent 68%);
+  border-bottom: 0;
+  box-shadow: none;
+}
+
+.hud-topline {
+  align-items: center;
+  gap: 7px;
+}
+
+/* Pause stands on its own, clear of the readouts. */
+.game-hud .hud-pause {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(46, 230, 214, 0.34);
+  border-radius: 50%;
+  color: rgba(208, 246, 252, 0.9);
+  background:
+    radial-gradient(circle at 50% 32%, rgba(46, 230, 214, 0.16), rgba(4, 12, 20, 0.58) 72%);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.36), inset 0 0 10px rgba(46, 230, 214, 0.06);
+  clip-path: none;
+}
+
+.game-hud .hud-pause .ico {
+  width: 15px;
+  height: 15px;
+}
+
+.game-hud .hud-pause:hover {
+  border-color: rgba(46, 230, 214, 0.66);
+  color: #eaffff;
+  background-color: rgba(8, 24, 34, 0.72);
+}
+
+.game-hud .hud-pause.is-paused {
+  border-color: rgba(46, 230, 214, 0.76);
+  color: var(--friendly);
+  background:
+    radial-gradient(circle at 50% 32%, rgba(46, 230, 214, 0.26), rgba(4, 14, 22, 0.66) 72%);
+  box-shadow: 0 0 16px rgba(46, 230, 214, 0.24), inset 0 0 12px rgba(46, 230, 214, 0.12);
+}
+
+/* Level identity drops behind the numbers the player actually acts on. */
+.game-hud .hud-mission {
+  gap: 2px;
+}
+
+.game-hud .hud-mission-name {
+  align-items: baseline;
+  gap: 7px;
+}
+
+.game-hud .hud-mission-name b {
+  color: rgba(182, 214, 226, 0.58);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.92);
+}
+
+.game-hud .hud-mission-code {
+  display: inline-block;
+  flex: 0 0 auto;
+  color: rgba(130, 168, 184, 0.52);
+  font-family: var(--font-mono);
+  font-size: 7px;
+  letter-spacing: 0.12em;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+}
+
+.game-hud .hud-mission-en {
+  display: none;
+}
+
+.game-hud .hud-inline-stats {
+  align-items: center;
+  gap: 7px;
+  margin-top: 0;
+  font-size: 9px;
+}
+
+.game-hud .hud-inline-crystal {
+  gap: 3px;
+}
+
+.game-hud .hud-inline-crystal .ico {
+  width: 13px;
+  height: 13px;
+}
+
+.game-hud .hud-inline-crystal b {
+  color: #ffc063;
+  font-size: 16px;
+  font-weight: 600;
+  text-shadow: 0 0 12px rgba(255, 181, 71, 0.38), 0 1px 6px rgba(0, 0, 0, 0.9);
+}
+
+.game-hud .hud-inline-crystal b.is-dense {
+  font-size: 13px;
+}
+
+.game-hud .hud-inline-crystal .crystal-delta {
+  color: #ffd08a;
+}
+
+.game-hud .hud-debug-badge {
+  margin-left: 1px;
+}
+
+/* Wave number + countdown now share one compact card. */
+.game-hud .wave-status {
+  width: 76px;
+  height: 34px;
+  gap: 1px;
+  padding: 0 15px 0 8px;
+  border-color: rgba(126, 206, 232, 0.18);
+  color: var(--muted);
+  background: linear-gradient(180deg, rgba(8, 22, 34, 0.56), rgba(4, 13, 22, 0.7));
+  box-shadow: none;
+}
+
+.game-hud .wave-status-head {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  line-height: 1;
+}
+
+.game-hud .wave-status-wave {
+  color: rgba(216, 240, 250, 0.86);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+}
+
+.game-hud .wave-status-kicker {
+  color: rgba(142, 180, 196, 0.66);
+  font-size: 7px;
+  letter-spacing: 0.02em;
+}
+
+.game-hud .wave-status-value {
+  color: rgba(228, 246, 252, 0.9);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 7px rgba(0, 0, 0, 0.9);
+}
+
+.game-hud .wave-status-progress {
+  height: 2px;
+  opacity: 0.55;
+}
+
+.game-hud .wave-status.active .wave-status-progress,
+.game-hud .wave-status.cleared .wave-status-progress,
+.game-hud .wave-status.lost .wave-status-progress {
+  opacity: 0;
+}
+
+.game-hud .wave-status:not(:disabled):hover {
+  border-color: rgba(126, 206, 232, 0.42);
+  filter: brightness(1.1);
+}
+
+.game-hud .wave-status.active {
+  border-color: rgba(117, 159, 178, 0.16);
+  background: linear-gradient(180deg, rgba(10, 23, 35, 0.52), rgba(4, 13, 22, 0.68));
+  box-shadow: none;
+}
+
+.game-hud .wave-status.imminent {
+  border-color: rgba(255, 93, 122, 0.72);
+  background: linear-gradient(180deg, rgba(52, 18, 29, 0.86), rgba(14, 14, 24, 0.92));
+  animation: wave-alert-pulse 1s ease-in-out infinite;
+}
+
+.game-hud .wave-status.imminent .wave-status-kicker {
+  color: #ff9bae;
+}
+
+.game-hud .wave-status.imminent .wave-status-value {
+  color: #ffd6dd;
+}
+
+.game-hud .wave-status.imminent .wave-status-progress {
+  background: var(--danger);
+  box-shadow: 0 0 8px var(--danger);
+}
+
+.game-hud .wave-status.cleared {
+  border-color: rgba(125, 244, 198, 0.24);
+  color: var(--mint);
+}
+
+.game-hud .wave-status.cleared .wave-status-kicker,
+.game-hud .wave-status.cleared .wave-status-value {
+  color: var(--mint);
+}
+
+.game-hud .wave-status.lost {
+  border-color: rgba(255, 93, 122, 0.28);
+  color: var(--danger);
+}
+
+.game-hud .wave-status.lost .wave-status-kicker,
+.game-hud .wave-status.lost .wave-status-value {
+  color: #ff9bae;
+}
+
+/* Auxiliary controls recede until needed. */
+.game-hud .hud-controls {
+  gap: 2px;
+}
+
+.game-hud .hud-controls .icon-button,
+.game-hud .hud-controls .square-button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: rgba(150, 188, 204, 0.6);
+  background: rgba(6, 16, 26, 0.26);
+  clip-path: none;
+  font-size: 9px;
+  opacity: 0.8;
+  transition: opacity 160ms ease, color 160ms ease, background 160ms ease, border-color 160ms ease;
+}
+
+.game-hud .hud-controls .icon-button .ico {
+  width: 14px;
+  height: 14px;
+}
+
+.game-hud .hud-controls .icon-button:hover,
+.game-hud .hud-controls .square-button:hover {
+  border-color: rgba(124, 202, 228, 0.22);
+  color: rgba(214, 246, 252, 0.94);
+  background: rgba(10, 26, 38, 0.56);
+  opacity: 1;
+}
+
+.game-hud .hud-controls .sound-button.muted {
+  color: rgba(126, 156, 170, 0.42);
+}
+
+.game-hud #btn-game-speed.speed-boost {
+  border-color: rgba(255, 181, 71, 0.26);
+  color: #ffc063;
+  background: rgba(255, 181, 71, 0.08);
+  box-shadow: none;
+  opacity: 1;
+}
+
+.game-hud .hud-controls .debug-hud-button {
+  opacity: 0.9;
+}
+
+/* Transient core telemetry: hidden in normal combat. */
+.core-readout {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 50px);
+  left: 50%;
+  z-index: 12;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100% - 26px);
+  padding: 4px 10px 5px;
+  border: 1px solid rgba(46, 230, 214, 0.36);
+  color: var(--friendly);
+  background: linear-gradient(180deg, rgba(6, 20, 30, 0.9), rgba(4, 12, 20, 0.92));
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.38), inset 0 0 14px rgba(46, 230, 214, 0.05);
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+  font-family: var(--font-mono);
+  line-height: 1;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translate(-50%, -6px);
+  transition: opacity 200ms ease, transform 240ms var(--ease-out), visibility 200ms ease;
+}
+
+.core-readout.is-revealed,
+.core-readout.is-danger,
+.core-readout.is-critical {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+}
+
+.core-readout-label {
+  color: rgba(150, 200, 215, 0.72);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+}
+
+.core-readout > b {
+  color: var(--friendly);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 12px rgba(46, 230, 214, 0.38);
+}
+
+.core-readout .hud-core-delta {
+  position: static;
+  top: auto;
+  right: auto;
+  margin-left: -2px;
+  color: #ff9b8e;
+  font-size: 10px;
+}
+
+.core-readout-meter {
+  display: inline-flex;
+  width: 52px;
+  height: 4px;
+  overflow: hidden;
+  background: rgba(46, 230, 214, 0.16);
+}
+
+.core-readout-meter > i {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.core-readout-meter b {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--friendly), #d0ffff);
+  box-shadow: 0 0 8px var(--friendly);
+  transition: width 240ms var(--ease-out), background 240ms ease;
+}
+
+.core-readout.is-danger {
+  border-color: rgba(255, 90, 77, 0.56);
+  color: #ff7a6c;
+  background: linear-gradient(180deg, rgba(34, 10, 14, 0.92), rgba(16, 6, 10, 0.94));
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.42), inset 0 0 14px rgba(255, 90, 77, 0.08);
+  animation: core-readout-breathe 1.7s ease-in-out infinite;
+}
+
+.core-readout.is-danger .core-readout-label {
+  color: rgba(255, 158, 146, 0.8);
+}
+
+.core-readout.is-danger > b {
+  color: #ff8a7c;
+  text-shadow: 0 0 14px rgba(255, 90, 77, 0.5);
+}
+
+.core-readout.is-danger .core-readout-meter {
+  background: rgba(255, 90, 77, 0.18);
+}
+
+.core-readout.is-danger .core-readout-meter b {
+  background: linear-gradient(90deg, #ff4b6d, #ffb1a0);
+  box-shadow: 0 0 10px #ff4b6d;
+}
+
+.core-readout.is-critical {
+  border-color: rgba(255, 60, 90, 0.8);
+  animation-duration: 0.95s;
+  box-shadow: 0 0 26px rgba(255, 60, 90, 0.26), inset 0 0 16px rgba(255, 60, 90, 0.1);
+}
+
+@keyframes core-readout-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.74;
+  }
+}
+
+/* Damage direction + edge warning for the core. */
+.core-alert {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  --core-x: 0.5;
+}
+
+.core-alert::before {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 62%;
+  background:
+    radial-gradient(ellipse 44% 76% at calc(var(--core-x, 0.5) * 100%) 100%, rgba(255, 64, 96, 0.4), transparent 70%),
+    linear-gradient(0deg, rgba(255, 52, 88, 0.17), transparent 72%);
+}
+
+.core-alert::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(255, 86, 116, 0.32);
+  box-shadow: inset 0 0 70px rgba(255, 52, 90, 0.3), inset 0 0 18px rgba(255, 52, 90, 0.16);
+}
+
+.core-alert.show {
+  animation: core-alert-flash 0.95s var(--ease-out) forwards;
+}
+
+@keyframes core-alert-flash {
+  0% {
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  46% {
+    opacity: 0.68;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.core-alert-copy {
+  position: absolute;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 122px);
+  left: calc(var(--core-x, 0.5) * 100%);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  max-width: 70%;
+  padding: 3px 8px;
+  border: 1px solid rgba(255, 90, 110, 0.44);
+  color: #ffb3bf;
+  background: rgba(24, 8, 14, 0.82);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.36);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  line-height: 1.2;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+.core-alert-copy b {
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+
+.core-alert-copy small {
+  color: #ff7d8f;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ambient core distress stays below the interaction layer. */
+.screen-game.core-danger .arena-vignette {
+  animation: core-danger-breathe 2.6s ease-in-out infinite;
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.28), inset 0 -44px 96px rgba(255, 64, 88, 0.18);
+}
+
+.screen-game.core-critical .arena-vignette {
+  animation-duration: 1.15s;
+  box-shadow:
+    inset 0 0 60px rgba(0, 0, 0, 0.28),
+    inset 0 -62px 124px rgba(255, 54, 86, 0.3),
+    inset 0 0 72px rgba(255, 54, 86, 0.12);
+}
+
+@keyframes core-danger-breathe {
+  0%,
+  100% {
+    opacity: 0.72;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .core-readout.is-danger,
+  .core-readout.is-critical,
+  .screen-game.core-danger .arena-vignette,
+  .screen-game.core-critical .arena-vignette {
+    animation: none;
+  }
+
+  .core-alert.show {
+    animation-duration: 0.4s;
+  }
+}
+
+.arena-toast {
+  top: calc(env(safe-area-inset-top, 0px) + 80px);
+}
+
+/* The pause strip floats just below the HUD instead of covering its readouts. */
+.pause-bar {
+  top: calc(env(safe-area-inset-top, 0px) + 52px);
+}
+
+.screen-game.pause-active .core-readout {
+  top: calc(env(safe-area-inset-top, 0px) + 98px);
+}
+
+.screen-game.pause-active .arena-toast {
+  top: calc(env(safe-area-inset-top, 0px) + 132px);
+}
+
+/* Build tray keeps its density, but stops reading as a second panel. */
+.build-dock {
+  border-color: rgba(96, 200, 225, 0.13);
+  background: linear-gradient(180deg, rgba(4, 12, 20, 0.78), rgba(3, 9, 15, 0.88));
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(140, 220, 240, 0.05);
+}
+
+.build-dock-head {
+  color: rgba(150, 189, 202, 0.56);
+}
+
+.build-dock-title {
+  color: rgba(195, 228, 238, 0.62);
+}
+
+.build-dock-capacity b {
+  color: rgba(46, 230, 214, 0.82);
+}
+
+.build-card {
+  border-color: rgba(111, 177, 201, 0.08);
+  color: rgba(200, 224, 234, 0.82);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--card-color, var(--cyan)) 3%, transparent), transparent 60%),
+    rgba(7, 18, 29, 0.5);
+}
+
+.build-card .build-name {
+  color: rgba(206, 232, 242, 0.78);
+}
+
+.build-card .build-cost {
+  color: rgba(214, 238, 246, 0.72);
+}
+
+.build-card:hover {
+  border-color: color-mix(in srgb, var(--card-color, var(--cyan)) 34%, transparent);
+  background-color: rgba(10, 25, 39, 0.8);
+}
+
+.build-card.poor {
+  border-color: rgba(255, 93, 122, 0.22);
+  background:
+    linear-gradient(180deg, rgba(58, 18, 26, 0.26), transparent 62%),
+    rgba(10, 16, 24, 0.48);
+}
+
+.build-card.poor .build-cost {
+  color: #ff9aa5;
+}
+
+.build-card.poor .build-name {
+  color: rgba(255, 190, 198, 0.78);
+}
+
+.build-card.poor canvas {
+  opacity: 0.52;
+}
+
+.build-card.poor:hover {
+  border-color: rgba(255, 93, 122, 0.46);
+  background-color: rgba(20, 18, 26, 0.76);
+}
+
+.build-card.capacity-full {
+  opacity: 0.34;
+}
+
+.build-card.capacity-full:hover {
+  border-color: rgba(111, 177, 201, 0.08);
+  background-color: rgba(7, 18, 29, 0.5);
+}
+
+.build-card.selected {
+  border-color: color-mix(in srgb, var(--card-color, var(--cyan)) 78%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--card-color, var(--cyan)) 18%, transparent), transparent 74%),
+    rgba(11, 29, 43, 0.94);
+  box-shadow:
+    inset 0 0 14px color-mix(in srgb, var(--card-color, var(--cyan)) 10%, transparent),
+    0 0 14px color-mix(in srgb, var(--card-color, var(--cyan)) 14%, transparent);
+}
+
+.build-card.selected .build-name {
+  color: #f0fdff;
+}
+
+.build-card.selected .build-cost {
+  color: #ffe0a8;
+}
+
+@media (max-width: 380px) {
+  .game-hud {
+    padding: 4px 6px 6px;
+  }
+
+  .game-hud .hud-pause {
+    width: 32px;
+    height: 32px;
+  }
+
+  .game-hud .hud-mission-name b {
+    font-size: 11px;
+  }
+
+  .game-hud .hud-mission-code {
+    font-size: 6px;
+    letter-spacing: 0.08em;
+  }
+
+  .game-hud .hud-inline-crystal b {
+    font-size: 15px;
+  }
+
+  .game-hud .wave-status {
+    width: 68px;
+    height: 31px;
+    padding: 0 13px 0 6px;
+  }
+
+  .game-hud .wave-status-wave {
+    font-size: 8px;
+  }
+
+  .game-hud .wave-status-kicker {
+    font-size: 6.5px;
+  }
+
+  .game-hud .wave-status-value {
+    font-size: 12px;
+  }
+
+  .game-hud .hud-controls .icon-button,
+  .game-hud .hud-controls .square-button {
+    width: 26px;
+    height: 26px;
+  }
+
+  .core-readout {
+    top: calc(env(safe-area-inset-top, 0px) + 44px);
+    gap: 5px;
+    padding: 3px 8px 4px;
+  }
+
+  .core-readout > b {
+    font-size: 13px;
+  }
+
+  .core-readout-meter {
+    width: 42px;
+  }
+
+  .arena-toast {
+    top: calc(env(safe-area-inset-top, 0px) + 70px);
+  }
+
+  .core-alert-copy {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 108px);
+    font-size: 8px;
+  }
+
+  .pause-bar {
+    top: calc(env(safe-area-inset-top, 0px) + 46px);
+  }
+
+  .screen-game.pause-active .core-readout {
+    top: calc(env(safe-area-inset-top, 0px) + 88px);
+  }
+
+  .screen-game.pause-active .arena-toast {
+    top: calc(env(safe-area-inset-top, 0px) + 124px);
+  }
+}
+
+@media (max-height: 700px) {
+  .game-hud {
+    padding-top: 3px;
+    padding-bottom: 5px;
+  }
+
+  .game-hud .hud-pause {
+    width: 31px;
+    height: 31px;
+  }
+
+  .game-hud .wave-status {
+    height: 31px;
+  }
+
+  .core-readout {
+    top: calc(env(safe-area-inset-top, 0px) + 43px);
+  }
+
+  .arena-toast {
+    top: calc(env(safe-area-inset-top, 0px) + 70px);
+  }
+
+  .pause-bar {
+    top: calc(env(safe-area-inset-top, 0px) + 46px);
+  }
+
+  .screen-game.pause-active .core-readout {
+    top: calc(env(safe-area-inset-top, 0px) + 88px);
+  }
+
+  .screen-game.pause-active .arena-toast {
+    top: calc(env(safe-area-inset-top, 0px) + 124px);
+  }
+}
+
+/* ============================================================
+   v1.10.0 — mobile immersive shell
+   Fullscreen / installed-PWA launches keep the deep-space backdrop
+   behind cutouts, and the app height follows the visible viewport
+   instead of Safari's toolbar-stretched layout viewport.
+   ============================================================ */
+
+html:fullscreen,
+html:-webkit-full-screen,
+html:fullscreen body,
+html:-webkit-full-screen body {
+  background: var(--bg-deep);
+}
+
+body.is-immersive {
+  background: #02040a;
+}
+
+body.is-immersive #app {
+  max-width: none;
+}
+
+@media (min-width: 900px) {
+  body.is-immersive #app {
+    max-width: 720px;
+  }
+}
+
+/* Expand in windowed mode, contract while immersive. */
+.immersive-toggle .ico-collapse {
+  display: none;
+}
+
+.immersive-toggle.immersive-on .ico-expand {
+  display: none;
+}
+
+.immersive-toggle.immersive-on .ico-collapse {
+  display: block;
+}
+
+#btn-pause-immersive.immersive-on {
+  border-color: color-mix(in srgb, var(--game-accent) 58%, transparent);
+  color: var(--game-accent);
+}
+
+/* Touch: no pull-to-refresh, long-press callout or scrollbar gutter. */
+@media (pointer: coarse) {
+  html,
+  body {
+    overscroll-behavior: none;
+  }
+
+  body {
+    -webkit-touch-callout: none;
+  }
+
+  .screen-game,
+  .arena-wrap,
+  .build-dock,
+  .game-hud {
+    touch-action: manipulation;
+  }
+
+  .arena-wrap canvas {
+    touch-action: none;
+  }
+
+  .page-scroll::-webkit-scrollbar,
+  .help-body::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+}
+
+/* The battlefield owns every pixel: no 1px letterbox gutter on phones. */
+.screen-game .arena-wrap {
+  padding: 0;
+}
+
+/* Installed mode has no browser chrome to hide; keep the same inset math. */
+@media all and (display-mode: standalone) {
+  body {
+    min-height: var(--app-height, 100dvh);
+  }
+}
+
+/* ============================================================
+   v1.11.0 — pause intel inside the menu, resumable runs,
+   trait briefings and compact build labels.
+   ============================================================ */
+
+/* Pause lives in the HUD title strip: icon actions replace the sector
+   name, so the battlefield never shrinks or shifts when pausing. */
+.pause-actions {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.pause-action {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(124, 202, 228, 0.22);
+  border-radius: 8px;
+  color: rgba(214, 246, 252, 0.88);
+  background: rgba(8, 23, 35, 0.62);
+  transition: border-color 150ms ease, color 150ms ease, background 150ms ease, opacity 150ms ease;
+}
+
+.pause-action .ico {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.7;
+}
+
+/* Four-digit balances give the pause cluster less room; step down one size. */
+.game-hud.crystal-long .pause-actions {
+  gap: 4px;
+}
+
+.game-hud.crystal-long .pause-action {
+  width: 25px;
+  height: 25px;
+  border-radius: 7px;
+}
+
+.game-hud.crystal-long .pause-action .ico {
+  width: 16px;
+  height: 16px;
+}
+
+.pause-action:hover {
+  border-color: color-mix(in srgb, var(--game-accent) 58%, transparent);
+  color: #effeff;
+  background: rgba(13, 36, 50, 0.86);
+}
+
+.pause-action:active {
+  transform: scale(0.94);
+}
+
+.pause-action[aria-expanded="true"],
+#btn-pause-immersive.immersive-on {
+  border-color: color-mix(in srgb, var(--game-accent) 64%, transparent);
+  color: var(--game-accent);
+  background: color-mix(in srgb, var(--game-accent) 12%, rgba(8, 23, 35, 0.82));
+}
+
+/* The left cluster stays put: pause button + crystals. The wave card
+   and speed/sound controls stay pinned right; pause actions occupy the
+   middle without moving either group. The sector title is not shown in
+   the HUD at all. */
+.hud-left,
+.hud-right {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+}
+
+.hud-right {
+  margin-left: auto;
+}
+
+.hud-mission-name {
+  display: none;
+}
+
+.hud-mission {
+  flex: 0 0 auto;
+}
+
+.screen-game.hud-paused .hud-inline-stats {
+  margin-top: 0;
+}
+
+.screen-game.hud-paused .hud-debug-badge {
+  display: none;
+}
+
+@media (max-width: 380px) {
+  .game-hud .hud-topline {
+    gap: 4px;
+  }
+
+  .hud-left {
+    gap: 4px;
+  }
+
+  .hud-right {
+    gap: 4px;
+  }
+
+  .pause-actions {
+    gap: 4px;
+  }
+
+  .pause-action {
+    width: 23px;
+    height: 23px;
+    border-radius: 7px;
+  }
+
+  .pause-action .ico {
+    width: 15px;
+    height: 15px;
+  }
+
+  .game-hud.crystal-long .pause-actions {
+    gap: 2px;
+  }
+
+  .game-hud.crystal-long .pause-action {
+    width: 21px;
+    height: 21px;
+    border-radius: 6px;
+  }
+
+  .game-hud.crystal-long .pause-action .ico {
+    width: 13px;
+    height: 13px;
+  }
+
+  .game-hud .wave-status {
+    width: 66px;
+  }
+
+  .game-hud .hud-controls .icon-button,
+  .game-hud .hud-controls .square-button {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* Keep the blue crystal visible at 320px; the number tightens up to fit. */
+  .game-hud .hud-inline-crystal {
+    gap: 1px;
+  }
+
+  .game-hud .hud-inline-crystal .ico {
+    width: 12px;
+    height: 12px;
+  }
+
+  .game-hud .hud-inline-crystal b {
+    font-size: 14px;
+  }
+
+  .game-hud .hud-inline-crystal b.is-long {
+    font-size: 13px;
+  }
+
+  .game-hud .hud-inline-crystal b.is-dense {
+    font-size: 11px;
+  }
+}
+
+/* Keep every build label inside its slot on short phone screens. */
+.build-card {
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
+
+.build-icon {
+  flex: 0 0 auto;
+  width: 27px;
+  height: 27px;
+}
+
+.build-name,
+.build-cost {
+  flex: 0 0 auto;
+}
+
+.build-name {
+  line-height: 1.3;
+}
+
+@media (max-width: 480px) {
+  .build-icon {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+@media (max-width: 480px) and (min-height: 760px) {
+  .build-icon {
+    width: 26px;
+    height: 26px;
+  }
+}
+
+@media (max-height: 560px) {
+  .build-icon {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* Resume strip shown on the home screen and star map while a run is held. */
+.resume-run-button,
+.resume-run-bar {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border: 1px solid color-mix(in srgb, var(--friendly) 46%, transparent);
+  color: var(--text);
+  background:
+    linear-gradient(100deg, color-mix(in srgb, var(--friendly) 12%, transparent), transparent 62%),
+    rgba(6, 19, 29, 0.82);
+  clip-path: polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 9px 100%, 0 calc(100% - 9px));
+  text-align: left;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.resume-run-button {
+  margin-top: 8px;
+}
+
+.resume-run-bar {
+  margin-bottom: 14px;
+}
+
+.resume-run-button:hover,
+.resume-run-bar:hover {
+  border-color: color-mix(in srgb, var(--friendly) 78%, transparent);
+  background-color: rgba(10, 30, 42, 0.92);
+}
+
+.resume-run-play {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--friendly) 54%, transparent);
+  color: var(--friendly);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.resume-run-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.resume-run-copy b {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.resume-run-copy small {
+  overflow: hidden;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.05em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resume-run-arrow {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--friendly);
+}
+
+/* First-appearance trait briefing: one modal per newly met trait. */
+.trait-briefing-card {
+  width: min(430px, 100%);
+}
+
+.trait-briefing-lead {
+  margin: 7px 0 10px;
+  color: var(--text-soft);
+  font-size: 11px;
+  line-height: 1.65;
+}
+
+.trait-briefing-list {
+  display: flex;
+  max-height: 42vh;
+  flex-direction: column;
+  gap: 7px;
+  overflow: auto;
+  margin-bottom: 14px;
+}
+
+.trait-brief-item {
+  display: flex;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid color-mix(in srgb, var(--trait-color, var(--cyan)) 34%, transparent);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--trait-color, var(--cyan)) 9%, transparent), transparent 70%),
+    rgba(6, 17, 27, 0.84);
+}
+
+.trait-brief-badge {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--trait-color, var(--cyan)) 62%, transparent);
+  color: var(--trait-color, var(--cyan));
+  font-family: var(--font-display);
+  font-size: 15px;
+  line-height: 1;
+}
+
+.trait-brief-copy {
+  min-width: 0;
+}
+
+.trait-brief-copy b {
+  display: block;
+  color: var(--trait-color, var(--cyan));
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+
+.trait-brief-copy p {
+  margin: 3px 0 0;
+  color: var(--text-soft);
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.trait-brief-counter {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.trait-brief-counter b {
+  color: var(--trait-color, var(--cyan));
+  font-weight: 500;
+}
+
+@media (max-width: 380px) {
+  .trait-briefing-card {
+    padding: 16px;
+  }
+
+  .trait-brief-item {
+    padding: 8px;
+  }
+
+  .trait-brief-copy p {
+    font-size: 9.5px;
   }
 }

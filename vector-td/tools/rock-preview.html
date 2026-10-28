@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; background: #050c15; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c" width="432" height="768"></canvas>
+<script src="../src/util.js"></script>
+<script src="../src/config.js"></script>
+<script src="../src/pathgrid.js"></script>
+<script src="../src/render.js"></script>
+<script>
+/* Renders the real static battlefield background (with asteroids) using
+   GameRenderer, for visual verification only. Not part of the game. */
+'use strict';
+const C = window.GEOTD_CONFIG;
+const P = window.GEOTD_PATH;
+// L3 棱镜回廊 (index 2) has a decent asteroid layout.
+const level = C.LEVELS[2];
+const grid = new P.BattleGrid(level);
+const canvas = document.getElementById('c');
+const renderer = new window.GEOTD_GFX.GameRenderer(canvas);
+renderer.setScene(level, grid);
+renderer.resize(432, 768, { top: 0, bottom: 0 });
+// Blit the baked background onto the visible canvas at CSS scale.
+const ctx = canvas.getContext('2d', { alpha: false });
+ctx.imageSmoothingEnabled = false;
+ctx.drawImage(renderer.bg, 0, 0, renderer.w * renderer.dpr, renderer.h * renderer.dpr, 0, 0, canvas.width, canvas.height);
+document.title = 'rocks=' + grid.map.rocks.length;
+</script>
+</body>
+</html>

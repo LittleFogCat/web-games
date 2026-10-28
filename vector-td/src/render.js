@@ -277,9 +277,9 @@
       }
       ctx.save();
       ctx.translate(ox, oy);
-      // Faint lines linking touching asteroids.
-      ctx.strokeStyle = hexA(acc2, 0.035);
-      ctx.lineWidth = 0.7;
+      // Lines linking touching asteroids: clusters must read as one landmass.
+      ctx.strokeStyle = hexA(acc2, 0.22);
+      ctx.lineWidth = 1.2;
       Object.keys(rockCenters).forEach(function (key) {
         const parts = key.split(',');
         const rx = Number(parts[0]);
@@ -301,18 +301,18 @@
         const rock = this.grid.map.rocks[i];
         const cx = (rock.x + 0.5) * cell + (rockRng() - 0.5) * cell * 0.08;
         const cy = (rock.y + 0.5) * cell + (rockRng() - 0.5) * cell * 0.08;
-        const radius = cell * (0.3 + rockRng() * 0.09);
+        const radius = cell * (0.36 + rockRng() * 0.1);
         const sides = 6 + Math.floor(rockRng() * 3);
         const rot = rockRng() * TAU;
         const points = [];
         for (let p = 0; p < sides; p++) {
           const angle = rot + (p / sides) * TAU;
-          const rr = radius * (0.77 + rockRng() * 0.4);
+          const rr = radius * (0.8 + rockRng() * 0.35);
           points.push({ x: cx + Math.cos(angle) * rr, y: cy + Math.sin(angle) * rr });
         }
         const grad = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.35, radius * 0.1, cx, cy, radius * 1.15);
-        grad.addColorStop(0, 'rgba(10, 7, 20, 0.99)');
-        grad.addColorStop(1, 'rgba(2, 4, 10, 0.99)');
+        grad.addColorStop(0, 'rgba(58, 48, 84, 0.98)');
+        grad.addColorStop(1, 'rgba(24, 21, 40, 0.98)');
         ctx.beginPath();
         for (let p = 0; p < points.length; p++) {
           if (p === 0) ctx.moveTo(points[p].x, points[p].y);
@@ -321,8 +321,8 @@
         ctx.closePath();
         ctx.fillStyle = grad;
         ctx.fill();
-        ctx.strokeStyle = 'rgba(126, 102, 164, 0.2)';
-        ctx.lineWidth = 0.8;
+        ctx.strokeStyle = 'rgba(178, 150, 216, 0.55)';
+        ctx.lineWidth = 1.4;
         ctx.stroke();
         // Inner facet.
         ctx.beginPath();
@@ -332,12 +332,12 @@
           if (p === 0) ctx.moveTo(px, py);
           else ctx.lineTo(px, py);
         }
-        ctx.strokeStyle = 'rgba(126, 102, 164, 0.09)';
-        ctx.lineWidth = 0.55;
+        ctx.strokeStyle = 'rgba(168, 138, 208, 0.3)';
+        ctx.lineWidth = 0.7;
         ctx.stroke();
         // Cracks read as terrain, not interactable infrastructure.
-        ctx.strokeStyle = 'rgba(146, 116, 181, 0.17)';
-        ctx.lineWidth = 0.55;
+        ctx.strokeStyle = 'rgba(168, 138, 208, 0.32)';
+        ctx.lineWidth = 0.7;
         ctx.beginPath();
         for (let k = 0; k < 2; k++) {
           const point = points[(k * 3 + 1) % points.length];
@@ -509,12 +509,13 @@
         ctx.lineWidth = cell * 0.62;
         ctx.stroke();
 
-        // Cyan rim and soft bloom around the channel.
+        // Cyan rim and soft bloom around the channel. Kept deliberately dim so live
+        // combat (enemies, tracers, the core) stays the brightest thing on screen.
         trace();
-        ctx.strokeStyle = hexA(color, 0.15);
+        ctx.strokeStyle = hexA(color, 0.1);
         ctx.lineWidth = cell * 0.56;
-        ctx.shadowColor = hexA(color, 0.34);
-        ctx.shadowBlur = cell * 0.3;
+        ctx.shadowColor = hexA(color, 0.22);
+        ctx.shadowBlur = cell * 0.22;
         ctx.stroke();
         ctx.shadowBlur = 0;
 
@@ -524,7 +525,7 @@
         ctx.lineWidth = cell * 0.42;
         ctx.stroke();
         trace();
-        ctx.strokeStyle = hexA(color, 0.055);
+        ctx.strokeStyle = hexA(color, 0.035);
         ctx.lineWidth = cell * 0.38;
         ctx.stroke();
 
@@ -532,16 +533,54 @@
         trace();
         ctx.setLineDash([cell * 0.2, cell * 0.64]);
         ctx.lineDashOffset = -time * cell * 0.65;
-        ctx.strokeStyle = hexA(color, 0.5);
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = hexA(color, 0.34);
+        ctx.lineWidth = 1.5;
         ctx.shadowColor = color;
-        ctx.shadowBlur = 7;
+        ctx.shadowBlur = 4.5;
         ctx.stroke();
         ctx.setLineDash([]);
         ctx.shadowBlur = 0;
 
-        // Fixed chevrons show unambiguous direction at every other cell.
-        for (let i = 1; i < path.length; i += 2) {
+        // Low-brightness flow motes carry the direction on their own, letting the
+        // fixed chevrons thin out to every third cell.
+        const segments = [];
+        let totalLength = 0;
+        for (let i = 1; i < path.length; i++) {
+          const ax = ox + (path[i - 1].x + 0.5) * cell;
+          const ay = oy + (path[i - 1].y + 0.5) * cell;
+          const bx = ox + (path[i].x + 0.5) * cell;
+          const by = oy + (path[i].y + 0.5) * cell;
+          const length = Math.hypot(bx - ax, by - ay);
+          if (length <= 0.01) continue;
+          segments.push({ ax: ax, ay: ay, bx: bx, by: by, start: totalLength, length: length });
+          totalLength += length;
+        }
+        if (totalLength > 0) {
+          const spacing = Math.max(cell * 1.7, 11);
+          const moteCount = U.clamp(Math.round(totalLength / spacing), 2, 16);
+          const moteRadius = Math.max(0.85, cell * 0.028);
+          let segIndex = 0;
+          let prevTravelled = -1;
+          for (let m = 0; m < moteCount; m++) {
+            const travelled = (time * cell * 0.5 + (m / moteCount) * totalLength + r * cell * 0.8) % totalLength;
+            if (travelled < prevTravelled) segIndex = 0;
+            prevTravelled = travelled;
+            while (segIndex < segments.length - 1 && travelled > segments[segIndex].start + segments[segIndex].length) {
+              segIndex++;
+            }
+            const seg = segments[segIndex];
+            const local = U.clamp((travelled - seg.start) / seg.length, 0, 1);
+            const px = seg.ax + (seg.bx - seg.ax) * local;
+            const py = seg.ay + (seg.by - seg.ay) * local;
+            ctx.fillStyle = hexA(color, 0.2 + Math.sin(local * Math.PI) * 0.16);
+            ctx.beginPath();
+            ctx.arc(px, py, moteRadius, 0, TAU);
+            ctx.fill();
+          }
+        }
+
+        // Fixed chevrons show unambiguous direction at every third cell.
+        for (let i = 3; i < path.length; i += 3) {
           const prev = path[i - 1];
           const cur = path[i];
           const nx = cur.x - prev.x;
@@ -554,8 +593,8 @@
           ctx.save();
           ctx.translate(px, py);
           ctx.rotate(angle);
-          ctx.strokeStyle = hexA(color, 0.16 + pulse * 0.34);
-          ctx.lineWidth = 1.7;
+          ctx.strokeStyle = hexA(color, 0.1 + pulse * 0.2);
+          ctx.lineWidth = 1.4;
           ctx.beginPath();
           ctx.moveTo(-cell * 0.065, -cell * 0.095);
           ctx.lineTo(cell * 0.055, 0);
@@ -670,6 +709,9 @@
       const color = danger ? SEM.threat : SEM.friendly;
       const r = cell * 0.43;
       const pulse = 1 + Math.sin(time * 2.4) * 0.035;
+      // A leak disturbs the core's energy rings instead of adding more UI chrome.
+      const flash = U.clamp(game.baseFlash || 0, 0, 1);
+      const ringJitter = flash > 0 ? Math.sin(time * 42) * flash * cell * 0.022 : 0;
 
       // Breathing outer halo anchors the defence objective.
       const breath = Math.sin(time * 1.8) * 0.5 + 0.5;
@@ -705,11 +747,11 @@
       // Rotating broken rings.
       ctx.save();
       ctx.rotate(time * 0.28);
-      ctx.strokeStyle = hexA(color, 0.42);
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = hexA(color, 0.42 + flash * 0.3);
+      ctx.lineWidth = 1 + flash * 0.6;
       for (let i = 0; i < 5; i++) {
         ctx.beginPath();
-        ctx.arc(0, 0, r * 1.25, (i / 5) * TAU, (i / 5) * TAU + 0.68);
+        ctx.arc(0, 0, r * 1.25 + flash * cell * 0.07 + ringJitter, (i / 5) * TAU, (i / 5) * TAU + 0.68);
         ctx.stroke();
       }
       ctx.restore();
@@ -719,9 +761,9 @@
         const start = -Math.PI / 2 + (i / 12) * TAU + 0.055;
         const lit = i / 12 < ratio;
         ctx.beginPath();
-        ctx.arc(0, 0, r * 1.05, start, start + TAU / 12 - 0.12);
-        ctx.strokeStyle = lit ? hexA(color, 0.74) : 'rgba(83,111,126,0.17)';
-        ctx.lineWidth = 2;
+        ctx.arc(0, 0, r * 1.05 + ringJitter, start, start + TAU / 12 - 0.12);
+        ctx.strokeStyle = lit ? hexA(color, 0.74 + flash * 0.24) : 'rgba(83,111,126,0.17)';
+        ctx.lineWidth = 2 + flash;
         ctx.stroke();
       }
 
@@ -952,8 +994,11 @@
       const accent = def.accent;
       const selected = game.selectedStructure === tower;
       const level = tower.level || 1;
+      const maxLevel = def.maxLevel || C.TOWER_MAX_LEVEL;
       const scale = cell / 37;
       const recoil = tower.recoil || 0;
+      const seed = tower.idleSeed || 0;
+      const isBeacon = tower.type === 'beacon';
 
       ctx.save();
       ctx.translate(cx, cy);
@@ -967,19 +1012,26 @@
         ctx.setLineDash([]);
       }
 
-      // Coloured ground glow.
-      const ground = ctx.createRadialGradient(0, 0, 0, 0, 0, cell * 0.58);
-      ground.addColorStop(0, hexA(color, 0.14));
-      ground.addColorStop(0.55, hexA(color, 0.055));
+      // Coloured ground glow. High-tier towers cast a wider, brighter pool.
+      const glowR = cell * (0.56 + level * 0.028);
+      const ground = ctx.createRadialGradient(0, 0, 0, 0, 0, glowR);
+      ground.addColorStop(0, hexA(color, 0.10 + level * 0.022));
+      ground.addColorStop(0.55, hexA(color, 0.04 + level * 0.012));
       ground.addColorStop(1, hexA(color, 0));
       ctx.fillStyle = ground;
       ctx.beginPath();
-      ctx.arc(0, 0, cell * 0.58, 0, TAU);
+      ctx.arc(0, 0, glowR, 0, TAU);
       ctx.fill();
+
+      // Tier-specific floor circuitry: rings, ticks and orbit nodes.
+      this._drawTowerTierGround(ctx, color, accent, time, level, cell, seed);
+      if (isBeacon) {
+        this._drawBeaconAura(ctx, color, accent, time, def.levels[Math.min(level, def.levels.length) - 1].range * cell);
+      }
 
       // Shared platform.
       ctx.fillStyle = 'rgba(3,10,17,0.94)';
-      ctx.strokeStyle = hexA(color, 0.46);
+      ctx.strokeStyle = hexA(color, 0.42 + level * 0.025);
       ctx.lineWidth = 1.05;
       U.polygon(ctx, 0, 0, cell * 0.33, 6, Math.PI / 6);
       ctx.fill();
@@ -989,19 +1041,45 @@
       ctx.beginPath();
       ctx.arc(0, 0, cell * 0.4, 0, TAU);
       ctx.stroke();
+      if (level >= 2) {
+        ctx.strokeStyle = hexA(color, 0.22 + level * 0.02);
+        ctx.lineWidth = 0.9;
+        U.polygon(ctx, 0, 0, cell * 0.285, 6, Math.PI / 6);
+        ctx.stroke();
+      }
+      if (level >= 3) {
+        ctx.strokeStyle = hexA(accent, 0.22);
+        ctx.lineWidth = 0.7;
+        ctx.beginPath();
+        ctx.arc(0, 0, cell * 0.36, -time * 0.4, -time * 0.4 + 3.6);
+        ctx.stroke();
+      }
 
-      // Level pips under the platform.
-      for (let i = 0; i < 5; i++) {
-        ctx.fillStyle = i < level ? hexA(i === 4 ? C.TOWERS[tower.type].accent : color, 0.8) : 'rgba(116,153,172,0.18)';
-        ctx.save();
-        ctx.translate(-cell * 0.14 + i * cell * 0.07, cell * 0.34);
-        ctx.rotate(Math.PI / 4);
-        ctx.fillRect(-1.1, -1.1, 2.2, 2.2);
-        ctx.restore();
+      // Level pips under the platform. The beacon shows one pip per tier.
+      if (isBeacon) {
+        for (let i = 0; i < Math.min(level, 2); i++) {
+          ctx.fillStyle = hexA(accent, 0.85);
+          ctx.save();
+          ctx.translate((i - (level - 1) * 0.5) * 6, cell * 0.34);
+          ctx.rotate(Math.PI / 4);
+          ctx.fillRect(-1.6, -1.6, 3.2, 3.2);
+          ctx.restore();
+        }
+      } else {
+        for (let i = 0; i < 5; i++) {
+          const pipColor = i < level ? hexA(i === 4 ? accent : color, 0.8) : 'rgba(116,153,172,0.18)';
+          ctx.fillStyle = pipColor;
+          ctx.save();
+          ctx.translate(-cell * 0.14 + i * cell * 0.07, cell * 0.34);
+          ctx.rotate(Math.PI / 4);
+          const size = i === 4 && level >= 5 ? 1.4 : 1.1;
+          ctx.fillRect(-size, -size, size * 2, size * 2);
+          ctx.restore();
+        }
       }
 
       // A selected, upgradeable tower gets an explicit gold upgrade chevron.
-      if (selected && level < C.TOWER_MAX_LEVEL && game.crystals >= game.getUpgradeCost(tower)) {
+      if (selected && level < maxLevel && game.crystals >= game.getUpgradeCost(tower)) {
         const bob = Math.sin(time * 3.2 + tower.x) * 1.4;
         ctx.save();
         ctx.translate(0, -cell * 0.54 + bob);
@@ -1023,11 +1101,17 @@
       ctx.save();
       ctx.scale(scale, scale);
       if (level >= 5) {
-        ctx.strokeStyle = hexA(accent, 0.28);
+        ctx.strokeStyle = hexA(accent, 0.3);
         ctx.lineWidth = 0.7;
         ctx.beginPath();
         ctx.arc(0, 0, 16.5, 0, TAU);
         ctx.stroke();
+      }
+
+      // High tiers get a restrained neon bloom around the body.
+      if (level >= 4) {
+        ctx.shadowColor = hexA(accent, 0.7);
+        ctx.shadowBlur = level >= 5 ? 11 : 6;
       }
 
       switch (tower.type) {
@@ -1052,9 +1136,234 @@
         case 'tesla':
           this._drawTeslaTower(ctx, tower, color, accent, time, recoil, level);
           break;
+        case 'beacon':
+          this._drawBeaconTower(ctx, tower, color, accent, time, recoil, level);
+          break;
+      }
+      ctx.shadowBlur = 0;
+
+      this._drawTowerTierCrown(ctx, color, accent, time, level, seed, tower);
+      ctx.restore();
+      ctx.restore();
+    }
+
+    _drawTowerTierGround(ctx, color, accent, time, level, cell, seed) {
+      if (level <= 1) return;
+      // Level 2: a simple stabiliser ring.
+      ctx.save();
+      ctx.strokeStyle = hexA(color, 0.16 + level * 0.025);
+      ctx.lineWidth = 0.9;
+      ctx.setLineDash([cell * 0.045, cell * 0.07]);
+      ctx.lineDashOffset = -time * 12;
+      ctx.beginPath();
+      ctx.arc(0, 0, cell * 0.455, 0, TAU);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Level 3: cardinal calibration ticks.
+      if (level >= 3) {
+        ctx.strokeStyle = hexA(accent, 0.28);
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 4; i++) {
+          const a = time * 0.25 + i * TAU / 4 + seed * 0.2;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a) * cell * 0.46, Math.sin(a) * cell * 0.46);
+          ctx.lineTo(Math.cos(a) * cell * 0.51, Math.sin(a) * cell * 0.51);
+          ctx.stroke();
+        }
+      }
+
+      // Level 4: a counter-rotating broken orbit.
+      if (level >= 4) {
+        ctx.rotate(-time * 0.24 + seed);
+        ctx.strokeStyle = hexA(accent, 0.24);
+        ctx.lineWidth = 0.8;
+        for (let i = 0; i < 4; i++) {
+          const a = i * TAU / 4;
+          ctx.beginPath();
+          ctx.arc(0, 0, cell * 0.47, a + 0.18, a + 0.95);
+          ctx.stroke();
+        }
+      }
+
+      // Level 5: an eight-point halo with orbiting nodes.
+      if (level >= 5) {
+        const pulse = 0.5 + 0.5 * Math.sin(time * 2.4 + seed);
+        ctx.rotate(time * 0.16);
+        ctx.strokeStyle = hexA(accent, 0.13 + pulse * 0.13);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(0, 0, cell * (0.505 + pulse * 0.018), 0, TAU);
+        ctx.stroke();
+        for (let i = 0; i < 8; i++) {
+          const a = i * TAU / 8;
+          ctx.save();
+          ctx.translate(Math.cos(a) * cell * 0.5, Math.sin(a) * cell * 0.5);
+          ctx.rotate(a + Math.PI / 4);
+          ctx.fillStyle = hexA(accent, 0.28 + pulse * 0.2);
+          ctx.fillRect(-1.1, -1.1, 2.2, 2.2);
+          ctx.restore();
+        }
       }
       ctx.restore();
+    }
+
+    _drawTowerTierCrown(ctx, color, accent, time, level, seed, tower) {
+      if (level <= 2) return;
+      // Level 3: broken halo.
+      ctx.save();
+      ctx.rotate(-time * 0.35 + seed);
+      ctx.strokeStyle = hexA(accent, 0.18 + level * 0.03);
+      ctx.lineWidth = 0.85;
+      for (let i = 0; i < 3; i++) {
+        const a = i * TAU / 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, 17.4, a, a + 1.05);
+        ctx.stroke();
+      }
       ctx.restore();
+
+      // Level 4: orbital stabiliser nodes.
+      if (level >= 4) {
+        const nodes = 3;
+        for (let i = 0; i < nodes; i++) {
+          const a = time * 0.75 + i * TAU / nodes + seed;
+          const px = Math.cos(a) * 18;
+          const py = Math.sin(a) * 18;
+          ctx.save();
+          ctx.translate(px, py);
+          ctx.rotate(a);
+          ctx.fillStyle = hexA(accent, 0.78);
+          ctx.fillRect(-1.3, -1.3, 2.6, 2.6);
+          ctx.strokeStyle = hexA(color, 0.4);
+          ctx.lineWidth = 0.7;
+          ctx.strokeRect(-2.8, -2.8, 5.6, 5.6);
+          ctx.restore();
+        }
+      }
+
+      // Level 5: a five-point crown and a distinct charge core.
+      if (level >= 5) {
+        const pulse = 0.5 + 0.5 * Math.sin(time * 2.8 + seed);
+        ctx.save();
+        ctx.rotate(Math.PI / 2 + Math.sin(time * 0.45 + seed) * 0.15);
+        ctx.strokeStyle = hexA(accent, 0.4 + pulse * 0.18);
+        ctx.lineWidth = 0.9;
+        U.starPath(ctx, 0, 0, 21.5, 15.5, 5, 0);
+        ctx.stroke();
+        ctx.restore();
+        ctx.fillStyle = hexA(accent, 0.16 + pulse * 0.2);
+        ctx.beginPath();
+        ctx.arc(0, 0, 3.2 + pulse * 1.4, 0, TAU);
+        ctx.fill();
+      }
+      if (level >= 2) {
+        // Roman tier numeral keeps the upgrade ladder readable at phone scale.
+        const numerals = ['', 'I', 'II', 'III', 'IV', 'V'];
+        ctx.fillStyle = hexA(accent, 0.62);
+        ctx.font = '4.6px "Cascadia Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(numerals[level] || '', 0, 21.8);
+      }
+      void tower;
+    }
+
+    _drawBeaconAura(ctx, color, accent, time, range) {
+      if (range <= 0) return;
+      ctx.save();
+      // Faint permanent detection boundary.
+      ctx.strokeStyle = hexA(color, 0.13);
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 7]);
+      ctx.lineDashOffset = -time * 9;
+      ctx.beginPath();
+      ctx.arc(0, 0, range, 0, TAU);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // A sweeping scan wedge makes the reveal radius readable without text.
+      ctx.save();
+      ctx.rotate(time * 0.52);
+      const sweep = ctx.createLinearGradient(0, 0, range, 0);
+      sweep.addColorStop(0, hexA(color, 0.22));
+      sweep.addColorStop(0.55, hexA(color, 0.08));
+      sweep.addColorStop(1, hexA(color, 0));
+      ctx.fillStyle = sweep;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, range, -0.2, 0.2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      // Broken inner ring.
+      ctx.rotate(-time * 0.28);
+      ctx.strokeStyle = hexA(accent, 0.3);
+      ctx.lineWidth = 0.9;
+      for (let i = 0; i < 3; i++) {
+        const a = i * TAU / 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, range * 0.86, a + 0.2, a + 1.0);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    _drawBeaconTower(ctx, tower, color, accent, time, recoil, level) {
+      // Rotating outer housing.
+      ctx.save();
+      ctx.rotate(time * 0.28);
+      ctx.strokeStyle = hexA(color, 0.75);
+      ctx.lineWidth = 1.15;
+      U.polygon(ctx, 0, 0, 10.5, 6, 0);
+      ctx.stroke();
+      ctx.strokeStyle = hexA(accent, 0.34);
+      ctx.lineWidth = 0.7;
+      U.polygon(ctx, 0, 0, 13, 6, 0);
+      ctx.stroke();
+      for (let i = 0; i < 6; i++) {
+        const a = i * TAU / 6;
+        ctx.fillStyle = hexA(accent, 0.7);
+        ctx.fillRect(Math.cos(a) * 11.7 - 0.7, Math.sin(a) * 11.7 - 0.7, 1.4, 1.4);
+      }
+      ctx.restore();
+
+      // Beacon lantern. The upgraded tier (远侦) runs a brighter core
+      // inside a second focusing ring.
+      const pulse = 0.5 + 0.5 * Math.sin(time * 2.6);
+      const upgraded = level >= 2;
+      ctx.fillStyle = hexA(color, 0.16 + pulse * (upgraded ? 0.18 : 0.12));
+      ctx.beginPath();
+      ctx.arc(0, 0, upgraded ? 8.4 : 7.2, 0, TAU);
+      ctx.fill();
+      ctx.strokeStyle = hexA(accent, 0.55 + pulse * 0.25);
+      ctx.lineWidth = 1;
+      U.polygon(ctx, 0, 0, 5.4, 4, time * 0.45);
+      ctx.stroke();
+      ctx.fillStyle = hexA(accent, 0.55 + pulse * 0.35);
+      ctx.beginPath();
+      ctx.arc(0, 0, (2.2 + pulse * 0.9) * (upgraded ? 1.25 : 1), 0, TAU);
+      ctx.fill();
+      if (upgraded) {
+        ctx.strokeStyle = hexA(accent, 0.42);
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.arc(0, 0, 15, 0, TAU);
+        ctx.stroke();
+      }
+
+      // Four short light vanes.
+      const vaneOuter = upgraded ? 13.5 : 11.5;
+      for (let i = 0; i < 4; i++) {
+        const a = time * 0.55 + i * TAU / 4;
+        ctx.strokeStyle = hexA(accent, 0.3 + pulse * 0.28);
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * 6.5, Math.sin(a) * 6.5);
+        ctx.lineTo(Math.cos(a) * vaneOuter, Math.sin(a) * vaneOuter);
+        ctx.stroke();
+      }
+      void recoil;
     }
 
     _drawPrismTower(ctx, tower, color, accent, time, recoil, level) {
@@ -1105,10 +1414,58 @@
       ctx.moveTo(7, 7);
       ctx.lineTo(13, 12);
       ctx.stroke();
+      if (level >= 2) {
+        ctx.strokeStyle = hexA(color, 0.6);
+        ctx.lineWidth = 0.9;
+        ctx.beginPath();
+        ctx.moveTo(-8.5, 2);
+        ctx.lineTo(-13.5, 5.2);
+        ctx.moveTo(8.5, 2);
+        ctx.lineTo(13.5, 5.2);
+        ctx.stroke();
+        U.polygon(ctx, 0, 0, 6.2, 4, Math.PI / 4);
+        ctx.strokeStyle = hexA(accent, 0.5);
+        ctx.stroke();
+      }
+      if (level >= 3) {
+        // Twin crystal pods on the flanks.
+        for (let side = -1; side <= 1; side += 2) {
+          ctx.save();
+          ctx.translate(side * 10.5, 0);
+          ctx.rotate(Math.PI / 4);
+          ctx.fillStyle = hexA(color, 0.18);
+          ctx.strokeStyle = hexA(accent, 0.72);
+          ctx.lineWidth = 0.9;
+          ctx.fillRect(-2.6, -2.6, 5.2, 5.2);
+          ctx.strokeRect(-2.6, -2.6, 5.2, 5.2);
+          ctx.restore();
+        }
+      }
       if (level >= 4) {
         ctx.fillStyle = hexA(accent, 0.55);
         ctx.fillRect(-14, -2, 2, 4);
         ctx.fillRect(12, -2, 2, 4);
+        ctx.strokeStyle = hexA(accent, 0.36);
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.arc(0, 0, 13.5, -2.4, -0.75);
+        ctx.stroke();
+      }
+      if (level >= 5) {
+        // A halo of orbiting shards.
+        for (let i = 0; i < 3; i++) {
+          const a = time * 1.05 + i * TAU / 3;
+          ctx.save();
+          ctx.translate(Math.cos(a) * 15.5, Math.sin(a) * 15.5);
+          ctx.rotate(a + Math.PI / 4);
+          ctx.fillStyle = hexA(accent, 0.85);
+          ctx.fillRect(-1.5, -1.5, 3, 3);
+          ctx.restore();
+        }
+        ctx.strokeStyle = hexA(accent, 0.55);
+        ctx.beginPath();
+        ctx.arc(0, 0, 2.2 + Math.sin(time * 3) * 0.5, 0, TAU);
+        ctx.stroke();
       }
     }
 
@@ -1148,13 +1505,67 @@
       ctx.beginPath();
       ctx.arc(5 - recoil * 3, 0, 1.1, 0, TAU);
       ctx.fill();
+      if (level >= 2) {
+        // Barrel shroud ring.
+        ctx.strokeStyle = hexA(accent, 0.55);
+        ctx.lineWidth = 0.9;
+        ctx.beginPath();
+        ctx.ellipse(10.5 - recoil * 3, 0, 2.2, 7.2, 0, 0, TAU);
+        ctx.stroke();
+      }
+      if (level >= 3) {
+        // Ammo drum and belt.
+        ctx.strokeStyle = hexA(color, 0.55);
+        ctx.lineWidth = 0.9;
+        ctx.beginPath();
+        ctx.arc(-5.5, 0, 4.2, 0.3, Math.PI * 1.7);
+        ctx.stroke();
+        ctx.fillStyle = hexA(accent, 0.3);
+        for (let i = 0; i < 4; i++) {
+          const a = i * TAU / 4 + time * 0.8;
+          ctx.fillRect(-5.5 + Math.cos(a) * 3.2 - 0.5, Math.sin(a) * 3.2 - 0.5, 1, 1);
+        }
+      }
       ctx.restore();
+      if (level >= 2) {
+        ctx.strokeStyle = hexA(color, 0.36);
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.arc(0, 0, 11.5, -0.7, 0.8);
+        ctx.stroke();
+      }
+      if (level >= 3) {
+        ctx.strokeStyle = hexA(color, 0.3);
+        ctx.lineWidth = 0.7;
+        ctx.beginPath();
+        ctx.arc(0, 0, 14, 1.1, 2.6);
+        ctx.stroke();
+      }
       if (level >= 4) {
         ctx.strokeStyle = hexA(color, 0.38);
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.arc(0, 0, 15, Math.PI * 0.12, Math.PI * 0.45);
         ctx.stroke();
+        for (let i = 0; i < 4; i++) {
+          const a = time * 0.9 + i * TAU / 4;
+          ctx.fillStyle = hexA(accent, 0.62);
+          ctx.fillRect(Math.cos(a) * 14.2 - 0.7, Math.sin(a) * 14.2 - 0.7, 1.4, 1.4);
+        }
+      }
+      if (level >= 5) {
+        // Spinning heat-sink cage.
+        ctx.save();
+        ctx.rotate(time * 0.6);
+        ctx.strokeStyle = hexA(accent, 0.36);
+        ctx.lineWidth = 0.75;
+        for (let i = 0; i < 3; i++) {
+          const a = i * TAU / 3;
+          ctx.beginPath();
+          ctx.arc(0, 0, 17, a, a + 1.2);
+          ctx.stroke();
+        }
+        ctx.restore();
       }
     }
 
@@ -1198,7 +1609,67 @@
       ctx.beginPath();
       ctx.arc(0, 0, 7, -0.8 + time * 0.2, 1.5 + time * 0.2);
       ctx.stroke();
+      if (level >= 2) {
+        ctx.strokeStyle = hexA(accent, 0.48);
+        ctx.lineWidth = 0.9;
+        ctx.beginPath();
+        ctx.moveTo(15.5, -4.5);
+        ctx.lineTo(15.5, 4.5);
+        ctx.moveTo(12.5, -4.2);
+        ctx.lineTo(12.5, 4.2);
+        ctx.stroke();
+      }
+      if (level >= 3) {
+        // Loader arm and recoil rail.
+        ctx.strokeStyle = hexA(color, 0.5);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(-8, -5);
+        ctx.lineTo(-13, -9);
+        ctx.lineTo(-13, -1);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fillStyle = hexA(color, 0.16);
+        ctx.fill();
+      }
+      if (level >= 4) {
+        // Side armour blocks.
+        ctx.fillStyle = hexA(accent, 0.22);
+        ctx.strokeStyle = hexA(color, 0.55);
+        ctx.lineWidth = 0.8;
+        for (let side = -1; side <= 1; side += 2) {
+          ctx.beginPath();
+          ctx.moveTo(side * 7, -8.5);
+          ctx.lineTo(side * 11, -6.5);
+          ctx.lineTo(side * 11, 6.5);
+          ctx.lineTo(side * 7, 8.5);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+        }
+      }
       if (level >= 5) {
+        // Gravitational orbit rings.
+        ctx.save();
+        ctx.rotate(-time * 0.4);
+        ctx.strokeStyle = hexA(accent, 0.32);
+        ctx.lineWidth = 0.75;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 17, 7.5, 0.2, 0.2, 5.9);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 17, 7.5, -0.2, 3.5, 9.1);
+        ctx.stroke();
+        ctx.restore();
+        for (let i = 0; i < 3; i++) {
+          const a = time * 0.9 + i * TAU / 3;
+          ctx.fillStyle = hexA(accent, 0.78);
+          ctx.save();
+          ctx.translate(Math.cos(a) * 15, Math.sin(a) * 7);
+          ctx.rotate(a);
+          ctx.fillRect(-1.4, -1.4, 2.8, 2.8);
+          ctx.restore();
+        }
         ctx.fillStyle = hexA(accent, 0.7);
         ctx.fillRect(-12, -1, 3, 2);
         ctx.fillRect(11, -1, 3, 2);
@@ -1225,7 +1696,43 @@
       ctx.beginPath();
       ctx.arc(1, 0, 7.5, -1.1, 1.1);
       ctx.stroke();
+      if (level >= 2) {
+        ctx.strokeStyle = hexA(color, 0.4);
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.arc(1, 0, 10.5, -0.85, 0.85);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(1, 0, 10.5, Math.PI - 0.85, Math.PI + 0.85);
+        ctx.stroke();
+      }
       ctx.restore();
+
+      if (level >= 3) {
+        // Focusing fins around the emitter.
+        ctx.strokeStyle = hexA(accent, 0.45);
+        ctx.lineWidth = 0.9;
+        for (let i = 0; i < 4; i++) {
+          const a = i * TAU / 4 + Math.PI / 4;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a) * 10, Math.sin(a) * 10);
+          ctx.lineTo(Math.cos(a) * 14, Math.sin(a) * 14);
+          ctx.stroke();
+        }
+      }
+      if (level >= 4) {
+        for (let side = -1; side <= 1; side += 2) {
+          ctx.fillStyle = hexA(color, 0.24);
+          ctx.strokeStyle = hexA(accent, 0.7);
+          ctx.lineWidth = 0.8;
+          ctx.save();
+          ctx.translate(side * 13.5, 0);
+          ctx.rotate(Math.PI / 4);
+          ctx.fillRect(-2, -2, 4, 4);
+          ctx.strokeRect(-2, -2, 4, 4);
+          ctx.restore();
+        }
+      }
 
       // Rotating prism.
       ctx.save();
@@ -1236,6 +1743,12 @@
       ctx.stroke();
       ctx.fillStyle = hexA(color, 0.22 + charge * 0.5);
       ctx.fill();
+      if (level >= 4) {
+        ctx.rotate(Math.PI / 4);
+        U.polygon(ctx, 0, 0, 8.4, 4, 0);
+        ctx.strokeStyle = hexA(color, 0.5);
+        ctx.stroke();
+      }
       ctx.restore();
       ctx.fillStyle = hexA(accent, 0.55 + charge * 0.4);
       ctx.beginPath();
@@ -1247,6 +1760,13 @@
         ctx.beginPath();
         ctx.arc(0, 0, 15, 0, TAU);
         ctx.stroke();
+        for (let i = 0; i < 3; i++) {
+          const a = -time * 0.7 + i * TAU / 3;
+          ctx.fillStyle = hexA(accent, 0.7);
+          ctx.beginPath();
+          ctx.arc(Math.cos(a) * 15, Math.sin(a) * 15, 1.2, 0, TAU);
+          ctx.fill();
+        }
       }
     }
 
@@ -1274,14 +1794,48 @@
       ctx.beginPath();
       ctx.arc(0, 0, 4.2, 0, TAU);
       ctx.fill();
+      if (level >= 2) {
+        ctx.strokeStyle = hexA(accent, 0.5);
+        ctx.lineWidth = 0.85;
+        U.polygon(ctx, 0, 0, 4.2, 6, Math.PI / 6);
+        ctx.stroke();
+      }
+      if (level >= 4) {
+        ctx.strokeStyle = hexA(color, 0.55);
+        ctx.lineWidth = 1.1;
+        U.polygon(ctx, 0, 0, 2.4, 3, Math.PI / 2);
+        ctx.stroke();
+      }
       ctx.restore();
-      for (let i = 0; i < 4; i++) {
-        const a = (i / 4) * TAU + time * 0.1;
+      const ticks = level >= 3 ? 6 : 4;
+      for (let i = 0; i < ticks; i++) {
+        const a = (i / ticks) * TAU + time * 0.1;
         ctx.strokeStyle = hexA(accent, 0.35);
+        ctx.lineWidth = 0.9;
         ctx.beginPath();
         ctx.moveTo(Math.cos(a) * 11.5, Math.sin(a) * 11.5);
-        ctx.lineTo(Math.cos(a) * 14, Math.sin(a) * 14);
+        ctx.lineTo(Math.cos(a) * (level >= 3 ? 15 : 14), Math.sin(a) * (level >= 3 ? 15 : 14));
         ctx.stroke();
+      }
+      if (level >= 2) {
+        ctx.strokeStyle = hexA(color, 0.24);
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.arc(0, 0, 16.5 + Math.sin(time * 1.7) * 0.8, 0.2, 2.9);
+        ctx.stroke();
+      }
+      if (level >= 4) {
+        ctx.save();
+        ctx.rotate(time * 0.4);
+        ctx.strokeStyle = hexA(accent, 0.3);
+        ctx.lineWidth = 0.7;
+        for (let i = 0; i < 3; i++) {
+          const a = i * TAU / 3;
+          ctx.beginPath();
+          ctx.arc(0, 0, 12.5, a, a + 0.7);
+          ctx.stroke();
+        }
+        ctx.restore();
       }
       if (level >= 5) {
         ctx.strokeStyle = hexA(accent, 0.4);
@@ -1289,14 +1843,20 @@
         ctx.beginPath();
         ctx.arc(0, 0, 16, 0.4, 2.1);
         ctx.stroke();
+        for (let i = 0; i < 4; i++) {
+          const a = -time * 0.6 + i * TAU / 4;
+          ctx.fillStyle = hexA(accent, 0.62);
+          ctx.fillRect(Math.cos(a) * 17.5 - 1, Math.sin(a) * 17.5 - 1, 2, 2);
+        }
       }
     }
 
     _drawFrostTower(ctx, tower, color, accent, time, recoil, level) {
+      const spokes = level >= 3 ? 8 : 6;
       ctx.save();
       ctx.rotate(time * 0.32);
-      for (let i = 0; i < 6; i++) {
-        const a = (i / 6) * TAU;
+      for (let i = 0; i < spokes; i++) {
+        const a = (i / spokes) * TAU;
         ctx.strokeStyle = hexA(i % 2 === 0 ? color : accent, 0.72);
         ctx.lineWidth = 1.1;
         ctx.beginPath();
@@ -1307,11 +1867,28 @@
         ctx.translate(Math.cos(a) * 12, Math.sin(a) * 12);
         ctx.rotate(Math.PI / 4);
         ctx.strokeRect(-2.2, -2.2, 4.4, 4.4);
+        if (level >= 4) {
+          ctx.strokeStyle = hexA(accent, 0.4);
+          ctx.strokeRect(-3.6, -3.6, 7.2, 7.2);
+        }
         ctx.restore();
       }
       ctx.strokeStyle = hexA(color, 0.52);
       U.polygon(ctx, 0, 0, 8.5, 6, Math.PI / 6);
       ctx.stroke();
+      if (level >= 2) {
+        ctx.strokeStyle = hexA(accent, 0.42);
+        ctx.lineWidth = 0.8;
+        U.polygon(ctx, 0, 0, 11.5, 6, Math.PI / 6);
+        ctx.stroke();
+      }
+      if (level >= 5) {
+        ctx.strokeStyle = hexA(accent, 0.3);
+        ctx.lineWidth = 0.7;
+        ctx.beginPath();
+        ctx.arc(0, 0, 16.5, 0, TAU);
+        ctx.stroke();
+      }
       ctx.restore();
       ctx.fillStyle = hexA(accent, 0.2 + Math.sin(time * 2) * 0.03);
       ctx.beginPath();
@@ -1322,25 +1899,44 @@
       ctx.beginPath();
       ctx.arc(0, 0, 15.5, Math.PI * 0.15, Math.PI * 0.85);
       ctx.stroke();
-      if (level >= 5) {
+      if (level >= 3) {
+        ctx.strokeStyle = hexA(accent, 0.24);
+        ctx.lineWidth = 0.7;
+        ctx.beginPath();
+        ctx.arc(0, 0, 17, Math.PI * 1.1, Math.PI * 1.85);
+        ctx.stroke();
+      }
+      if (level >= 4) {
         for (let i = 0; i < 3; i++) {
-          const a = time * 0.7 + (i / 3) * TAU;
+          const a = -time * 0.8 + i * TAU / 3;
+          ctx.fillStyle = hexA(accent, 0.68);
+          ctx.save();
+          ctx.translate(Math.cos(a) * 15.2, Math.sin(a) * 15.2);
+          ctx.rotate(a);
+          ctx.fillRect(-1.4, -1.4, 2.8, 2.8);
+          ctx.restore();
+        }
+      }
+      if (level >= 5) {
+        for (let i = 0; i < 6; i++) {
+          const a = time * 0.7 + (i / 6) * TAU;
           ctx.fillStyle = hexA(accent, 0.6);
           ctx.beginPath();
-          ctx.arc(Math.cos(a) * 15.5, Math.sin(a) * 15.5, 1.2, 0, TAU);
+          ctx.arc(Math.cos(a) * 17, Math.sin(a) * 17, 1.2, 0, TAU);
           ctx.fill();
         }
       }
     }
 
     _drawTeslaTower(ctx, tower, color, accent, time, recoil, level) {
+      const arms = level >= 2 ? 4 : 3;
       ctx.strokeStyle = hexA(color, 0.68);
       ctx.lineWidth = 1.15;
       ctx.beginPath();
       U.polygon(ctx, 0, 0, 13, 3, Math.PI / 2 + time * 0.12);
       ctx.stroke();
-      for (let i = 0; i < 3; i++) {
-        const a = Math.PI / 2 + (i / 3) * TAU + time * 0.12;
+      for (let i = 0; i < arms; i++) {
+        const a = Math.PI / 2 + (i / arms) * TAU + time * 0.12;
         const px = Math.cos(a) * 9.8;
         const py = Math.sin(a) * 9.8;
         ctx.strokeStyle = hexA(color, 0.52);
@@ -1352,6 +1948,13 @@
         ctx.beginPath();
         ctx.arc(px, py, 1.2, 0, TAU);
         ctx.fill();
+        if (level >= 4) {
+          ctx.strokeStyle = hexA(accent, 0.32);
+          ctx.lineWidth = 0.7;
+          ctx.beginPath();
+          ctx.arc(px, py, 2.6, -0.6 + time, 0.6 + time);
+          ctx.stroke();
+        }
       }
       ctx.save();
       ctx.rotate(-time * 0.7);
@@ -1359,17 +1962,54 @@
       ctx.lineWidth = 1.1;
       U.polygon(ctx, 0, 0, 6.3, 4, 0);
       ctx.stroke();
+      if (level >= 3) {
+        ctx.strokeStyle = hexA(color, 0.5);
+        ctx.lineWidth = 0.85;
+        U.polygon(ctx, 0, 0, 9.2, 6, Math.PI / 6);
+        ctx.stroke();
+      }
+      if (level >= 5) {
+        ctx.strokeStyle = hexA(accent, 0.42);
+        ctx.lineWidth = 0.8;
+        U.polygon(ctx, 0, 0, 11.8, 3, Math.PI / 2);
+        ctx.stroke();
+      }
       ctx.restore();
       ctx.fillStyle = hexA(accent, 0.16 + Math.sin(time * 3.2) * 0.04);
       ctx.beginPath();
       ctx.arc(0, 0, 4.4, 0, TAU);
       ctx.fill();
+      if (level >= 2) {
+        ctx.strokeStyle = hexA(color, 0.3);
+        ctx.lineWidth = 0.7;
+        ctx.beginPath();
+        ctx.arc(0, 0, 15.5, 0.4, 2.5);
+        ctx.stroke();
+      }
+      if (level >= 4) {
+        for (let i = 0; i < 4; i++) {
+          const a = time * 0.9 + i * TAU / 4;
+          ctx.strokeStyle = hexA(accent, 0.5);
+          ctx.lineWidth = 0.6;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a) * 15, Math.sin(a) * 15);
+          ctx.lineTo(Math.cos(a) * 18, Math.sin(a) * 18);
+          ctx.stroke();
+        }
+      }
       if (level >= 5) {
         ctx.strokeStyle = hexA(accent, 0.45);
         ctx.lineWidth = 0.7;
         ctx.beginPath();
         ctx.arc(0, 0, 16, 0, TAU);
         ctx.stroke();
+        for (let i = 0; i < 6; i++) {
+          const a = -time * 0.5 + i * TAU / 6;
+          ctx.fillStyle = hexA(accent, 0.66);
+          ctx.beginPath();
+          ctx.arc(Math.cos(a) * 17, Math.sin(a) * 17, 1.1, 0, TAU);
+          ctx.fill();
+        }
       }
     }
 
@@ -1378,11 +2018,11 @@
       for (let i = 0; i < game.enemies.length; i++) {
         const enemy = game.enemies[i];
         if (enemy.dead) continue;
-        this._drawEnemy(ctx, enemy, time, lowDetail);
+        this._drawEnemy(ctx, enemy, game, time, lowDetail);
       }
     }
 
-    _drawEnemy(ctx, enemy, time, lowDetail) {
+    _drawEnemy(ctx, enemy, game, time, lowDetail) {
       const cell = this.cell;
       const def = enemy.def;
       const color = def.color;
@@ -1392,9 +2032,23 @@
       const spawnScale = 0.4 + U.easeOutCubic(spawn) * 0.6;
       const radius = def.radius * cell * spawnScale * (def.boss ? 1.1 : 1);
       const hitFlash = enemy.hitFlash || 0;
-      const slowed = enemy.slowTimer > 0;
+      const slowed = enemy.slowTimer > 0 && !def.superArmor;
       const angle = enemy.angle || Math.PI / 2;
-      const rot = def.boss ? time * 0.28 : def.id === 'drone' ? angle * 0.2 + time * 0.35 : angle;
+      const sides = def.sides || (def.shape === 'octagon' ? 8 : def.shape === 'hex' ? 6 : def.shape === 'pentagon' ? 5 : def.shape === 'square' ? 4 : 3);
+      const stealth = !!def.stealth;
+      const revealed = !stealth || game._enemyRevealed(enemy);
+      const superArmor = !!def.superArmor;
+      const shieldActive = enemy.shield > 0;
+      const shieldRatio = enemy.maxShield ? U.clamp(enemy.shield / enemy.maxShield, 0, 1) : 0;
+      const shieldFlash = enemy.shieldFlash || 0;
+      let rot = angle;
+      if (def.id === 'drone') rot = angle * 0.2 + time * 0.35;
+      else if (def.shape === 'shield') rot = time * 0.06;
+      else if (def.shape === 'octagon' && def.boss) rot = time * 0.28;
+      else if (def.shape === 'kite') rot = angle + Math.PI / 2;
+      else if (def.shape === 'heptagon') rot = angle * 0.35 - time * 0.2;
+      else if (def.shape === 'octagon') rot = angle * 0.15 + time * 0.05;
+      const bodyAlpha = (0.25 + spawn * 0.75) * (stealth && !revealed ? 0.5 : 1);
 
       ctx.save();
       ctx.translate(cx, cy);
@@ -1410,14 +2064,43 @@
         ctx.arc(0, 0, radius * 2.3, 0, TAU);
         ctx.fill();
       } else if (!lowDetail) {
-        ctx.fillStyle = hexA(color, 0.035);
+        ctx.fillStyle = hexA(color, 0.055);
         ctx.beginPath();
-        ctx.arc(0, 0, radius * 1.85, 0, TAU);
+        ctx.arc(0, 0, radius * 1.95, 0, TAU);
         ctx.fill();
       }
 
+      // Stealth refraction halo behind the body; revealed units get a gold lock-on ring.
+      if (stealth) {
+        ctx.save();
+        if (!revealed) {
+          ctx.strokeStyle = hexA('#b9e9ff', 0.24 + Math.sin(time * 4 + enemy.x) * 0.08);
+          ctx.lineWidth = 0.8;
+          ctx.setLineDash([2, 4]);
+          ctx.lineDashOffset = -time * 9;
+          ctx.beginPath();
+          ctx.arc(0, 0, radius * 1.75, 0, TAU);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        } else {
+          ctx.strokeStyle = hexA('#ffd76a', 0.5 + Math.sin(time * 4 + enemy.x) * 0.12);
+          ctx.lineWidth = 0.9;
+          ctx.setLineDash([3, 3]);
+          ctx.lineDashOffset = time * 8;
+          ctx.beginPath();
+          ctx.arc(0, 0, radius * 1.62, 0, TAU);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = hexA('#ffe8a8', 0.8);
+          ctx.beginPath();
+          ctx.arc(0, -radius * 1.9, 1.6, 0, TAU);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
       // Motion trail.
-      if (!def.boss && (def.id === 'scout' || def.id === 'shard')) {
+      if (!def.boss && (def.id === 'scout' || def.id === 'shard' || def.id === 'wraith')) {
         ctx.strokeStyle = hexA(color, 0.18);
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -1435,6 +2118,13 @@
         ctx.arc(0, 0, radius * 1.55, 0, TAU);
         ctx.stroke();
         ctx.setLineDash([]);
+      }
+      if (superArmor && enemy.slowBlocked > 0) {
+        ctx.strokeStyle = 'rgba(255,154,98,' + U.clamp(enemy.slowBlocked * 2.4, 0, 0.9) + ')';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(0, 0, radius * 1.5, 0, TAU);
+        ctx.stroke();
       }
 
       // Orbit arcs.
@@ -1456,15 +2146,10 @@
 
       // Main hollow body.
       ctx.save();
+      ctx.globalAlpha = bodyAlpha;
       ctx.rotate(rot);
-      let sides = 3;
-      if (def.shape === 'square') sides = 4;
-      else if (def.shape === 'hex') sides = 6;
-      else if (def.shape === 'diamond') sides = 4;
-      else if (def.shape === 'pentagon') sides = 5;
-      else if (def.shape === 'octagon') sides = 8;
       ctx.fillStyle = 'rgba(3,9,16,0.94)';
-      U.polygon(ctx, 0, 0, radius, sides, 0);
+      U.polygon(ctx, 0, 0, radius, sides, def.shape === 'diamond' ? 0 : Math.PI / 2);
       ctx.fill();
       ctx.strokeStyle = hexA(color, hitFlash > 0 ? 0.25 : 0.13);
       ctx.lineWidth = def.boss ? 5.5 : 3.8;
@@ -1473,13 +2158,48 @@
       ctx.lineWidth = def.boss ? 1.8 : 1.25;
       ctx.stroke();
 
-      // Inner glyph.
+      // Inner glyph, shaped by the dominant trait.
       ctx.strokeStyle = hexA(color, def.boss ? 0.6 : 0.38);
       ctx.lineWidth = 0.8;
       if (def.boss) {
         U.polygon(ctx, 0, 0, radius * 0.62, 6, -time * 0.5);
         ctx.stroke();
         U.polygon(ctx, 0, 0, radius * 0.35, 4, time * 0.8);
+        ctx.stroke();
+        ctx.strokeStyle = hexA('#6fe7ff', 0.42 + shieldFlash * 1.4);
+        ctx.beginPath();
+        ctx.arc(0, 0, radius * 0.84, 0, TAU);
+        ctx.stroke();
+      } else if (def.shield) {
+        U.polygon(ctx, 0, 0, radius * 0.6, 6, 0);
+        ctx.stroke();
+        ctx.strokeStyle = hexA('#9bfaff', 0.5);
+        ctx.beginPath();
+        ctx.moveTo(-radius * 0.3, 0);
+        ctx.lineTo(radius * 0.3, 0);
+        ctx.moveTo(0, -radius * 0.3);
+        ctx.lineTo(0, radius * 0.3);
+        ctx.stroke();
+      } else if (stealth) {
+        ctx.strokeStyle = hexA('#b9e9ff', 0.55);
+        ctx.setLineDash([2, 2]);
+        ctx.beginPath();
+        ctx.arc(0, 0, radius * 0.58, 0, TAU);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(-radius * 0.55, radius * 0.5);
+        ctx.lineTo(radius * 0.45, -radius * 0.55);
+        ctx.stroke();
+      } else if (superArmor) {
+        ctx.strokeStyle = hexA('#ff9a62', 0.5);
+        ctx.lineWidth = 1.4;
+        ctx.strokeRect(-radius * 0.4, -radius * 0.4, radius * 0.8, radius * 0.8);
+      } else if (def.resist && (def.resist.energy >= 0.5 || def.resist.cryo >= 0.5)) {
+        U.polygon(ctx, 0, 0, radius * 0.55, 7, time * 0.18);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(0, 0, radius * 0.3, 0, TAU);
         ctx.stroke();
       } else if (!lowDetail) {
         U.polygon(ctx, 0, 0, radius * 0.48, sides, time * 0.25);
@@ -1501,31 +2221,124 @@
       }
       ctx.restore();
 
-      // Energy shield markers for resistant enemies.
-      if (def.resist && def.resist.energy && (!lowDetail || def.boss)) {
-        ctx.strokeStyle = 'rgba(174,255,238,0.56)';
-        ctx.lineWidth = 0.9;
-        for (let i = 0; i < 3; i++) {
+      // Stealth scanline shimmer over the body.
+      if (stealth && !revealed && !lowDetail) {
+        ctx.save();
+        ctx.globalAlpha = 0.35 + Math.sin(time * 5 + enemy.x) * 0.1;
+        ctx.strokeStyle = 'rgba(185,233,255,0.7)';
+        ctx.lineWidth = 0.6;
+        for (let s = -1; s <= 1; s++) {
+          const y = s * radius * 0.4 + Math.sin(time * 3 + s) * 1.5;
           ctx.beginPath();
-          ctx.arc(0, 0, radius * 1.42, Math.PI * 0.62 + i * 0.34, Math.PI * 0.62 + i * 0.34 + 0.2);
+          ctx.moveTo(-radius * 0.8, y);
+          ctx.lineTo(radius * 0.8, y + 1.2);
           ctx.stroke();
         }
+        ctx.restore();
       }
 
-      // HP bar.
-      if (enemy.hp < enemy.maxHp || def.boss) {
+      // Active energy shield: a rotating hex bubble with a clear break point.
+      if (shieldActive) {
+        ctx.save();
+        ctx.globalAlpha = (0.25 + spawn * 0.75) * (0.4 + shieldRatio * 0.6);
+        const bubble = radius * 1.55;
+        ctx.strokeStyle = hexA('#6fe7ff', 0.42 + shieldFlash * 1.8);
+        ctx.lineWidth = 1.2 + shieldFlash * 2.4;
+        ctx.setLineDash([3, 4]);
+        ctx.lineDashOffset = -time * 14;
+        ctx.beginPath();
+        ctx.arc(0, 0, bubble, 0, TAU);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.strokeStyle = hexA('#9bfaff', 0.2 + shieldFlash * 1.2);
+        ctx.lineWidth = 0.8;
+        for (let f = 0; f < 3; f++) {
+          const a = time * 0.55 + f * TAU / 3;
+          ctx.beginPath();
+          ctx.arc(0, 0, bubble, a, a + 0.62);
+          ctx.stroke();
+        }
+        ctx.fillStyle = hexA('#6fe7ff', 0.035 + shieldFlash * 0.16);
+        ctx.beginPath();
+        ctx.arc(0, 0, bubble, 0, TAU);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Super-armour brace corners.
+      if (superArmor) {
+        ctx.save();
+        ctx.strokeStyle = hexA('#ff9a62', 0.55);
+        ctx.lineWidth = 1.5;
+        const b = radius * 1.28;
+        const arm = radius * 0.34;
+        for (let i = 0; i < 4; i++) {
+          const sx = i % 2 === 0 ? -1 : 1;
+          const sy = i < 2 ? -1 : 1;
+          ctx.beginPath();
+          ctx.moveTo(sx * b - sx * arm, sy * b);
+          ctx.lineTo(sx * b, sy * b);
+          ctx.lineTo(sx * b, sy * b - sy * arm);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // Trait badges above the health bar.
+      const traitIds = (def.traits || []).filter(function (id) {
+        return id !== 'boss';
+      });
+      if (traitIds.length && (!lowDetail || def.boss)) {
+        const step = 8;
+        const badgeY = -radius - (def.boss ? 26 : 18);
+        const startX = -((traitIds.length - 1) * step) / 2;
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = '6px "Cascadia Mono", monospace';
+        for (let i = 0; i < traitIds.length; i++) {
+          const trait = C.TRAITS[traitIds[i]];
+          if (!trait) continue;
+          const bx = startX + i * step;
+          ctx.fillStyle = 'rgba(2,8,13,0.82)';
+          ctx.strokeStyle = hexA(trait.color, 0.82);
+          ctx.lineWidth = 0.8;
+          ctx.beginPath();
+          ctx.moveTo(bx, badgeY - 4);
+          ctx.lineTo(bx + 3.8, badgeY);
+          ctx.lineTo(bx, badgeY + 4);
+          ctx.lineTo(bx - 3.8, badgeY);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = trait.color;
+          ctx.fillText(trait.short, bx, badgeY + 0.2);
+        }
+        ctx.restore();
+      }
+
+      // HP and shield bars.
+      if (enemy.hp < enemy.maxHp || def.boss || shieldActive) {
         const barW = def.boss ? radius * 2.2 : radius * 1.8;
         const barY = -radius - (def.boss ? 10 : 7);
+        const barH = def.boss ? 3.5 : 2.2;
+        if (shieldActive) {
+          const shieldW = barW * shieldRatio;
+          ctx.fillStyle = 'rgba(1,5,10,0.75)';
+          ctx.fillRect(-barW / 2, barY - barH - 1.4, barW, barH * 0.8);
+          ctx.fillStyle = '#6fe7ff';
+          ctx.fillRect(-barW / 2, barY - barH - 1.4, shieldW, barH * 0.8);
+        }
         ctx.fillStyle = 'rgba(1,5,10,0.75)';
-        ctx.fillRect(-barW / 2, barY, barW, def.boss ? 3.5 : 2.2);
+        ctx.fillRect(-barW / 2, barY, barW, barH);
         const ratio = U.clamp(enemy.hp / enemy.maxHp, 0, 1);
         ctx.fillStyle = enemy.hp / enemy.maxHp < 0.35 ? '#ff7b6f' : def.boss ? '#ff8a4d' : '#ff5a4d';
-        ctx.fillRect(-barW / 2, barY, barW * ratio, def.boss ? 3.5 : 2.2);
+        ctx.fillRect(-barW / 2, barY, barW * ratio, barH);
         // Little ticks.
         if (!lowDetail || def.boss) {
           ctx.fillStyle = 'rgba(2,8,13,0.7)';
           for (let t = 1; t < 4; t++) {
-            ctx.fillRect(-barW / 2 + (barW * t) / 4, barY, 0.6, def.boss ? 3.5 : 2.2);
+            ctx.fillRect(-barW / 2 + (barW * t) / 4, barY, 0.6, barH);
           }
         }
       }
@@ -1534,7 +2347,7 @@
         ctx.fillStyle = hexA(color, 0.65);
         ctx.font = '5px "Cascadia Mono", monospace';
         ctx.textAlign = 'center';
-        ctx.fillText('SINGULARITY', 0, -radius - 16);
+        ctx.fillText('SINGULARITY', 0, -radius - (def.traits.length ? 36 : 16));
       }
       ctx.restore();
     }
@@ -1543,53 +2356,126 @@
       const cell = this.cell;
       for (let i = 0; i < game.projectiles.length; i++) {
         const p = game.projectiles[i];
+        const tier = p.tier || 1;
         const px = this.ox + p.x * cell;
         const py = this.oy + p.y * cell;
         ctx.save();
         ctx.translate(px, py);
         if (p.type === 'arrow') {
           ctx.rotate(p.angle || 0);
+          const stretch = 1 + (tier - 1) * 0.055;
+          if (tier >= 3) {
+            // Ionised wake left behind the arrow.
+            ctx.strokeStyle = hexA(p.color, 0.14 + tier * 0.015);
+            ctx.lineWidth = 3.4;
+            ctx.beginPath();
+            ctx.moveTo(-cell * (0.3 + tier * 0.035), 0);
+            ctx.lineTo(cell * 0.12, 0);
+            ctx.stroke();
+          }
           ctx.strokeStyle = hexA(p.color, 0.28);
           ctx.lineWidth = 2.6;
           ctx.beginPath();
-          ctx.moveTo(-cell * 0.22, 0);
-          ctx.lineTo(cell * 0.16, 0);
+          ctx.moveTo(-cell * 0.22 * stretch, 0);
+          ctx.lineTo(cell * 0.16 * stretch, 0);
           ctx.stroke();
           ctx.strokeStyle = hexA(p.color, 0.94);
-          ctx.lineWidth = 1.1;
+          ctx.lineWidth = 1.1 + (tier >= 4 ? 0.25 : 0);
           ctx.beginPath();
-          ctx.moveTo(-cell * 0.12, 0);
-          ctx.lineTo(cell * 0.16, 0);
-          ctx.moveTo(cell * 0.16, 0);
-          ctx.lineTo(cell * 0.08, -cell * 0.055);
-          ctx.moveTo(cell * 0.16, 0);
-          ctx.lineTo(cell * 0.08, cell * 0.055);
+          ctx.moveTo(-cell * 0.12 * stretch, 0);
+          ctx.lineTo(cell * 0.16 * stretch, 0);
           ctx.stroke();
+          const barbs = tier >= 4 ? 3 : 2;
+          for (let b = 0; b < barbs; b++) {
+            const t = (b + 1) / (barbs + 1);
+            const bx = cell * 0.16 * stretch - cell * 0.13 * t;
+            const len = cell * (0.055 + t * 0.02);
+            ctx.beginPath();
+            ctx.moveTo(bx, 0);
+            ctx.lineTo(bx - len, -len);
+            ctx.moveTo(bx, 0);
+            ctx.lineTo(bx - len, len);
+            ctx.stroke();
+          }
+          if (tier >= 5) {
+            ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+            ctx.lineWidth = 0.7;
+            ctx.beginPath();
+            ctx.moveTo(-cell * 0.24, 0);
+            ctx.lineTo(cell * 0.18, 0);
+            ctx.stroke();
+            ctx.strokeStyle = hexA(p.color, 0.4);
+            ctx.beginPath();
+            ctx.moveTo(-cell * 0.06, -cell * 0.055);
+            ctx.lineTo(cell * 0.14, -cell * 0.055);
+            ctx.moveTo(-cell * 0.06, cell * 0.055);
+            ctx.lineTo(cell * 0.14, cell * 0.055);
+            ctx.stroke();
+          }
         } else if (p.type === 'bullet') {
           ctx.rotate(p.angle || 0);
+          const size = 1 + (tier - 1) * 0.18;
+          if (tier >= 4) {
+            ctx.strokeStyle = hexA(p.color, 0.16);
+            ctx.lineWidth = 2.2;
+            ctx.beginPath();
+            ctx.moveTo(-cell * 0.38, 0);
+            ctx.lineTo(cell * 0.06, 0);
+            ctx.stroke();
+          }
           ctx.fillStyle = hexA(p.color, 0.2);
           ctx.beginPath();
-          ctx.arc(0, 0, cell * 0.055, 0, TAU);
+          ctx.arc(0, 0, cell * 0.055 * size, 0, TAU);
           ctx.fill();
           ctx.fillStyle = hexA(p.color, 0.96);
-          ctx.fillRect(-cell * 0.11, -0.65, cell * 0.16, 1.3);
+          ctx.fillRect(-cell * 0.11 * size, -0.65 * size, cell * 0.16 * size, 1.3 * size);
+          if (tier >= 5) {
+            ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+            ctx.lineWidth = 0.55;
+            ctx.beginPath();
+            ctx.moveTo(-cell * 0.3, -1.1);
+            ctx.lineTo(cell * 0.04, -1.1);
+            ctx.moveTo(-cell * 0.3, 1.1);
+            ctx.lineTo(cell * 0.04, 1.1);
+            ctx.stroke();
+          }
         } else if (p.type === 'shell') {
           const spin = (p.spin || 0) + time * 7;
+          const size = 1 + (tier - 1) * 0.1;
           ctx.rotate(spin);
           ctx.strokeStyle = hexA(p.color, 0.2);
           ctx.lineWidth = 4;
           ctx.beginPath();
-          ctx.arc(0, 0, cell * 0.14, 0, TAU);
+          ctx.arc(0, 0, cell * 0.14 * size, 0, TAU);
           ctx.stroke();
           ctx.strokeStyle = p.color;
           ctx.lineWidth = 1.1;
           ctx.beginPath();
-          ctx.arc(0, 0, cell * 0.12, 0.2, 4.4);
+          ctx.arc(0, 0, cell * 0.12 * size, 0.2, 4.4);
           ctx.stroke();
           ctx.fillStyle = hexA(p.color, 0.8);
           ctx.beginPath();
-          ctx.arc(0, 0, cell * 0.035, 0, TAU);
+          ctx.arc(0, 0, cell * 0.035 * size, 0, TAU);
           ctx.fill();
+          if (tier >= 3) {
+            ctx.strokeStyle = hexA(p.color, 0.36);
+            ctx.lineWidth = 0.8;
+            for (let s = 0; s < Math.min(4, tier - 2); s++) {
+              const a = spin * 1.4 + s * TAU / Math.max(1, Math.min(4, tier - 2));
+              ctx.beginPath();
+              ctx.arc(0, 0, cell * (0.2 + s * 0.03), a, a + 1.2);
+              ctx.stroke();
+            }
+          }
+          if (tier >= 5) {
+            ctx.fillStyle = 'rgba(255,244,214,0.9)';
+            for (let s = 0; s < 3; s++) {
+              const a = -spin * 1.2 + s * TAU / 3;
+              ctx.beginPath();
+              ctx.arc(Math.cos(a) * cell * 0.22, Math.sin(a) * cell * 0.22, 1.1, 0, TAU);
+              ctx.fill();
+            }
+          }
         }
         ctx.restore();
       }
@@ -1602,6 +2488,7 @@
         if (e.life <= 0) continue;
         const t = 1 - e.life / e.maxLife;
         if (e.type === 'ring') {
+          const tier = e.tier || 1;
           const r = U.lerp(e.r0, e.r1, U.easeOutCubic(t)) * cell;
           const alpha = (1 - t) * (e.alpha || 0.6);
           ctx.strokeStyle = hexA(e.color, alpha);
@@ -1616,7 +2503,27 @@
             ctx.arc(this.ox + e.x * cell, this.oy + e.y * cell, r * 0.65, 0, TAU);
             ctx.stroke();
           }
+          if (tier >= 4) {
+            ctx.strokeStyle = hexA(e.color, alpha * 0.24);
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.arc(this.ox + e.x * cell, this.oy + e.y * cell, r * 1.14, 0, TAU);
+            ctx.stroke();
+          }
+          if (tier >= 5) {
+            const cx = this.ox + e.x * cell;
+            const cy = this.oy + e.y * cell;
+            for (let k = 0; k < 8; k++) {
+              const a = (k / 8) * TAU + t * 0.8;
+              ctx.strokeStyle = hexA(e.color, alpha * 0.4);
+              ctx.beginPath();
+              ctx.moveTo(cx + Math.cos(a) * r * 0.92, cy + Math.sin(a) * r * 0.92);
+              ctx.lineTo(cx + Math.cos(a) * r * 1.08, cy + Math.sin(a) * r * 1.08);
+              ctx.stroke();
+            }
+          }
         } else if (e.type === 'beam') {
+          const tier = e.tier || 1;
           const alpha = Math.pow(1 - t, 1.4);
           const x1 = this.ox + e.x1 * cell;
           const y1 = this.oy + e.y1 * cell;
@@ -1628,17 +2535,38 @@
           ctx.moveTo(x1, y1);
           ctx.lineTo(x2, y2);
           ctx.stroke();
+          if (tier >= 3) {
+            ctx.strokeStyle = hexA(e.color, alpha * 0.1);
+            ctx.lineWidth = (e.width || 3) * 1.9;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+          }
           ctx.strokeStyle = 'rgba(255,255,255,' + alpha * 0.82 + ')';
-          ctx.lineWidth = 0.9;
+          ctx.lineWidth = 0.9 + (tier >= 5 ? 0.35 : 0);
           ctx.beginPath();
           ctx.moveTo(x1, y1);
           ctx.lineTo(x2, y2);
           ctx.stroke();
+          if (tier >= 4) {
+            ctx.strokeStyle = hexA('#ffffff', alpha * 0.5);
+            ctx.lineWidth = 0.5;
+            const len = Math.hypot(x2 - x1, y2 - y1) || 1;
+            const nx = -(y2 - y1) / len;
+            const ny = (x2 - x1) / len;
+            const off = Math.sin(time * 30) * 1.6;
+            ctx.beginPath();
+            ctx.moveTo(x1 + nx * off, y1 + ny * off);
+            ctx.lineTo(x2 + nx * off, y2 + ny * off);
+            ctx.stroke();
+          }
           ctx.fillStyle = hexA(e.color, alpha * 0.8);
           ctx.beginPath();
-          ctx.arc(x2, y2, 2.6, 0, TAU);
+          ctx.arc(x2, y2, 2.6 + (tier >= 5 ? 1.4 : 0), 0, TAU);
           ctx.fill();
         } else if (e.type === 'lightning') {
+          const tier = e.tier || 1;
           const alpha = Math.pow(1 - t, 1.1);
           const points = e.points;
           for (let pass = 0; pass < 2; pass++) {
@@ -1653,14 +2581,28 @@
             }
             ctx.stroke();
           }
+          if (tier >= 4) {
+            ctx.strokeStyle = hexA(e.color, alpha * 0.45);
+            ctx.lineWidth = 0.7;
+            for (let p = 1; p < points.length; p += 2) {
+              const a = this.ox + points[p].x * cell;
+              const b = this.oy + points[p].y * cell;
+              const ang = Math.random() * TAU;
+              ctx.beginPath();
+              ctx.moveTo(a, b);
+              ctx.lineTo(a + Math.cos(ang) * cell * 0.12, b + Math.sin(ang) * cell * 0.12);
+              ctx.stroke();
+            }
+          }
         } else if (e.type === 'frostTrail') {
+          const tier = e.tier || 1;
           const alpha = Math.pow(1 - t, 1.3);
           const x1 = this.ox + e.x1 * cell;
           const y1 = this.oy + e.y1 * cell;
           const x2 = this.ox + e.x2 * cell;
           const y2 = this.oy + e.y2 * cell;
           ctx.strokeStyle = hexA(e.color, alpha * 0.32);
-          ctx.lineWidth = 1;
+          ctx.lineWidth = 1 + (tier >= 4 ? 0.4 : 0);
           ctx.setLineDash([2, 4]);
           ctx.beginPath();
           ctx.moveTo(x1, y1);
@@ -1668,22 +2610,33 @@
           ctx.stroke();
           ctx.setLineDash([]);
           ctx.fillStyle = hexA(e.color, alpha * 0.85);
-          for (let p = 1; p < 4; p++) {
-            const tt = p / 4;
+          const count = tier >= 4 ? 6 : 3;
+          for (let p = 1; p <= count; p++) {
+            const tt = p / (count + 1);
             const px = U.lerp(x1, x2, tt);
             const py = U.lerp(y1, y2, tt);
             ctx.save();
             ctx.translate(px, py);
-            ctx.rotate(p);
-            ctx.fillRect(-1.2, -1.2, 2.4, 2.4);
+            ctx.rotate(p + time * 2);
+            const s = tier >= 5 ? 1.6 : 1.2;
+            ctx.fillRect(-s, -s, s * 2, s * 2);
             ctx.restore();
           }
         } else if (e.type === 'muzzle') {
+          const tier = e.tier || 1;
           const alpha = (1 - t) * 0.8;
+          const size = (e.size || 1) * (1 + (tier - 1) * 0.12);
           ctx.fillStyle = hexA(e.color, alpha);
           ctx.beginPath();
-          ctx.arc(this.ox + e.x * cell, this.oy + e.y * cell, (1.4 + t * 3) * (e.size || 1), 0, TAU);
+          ctx.arc(this.ox + e.x * cell, this.oy + e.y * cell, (1.4 + t * 3) * size, 0, TAU);
           ctx.fill();
+          if (tier >= 4) {
+            ctx.strokeStyle = hexA('#ffffff', alpha * 0.6);
+            ctx.lineWidth = 0.6;
+            ctx.beginPath();
+            ctx.arc(this.ox + e.x * cell, this.oy + e.y * cell, (1.8 + t * 4) * size, 0, TAU);
+            ctx.stroke();
+          }
         } else if (e.type === 'spawn') {
           const alpha = (1 - t) * 0.6;
           ctx.strokeStyle = hexA(e.color, alpha);
@@ -1790,11 +2743,15 @@
     _drawSelectionBrackets(ctx, game, time) {
       if (!game.selectedStructure) return;
       const s = game.selectedStructure;
+      const pulse = 0.7 + (Math.sin(time * 3.4) * 0.5 + 0.5) * 0.24;
+      ctx.save();
+      ctx.shadowColor = hexA(SEM.select, 0.55);
+      ctx.shadowBlur = this.cell * 0.18;
       if (s.kind === 'wall') {
         const cx = this.ox + (s.x + 0.5) * this.cell;
         const cy = this.oy + (s.y + 0.5) * this.cell;
-        ctx.strokeStyle = hexA(SEM.select, 0.82);
-        ctx.lineWidth = 1.15;
+        ctx.strokeStyle = hexA(SEM.select, pulse + 0.12);
+        ctx.lineWidth = 1.3;
         const b = this.cell * 0.41;
         ctx.beginPath();
         for (let i = 0; i < 4; i++) {
@@ -1810,15 +2767,21 @@
       } else {
         const cx = this.ox + (s.x + 0.5) * this.cell;
         const cy = this.oy + (s.y + 0.5) * this.cell;
-        ctx.strokeStyle = hexA(SEM.select, 0.72);
-        ctx.lineWidth = 1.2;
+        ctx.strokeStyle = hexA(SEM.select, pulse);
+        ctx.lineWidth = 1.4;
         ctx.beginPath();
         ctx.arc(cx, cy, this.cell * 0.45, time * 0.7, time * 0.7 + 1.4);
         ctx.stroke();
         ctx.beginPath();
         ctx.arc(cx, cy, this.cell * 0.45, time * 0.7 + Math.PI, time * 0.7 + Math.PI + 1.4);
         ctx.stroke();
+        ctx.strokeStyle = hexA(SEM.select, pulse * 0.36);
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.arc(cx, cy, this.cell * 0.5, 0, TAU);
+        ctx.stroke();
       }
+      ctx.restore();
     }
 
     _drawPlacementError(ctx, game) {
@@ -2055,6 +3018,52 @@
         ctx.fill();
         break;
       }
+      case 'beacon': {
+        // Lighthouse: tapered tower, lantern room, light rays and reveal arc.
+        ctx.strokeStyle = hexA(color, 0.9);
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(-7, 17);
+        ctx.lineTo(-4, -3);
+        ctx.lineTo(4, -3);
+        ctx.lineTo(7, 17);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.strokeStyle = hexA(accent, 0.85);
+        ctx.beginPath();
+        ctx.moveTo(-6, 2);
+        ctx.lineTo(6, 2);
+        ctx.moveTo(-7, 17);
+        ctx.lineTo(7, 17);
+        ctx.stroke();
+        ctx.fillStyle = hexA(color, 0.22);
+        ctx.beginPath();
+        ctx.arc(0, -7, 6.5, 0, TAU);
+        ctx.fill();
+        ctx.strokeStyle = hexA(accent, 0.95);
+        ctx.beginPath();
+        ctx.arc(0, -7, 6.5, 0, TAU);
+        ctx.stroke();
+        ctx.fillStyle = hexA(accent, 0.9);
+        ctx.beginPath();
+        ctx.arc(0, -7, 2.6, 0, TAU);
+        ctx.fill();
+        for (let i = 0; i < 4; i++) {
+          const a = -0.9 + i * 0.6;
+          ctx.strokeStyle = hexA(accent, 0.6);
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a) * 8, -7 + Math.sin(a) * 8);
+          ctx.lineTo(Math.cos(a) * 13, -7 + Math.sin(a) * 13);
+          ctx.stroke();
+        }
+        ctx.strokeStyle = hexA(color, 0.45);
+        ctx.setLineDash([2, 3]);
+        ctx.beginPath();
+        ctx.arc(0, -7, 18, 0.2, 2.95);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        break;
+      }
       case 'wall': {
         const r = 18;
         ctx.fillStyle = 'rgba(4,12,21,0.82)';
@@ -2100,12 +3109,7 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, 64, 64);
     const color = def.color;
-    let sides = 5;
-    if (def.shape === 'triangle') sides = 3;
-    else if (def.shape === 'square') sides = 4;
-    else if (def.shape === 'hex') sides = 6;
-    else if (def.shape === 'diamond') sides = 4;
-    else if (def.shape === 'octagon') sides = 8;
+    let sides = def.sides || 5;
     ctx.save();
     ctx.translate(32, 32);
     ctx.strokeStyle = hexA(color, 0.2);
@@ -2113,22 +3117,61 @@
     ctx.beginPath();
     ctx.arc(0, 0, 23, 0.4, 2.9);
     ctx.stroke();
+    if (def.stealth) {
+      ctx.strokeStyle = hexA(color, 0.3);
+      ctx.setLineDash([2, 4]);
+      ctx.beginPath();
+      ctx.arc(0, 0, 25, 0, TAU);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
     ctx.fillStyle = 'rgba(4,10,17,0.9)';
     ctx.strokeStyle = color;
     ctx.lineWidth = 1.35;
-    U.polygon(ctx, 0, 0, 18, sides, def.shape === 'diamond' ? 0 : Math.PI / 2);
+    if (def.stealth) ctx.globalAlpha = 0.62;
+    U.polygon(ctx, 0, 0, 18, sides, Math.PI / 2);
     ctx.fill();
     ctx.stroke();
+    ctx.globalAlpha = 1;
     ctx.strokeStyle = hexA(color, 0.45);
     ctx.lineWidth = 0.8;
-    U.polygon(ctx, 0, 0, 9, sides, Math.PI / 4);
-    ctx.stroke();
-    if (def.resist) {
-      ctx.strokeStyle = hexA('#aeffee', 0.7);
+    if (def.shield) {
+      U.polygon(ctx, 0, 0, 11, 6, 0);
+      ctx.stroke();
+      ctx.strokeStyle = hexA('#9bfaff', 0.65);
+      ctx.beginPath();
+      ctx.moveTo(-6, 0);
+      ctx.lineTo(6, 0);
+      ctx.moveTo(0, -6);
+      ctx.lineTo(0, 6);
+      ctx.stroke();
+    } else if (def.stealth) {
+      ctx.setLineDash([2, 2]);
+      U.polygon(ctx, 0, 0, 9, 4, 0);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(-10, 8);
+      ctx.lineTo(9, -9);
+      ctx.stroke();
+    } else if (def.superArmor) {
+      ctx.strokeStyle = hexA('#ff9a62', 0.7);
+      ctx.lineWidth = 1.2;
+      ctx.strokeRect(-7, -7, 14, 14);
+    } else {
+      U.polygon(ctx, 0, 0, 9, sides, Math.PI / 4);
+      ctx.stroke();
+    }
+    if (def.resist && (def.resist.energy || def.resist.cryo || def.resist.kinetic)) {
+      ctx.strokeStyle = hexA('#aeffee', 0.62);
       ctx.beginPath();
       ctx.arc(0, 0, 22, -0.9, 0.2);
       ctx.stroke();
     }
+    ctx.fillStyle = hexA(color, 0.7);
+    ctx.font = '4.5px "Cascadia Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText((def.tag || '').split(' · ')[0], 0, 30);
     ctx.restore();
   }
 

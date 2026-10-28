@@ -1,13 +1,13 @@
 # VECTOR // 矢界防线 — 部署文档
 
-本文是游戏项目自己的部署说明。游戏源码位于仓库的 `vector-td/` 目录；以下打包、上传和校验命令均在该目录内执行。部署方式来自团队内部 XiaoniuTech 运维文档，运维文档已在本地保留一份原样快照：[reference/xiaoniuTech-ops.md](reference/xiaoniuTech-ops.md)。
+本文是游戏项目自己的部署说明。游戏源码位于仓库的 `vector-td/` 目录；以下打包、上传和校验命令均在该目录内执行。部署方式参考团队内部 XiaoniuTech 仓库（本机为 `D:\code\XiaoniuTech`）：服务器接入读 `backend/.env`，运维约定读 `doc/ops/README.md`；本仓库只保留一份原样快照：[reference/xiaoniuTech-ops.md](reference/xiaoniuTech-ops.md)。
 
 完整服务器接入文档仍以团队内部原文为准：
 
 - 团队内部 XiaoniuTech 仓库的 `doc/ops/README.md`
 - 本地快照：`docs/reference/xiaoniuTech-ops.md`
 - 连接参数：团队内部 `backend/.env`
-- 私钥：路径由内部连接配置中的 `ALIYUN_SSH_KEY_PATH` 指定；不要把私钥、`.env` 或 API Key 提交到仓库
+- 私钥：路径由内部连接配置中的 `ALIYUN_SSH_KEY_PATH` 指定；当前 `.env` 未写该项时，使用本机已配置的阿里云部署密钥。不要把私钥、`.env` 或 API Key 提交到仓库
 
 不要把私钥、`.env` 内容、服务器密码或 API Key 提交到本仓库或静态部署目录。
 
@@ -45,7 +45,7 @@ ALIYUN_SSH_KEY_PATH
 ssh -i "$ALIYUN_SSH_KEY_PATH" -p "$ALIYUN_SSH_PORT" root@"$ALIYUN_SSH_IP"
 ```
 
-推荐在 PowerShell 中解析 `.env` 后调用 `ssh`，避免把主机和密钥路径写进仓库。所有部署命令都要求公钥认证成功，并且当前用户能写入 `/usr/local/compose/www`。
+推荐在 PowerShell 中解析 `.env` 后调用 `ssh`，避免把主机和密钥路径写进仓库。当前 `backend/.env` 只包含 `ALIYUN_SSH_IP`、`ALIYUN_SSH_PORT`，没有 `ALIYUN_SSH_KEY_PATH`；实际部署时使用本机默认阿里云密钥，或从团队配置中读取该变量。所有部署命令都要求公钥认证成功，并且当前用户能写入 `/usr/local/compose/www`。
 
 ## 3. 本地构建部署目录
 
@@ -55,7 +55,11 @@ ssh -i "$ALIYUN_SSH_KEY_PATH" -p "$ALIYUN_SSH_PORT" root@"$ALIYUN_SSH_IP"
 Copy-Item index.html dist\index.html -Force
 Copy-Item styles.css dist\styles.css -Force
 Copy-Item src\*.js dist\src\ -Force
+Copy-Item manifest.json dist\manifest.json -Force
+Copy-Item icons dist\icons -Recurse -Force
 ```
+
+PWA 清单使用 `manifest.json`（而不是 `.webmanifest`），让站点级 Nginx 默认以 `application/json` 返回；`.webmanifest` 在本站会被兜底为 `application/octet-stream`，Chrome 可能因此忽略清单。如果以后改回 `.webmanifest`，必须先为 Nginx 配置 `application/manifest+json` MIME 并 reload。
 
 更新版本时必须同步：
 
@@ -69,8 +73,8 @@ Copy-Item src\*.js dist\src\ -Force
 生成 versioned zip：
 
 ```powershell
-# 示例：v1.6.2
-$zip = 'release\vector-td-v1.6.2-static.zip'
+# 示例：v0.14.0-dev
+$zip = 'release\vector-td-v0.14.0-dev-static.zip'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 [System.IO.Compression.ZipFile]::CreateFromDirectory(
   (Resolve-Path 'dist').Path,
@@ -81,18 +85,20 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash.ToLowerInvariant()
 ```
 
+Windows 的 `ZipFile.CreateFromDirectory` 可能把条目写成 `src\app.js` 这类反斜杠路径，Linux/macOS 解压会出现异常文件名。发布包建议用 Python `zipfile` 或 7-Zip 生成 POSIX 路径；当前 `release/vector-td-v0.14.0-dev-static.zip` 使用 Python 生成并校验（16 个条目，无 `dist/` 前缀）。
+
 ## 4. 上传与替换
 
 先在本地打 tar，避免把 `dist` 之外的文件带上服务器：
 
 ```powershell
-$tar = Join-Path $env:TEMP 'vector-td-v1.6.2-deploy.tar.gz'
+$tar = Join-Path $env:TEMP 'vector-td-v0.14.0-dev-deploy.tar.gz'
 Push-Location dist
-tar -czf $tar index.html styles.css src README.md .nojekyll
+tar -czf $tar index.html styles.css manifest.json icons src README.md .nojekyll
 Pop-Location
 
 scp -i $env:ALIYUN_SSH_KEY_PATH -P $env:ALIYUN_SSH_PORT `
-  $tar root@$env:ALIYUN_SSH_IP:/tmp/vector-td-v1.6.2-deploy.tar.gz
+  $tar root@$env:ALIYUN_SSH_IP:/tmp/vector-td-v0.14.0-dev-deploy.tar.gz
 ```
 
 服务器端流程：
@@ -109,10 +115,10 @@ tar -czf "$BAK/vector-td-$TS.tar.gz" -C "$TARGET" .
 
 rm -rf "$NEW"
 mkdir -p "$NEW"
-tar -xzf /tmp/vector-td-v1.6.2-deploy.tar.gz -C "$NEW"
+tar -xzf /tmp/vector-td-v0.14.0-dev-deploy.tar.gz -C "$NEW"
 
 # 替换前必须验证新目录，不要跳过
-grep -q 'BUILD 1.6.2' "$NEW/index.html"
+grep -q 'BUILD 0.14.0-dev' "$NEW/index.html"
 sha256sum "$NEW/index.html" "$NEW/src/app.js" "$NEW/src/render.js"
 
 rm -rf "$TARGET"
@@ -127,13 +133,13 @@ chmod -R u+rwX,go+rX "$TARGET"
 ```bash
 grep -m1 'BUILD ' /usr/local/compose/www/games/vector-td/index.html
 curl -skS -o /dev/null -w '%{http_code}\n' https://127.0.0.1/games/vector-td/ -H 'Host: xiaoniu.tech'
-curl -skS -o /dev/null -w '%{http_code}\n' 'https://127.0.0.1/games/vector-td/styles.css?v=1.6.2' -H 'Host: xiaoniu.tech'
+curl -skS -o /dev/null -w '%{http_code}\n' 'https://127.0.0.1/games/vector-td/styles.css?v=0.14.0-dev' -H 'Host: xiaoniu.tech'
 ```
 
 浏览器验证：
 
 ```text
-https://xiaoniu.tech/games/vector-td/?v=1.6.2
+https://xiaoniu.tech/games/vector-td/?v=0.14.0-dev
 ```
 
 必须确认：
@@ -141,7 +147,7 @@ https://xiaoniu.tech/games/vector-td/?v=1.6.2
 - 首页可见，页脚版本正确
 - 可以正常选关进入游戏
 - Canvas 尺寸等于视口
-- 常驻建造栏、暂停条、HUD 没有互相遮挡
+- 常驻建造栏、暂停图标、HUD 没有互相遮挡
 - 控制台无错误，静态资源无 404
 - 资源带 `?v=` 版本参数，避免旧 JS/CSS 缓存
 
@@ -176,6 +182,7 @@ chmod -R u+rwX,go+rX "$TARGET"
 ## 7. 部署边界
 
 - 只覆盖 `/usr/local/compose/www/games/vector-td/`。
+- **不要对单个游戏执行 XiaoniuTech 的 `script/install.sh`、`script/deploy.sh` 或 `docker compose down/up`**：那会全量覆盖 `/usr/local/compose` 的 frontend / backend / conf，并重启整站容器。静态游戏只需要替换 `www/games/<game>/`。
 - 这个目录是真实目录，不是软链；不要把它改成指向旧 `games-vector-td` 的链接。
 - 不要动 `/usr/local/compose/www` 下的其他站点目录。
 - 不要动 `/usr/local/compose/conf`、`docker-compose.yml`、`.env`，除非任务明确要求。
@@ -184,10 +191,38 @@ chmod -R u+rwX,go+rX "$TARGET"
 
 ## 8. 当前线上记录
 
-- 部署时间：2026-10-21
-- 版本：1.6.2
+### 0.14.1-dev（当前）
+
+- 部署时间：2026-10-28 22:41（平衡修正 + 小行星可见性 + 灯塔可升阶 + 技能减价文案修复）
+- 版本：**0.14.1-dev**
+- 目标：`/usr/local/compose/www/games/vector-td`（真实目录）
+- 公网：`https://xiaoniu.tech/games/vector-td/`
+- 备份：`/usr/local/compose/bak/vector-td-20261028-224009.tar.gz`
+- 发布包：`release/vector-td-v0.14.1-dev-static.zip`，SHA-256 `d9a2eac9d3586fac9714108cee029dd22cc3aeff89a640f7e9f4a86c1e81237f`（16 个条目，POSIX 路径，Python zipfile 生成）
+- 部署方式：静态 tar 上传 → 服务器备份 → staging 校验（`BUILD 0.14.1-dev`、16 个文件、index/styles/config/game/render/app 六文件 SHA-256 与本地一致、manifest 存在、无嵌套 `icons/icons`）→ 原子替换
+- 线上验证：服务器本机 Host 头验证 `page 200 text/html`、`css 200 text/css`、`game.js / config.js 200 application/javascript`、`manifest 200 application/json`；页脚 `BUILD 0.14.1-dev`
+- 内容摘要：重棱物免 40%、铁壁物免 65%/生命 380、首领动能抗性 25%/护盾 50%、盾卫护盾 65%、护盾倍率 动 0.45/能 1.9、波次 HP 成长 1.035；小行星实心岩体化（对比 6.57×）；灯塔可升阶（125 晶元、半径 4.5）；建造协议/静滞场域技能显示为负号
+
+### 0.14.0-dev（上一版）
+
+- 部署时间：2026-10-28 16:53（开发线版本号重置；无玩法改动）
+- 版本：**0.14.0-dev**
+- 目标：`/usr/local/compose/www/games/vector-td`（真实目录）
+- 公网：`https://xiaoniu.tech/games/vector-td/`
+- 备份：`/usr/local/compose/bak/vector-td-20261028-165340.tar.gz`
+- 发布包：`release/vector-td-v0.14.0-dev-static.zip`，SHA-256 `dfbe6bd121b4627e4ea168eb79de008cc8e7083ddf6888a4b1f626de693b9a6f`（16 个条目，POSIX 路径）
+- 部署方式：静态 tar 上传 → 服务器备份 → staging 校验（`BUILD 0.14.0-dev`、16 个文件 SHA-256 与本地一致、`manifest.json` 存在、无嵌套 `icons/icons`）→ 原子替换
+- 集合页：2026-10-28 17:09 同步 `/usr/local/compose/www/games/index.html`，移除页脚版本号（仅保留 `MORE GAMES COMING`）；备份 `/usr/local/compose/bak/games-index-20261028-170954.html`
+- 线上验证：服务器本机 Host 头验证 `page 200 text/html`、`css 200 text/css`、`app 200 application/javascript`、`manifest 200 application/json`；页脚 `BUILD 0.14.0-dev`；公网抓取页面同样返回 `BUILD 0.14.0-dev`
+
+### 1.13.1（上一版）
+
+- 部署时间：2026-10-28 01:25（v1.13.1；01:19 为 v1.13.0，00:44 为 v1.12.4，23:04 为 v1.12.3，22:48 为 v1.12.2，22:03 为 v1.12.1，21:40 为 v1.12.0，20:42 为 v1.11.0，02:10–02:19 为 v1.10.0 迭代记录）
+- 版本：1.13.1
 - 目标：`/usr/local/compose/www/games/vector-td`（真实目录）
 - 公网：`https://xiaoniu.tech/games/vector-td/`
 - 集合页：`https://xiaoniu.tech/games/`
-- 备份：`/usr/local/compose/bak/vector-td-<timestamp>.tar.gz`
-- 部署方式：静态 tar 上传 → 服务器备份 → staging 校验 → 原子替换
+- 备份：`/usr/local/compose/bak/vector-td-20261028-012513.tar.gz`（上一版：`vector-td-20261028-011911.tar.gz`）
+- 发布包：`release/vector-td-v1.13.1-static.zip`，SHA-256 `27e3fdfd17b1e696f5e52865eceba8ba7485750a58b6bfb03a9b9d47ca36085c`（16 个条目，POSIX 路径）
+- 部署方式：按 XiaoniuTech `doc/ops/README.md` 的连接方式，从 `backend/.env` 读取 `ALIYUN_SSH_IP` / `ALIYUN_SSH_PORT`（本机 `.env` 未配置 `ALIYUN_SSH_KEY_PATH`，使用本机默认阿里云密钥）；静态 tar 上传 → 服务器备份 → staging 校验（16 个文件 SHA-256 全部匹配、`BUILD 1.13.1`、`pause-actions` 存在、`manifest.json` 存在、无旧 `.webmanifest`、无嵌套 `icons/icons`）→ 原子替换
+- 线上验证：公网页脚 `BUILD 1.13.1`；`styles.css?v=1.13.1`（`text/css`）、`src/app.js?v=1.13.1`（`application/javascript`）、`manifest.json?v=1.13.1`（`application/json`）与 4 个图标均 200，无 4xx/5xx；Playwright 公网 v1.13.1 回归通过（第 1 关 14 波、首波 10 只侦察机；非 Boss 侦察机 HP 16 / 击杀 2 晶元、Boss 4080 HP / 189 晶元不受人口补偿影响；第 10 关 20 波且 Boss 仍在最终波；暂停图标 28×28 / 320 下 23×23、敌情图标为圆圈感叹号、暂停前后 `renderer.oy` 一致、暂停发兵、建造后取消选中、星图/主界面续战、新特性简报、桌面全屏、iOS 降级）；控制台无错误

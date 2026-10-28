@@ -18,6 +18,7 @@
         shock: 0.09,
         frost: 0.08,
         tesla: 0.09,
+        shieldBreak: 0.14,
         hit: 0.045,
         kill: 0.05,
         split: 0.06,
@@ -180,6 +181,11 @@
         case 'hit':
           this._noise(0.04, 0.018, 'bandpass', 1400);
           break;
+        case 'shieldBreak':
+          this._tone('sawtooth', 1240, 380, 0.18, 0.028);
+          this._tone('sine', 1800, 620, 0.22, 0.018, 0.02);
+          this._noise(0.12, 0.03, 'highpass', 2400);
+          break;
         case 'kill':
           this._tone('triangle', 620, 180, 0.13, 0.035);
           this._noise(0.07, 0.02, 'highpass', 1000);
@@ -196,6 +202,11 @@
           this._tone('triangle', 720, 560, 0.15, 0.045);
           this._tone('triangle', 720, 560, 0.15, 0.04, 0.19);
           this._noise(0.08, 0.016, 'bandpass', 1200, 0.19);
+          break;
+        case 'critical':
+          this._tone('sawtooth', 180, 62, 0.85, 0.075);
+          this._tone('square', 330, 190, 0.34, 0.032, 0.1);
+          this._noise(0.5, 0.05, 'lowpass', 320);
           break;
         case 'wave':
           this._tone('triangle', 220, 330, 0.22, 0.05);

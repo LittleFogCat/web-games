@@ -9,6 +9,9 @@
   const GFX = window.GEOTD_GFX;
   const GAME = window.GEOTD_GAME;
   const SAVE_KEY = 'vector_geotd_save_v1';
+  const DEBUG_KEY = 'vector_geotd_debug_v1';
+  const DEBUG_GOLD_KEY = 'vector_geotd_debug_gold_v1';
+  const DEBUG_GOLD_AMOUNT = 10000;
 
   const BUILD_SHORT = {
     prism: '箭塔',
@@ -18,6 +21,7 @@
     shock: '震荡',
     frost: '冰霜',
     tesla: '电弧',
+    beacon: '灯塔',
     wall: '壁垒',
   };
 
@@ -29,6 +33,7 @@
     shock: '5',
     frost: '6',
     tesla: '7',
+    beacon: '8',
     wall: 'W',
   };
 
@@ -41,7 +46,7 @@
   };
 
   function gemSvg(cls) {
-    return '<svg class="ico ' + (cls || 'ico-crystal') + '" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 7 6-7 12L5 9z"/><path d="M5 9h14M12 3v18"/></svg>';
+    return '<svg class="ico ' + (cls || 'ico-crystal') + '" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.8 6.6 3.4 11.4 5.2 21h3.6l.9-9.6z" fill="#2b93d6"/><path d="M17.2 6.2 20.6 10.9 18.8 21h-3.6l-.9-10.1z" fill="#2b93d6"/><path d="M12 1.4 16.6 8 14.7 21H9.3L7.4 8z" fill="#56c4f7"/><path d="M12 1.4 7.4 8 9.3 21h2.2z" fill="#d2f7ff"/></svg>';
   }
 
   function goldSvg() {
@@ -61,6 +66,7 @@
       skills: skills,
       unlocked: 1,
       bestStars: {},
+      seenTraits: {},
       settings: { sound: true },
       tutorialSeen: false,
     };
@@ -95,6 +101,11 @@
           if (stars > 0) merged.bestStars[id] = stars;
         }
       }
+      if (parsed.seenTraits && typeof parsed.seenTraits === 'object') {
+        Object.keys(C.TRAITS).forEach(function (id) {
+          if (parsed.seenTraits[id]) merged.seenTraits[id] = true;
+        });
+      }
       let derivedUnlock = 1;
       for (let id = 1; id <= C.LEVELS.length; id++) {
         if (merged.bestStars[id]) derivedUnlock = Math.min(C.LEVELS.length, id + 1);
@@ -109,6 +120,324 @@
   const save = loadSave();
   const audio = new window.NeoAudio(save.settings.sound);
 
+  function detectDebugMode() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const flag = params.get('debug');
+      if (flag === '1' || flag === 'true' || flag === 'on') return true;
+      if (flag === '0' || flag === 'false' || flag === 'off') return false;
+      const stored = window.localStorage.getItem(DEBUG_KEY);
+      if (stored === '1') return true;
+      if (stored === '0') return false;
+    } catch (error) {
+      // Fall through to the local-host heuristic.
+    }
+    const host = window.location.hostname;
+    return window.location.protocol === 'file:' ||
+      host === 'localhost' ||
+      host === '127.0.0.1' ||
+      host === '::1' ||
+      host === '';
+  }
+
+  const debug = {
+    enabled: detectDebugMode(),
+    godMode: false,
+    freeBuild: false,
+    panelOpen: false,
+  };
+
+  /* ============================================================
+     Immersive shell: fullscreen API, standalone PWA mode, viewport
+     height and wake lock. Mobile is the primary target: the browser
+     chrome should disappear the moment a sector starts.
+     ============================================================ */
+  const IMMERSIVE_KEY = 'vector_geotd_immersive_v1';
+  const IMMERSIVE_TOUCH = (function () {
+    try {
+      return window.matchMedia('(pointer: coarse)').matches;
+    } catch (error) {
+      return false;
+    }
+  })();
+  const IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent || '') ||
+    (navigator.platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1);
+  // Capture this before any requestFullscreen(): while a normal tab is
+  // fullscreen, `display-mode` also reads "fullscreen" and would
+  // otherwise be mistaken for an installed app.
+  const LAUNCHED_STANDALONE = (function () {
+    try {
+      if (window.navigator.standalone === true) return true;
+      return !!(window.matchMedia &&
+        window.matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches);
+    } catch (error) {
+      return false;
+    }
+  })();
+
+  function immersiveUrlOverride() {
+    try {
+      const flag = new URLSearchParams(window.location.search).get('immersive');
+      if (flag === '1' || flag === 'true' || flag === 'on') return true;
+      if (flag === '0' || flag === 'false' || flag === 'off') return false;
+    } catch (error) {
+      // Ignore malformed query strings.
+    }
+    return null;
+  }
+
+  const IMMERSIVE_OVERRIDE = immersiveUrlOverride();
+
+  function loadImmersivePreference() {
+    if (IMMERSIVE_OVERRIDE !== null) return IMMERSIVE_OVERRIDE;
+    try {
+      const stored = window.localStorage.getItem(IMMERSIVE_KEY);
+      if (stored === '1') return true;
+      if (stored === '0') return false;
+    } catch (error) {
+      // Storage is optional; fall through to the device default.
+    }
+    return IMMERSIVE_TOUCH;
+  }
+
+  const immersive = {
+    pref: loadImmersivePreference(),
+    active: false,
+    wakeLock: null,
+    requestedExit: false,
+  };
+
+  function fullscreenSupported() {
+    const el = document.documentElement;
+    return typeof el.requestFullscreen === 'function' ||
+      typeof el.webkitRequestFullscreen === 'function' ||
+      typeof el.msRequestFullscreen === 'function';
+  }
+
+  function fullscreenElement() {
+    return document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement || null;
+  }
+
+  function standaloneLaunch() {
+    return LAUNCHED_STANDALONE;
+  }
+
+  function setImmersivePreference(value) {
+    immersive.pref = !!value;
+    try {
+      window.localStorage.setItem(IMMERSIVE_KEY, value ? '1' : '0');
+    } catch (error) {
+      // Preference is best-effort.
+    }
+  }
+
+  function refreshImmersiveButtons() {
+    document.body.classList.toggle('is-immersive', immersive.active);
+    const installed = standaloneLaunch();
+    $$('.immersive-toggle').forEach(function (button) {
+      button.classList.toggle('immersive-on', immersive.active);
+      button.classList.toggle('hidden', installed);
+      button.setAttribute('aria-pressed', immersive.active ? 'true' : 'false');
+    });
+    const homeButton = $('home-immersive');
+    if (homeButton) {
+      homeButton.setAttribute('aria-label', immersive.active ? '退出全屏沉浸模式' : '进入全屏沉浸模式');
+      homeButton.title = immersive.active ? '退出全屏' : '全屏沉浸';
+    }
+    const pauseButton = $('btn-pause-immersive');
+    if (pauseButton) {
+      pauseButton.setAttribute('aria-label', immersive.active ? '退出全屏' : '进入全屏');
+      pauseButton.title = immersive.active ? '退出全屏' : '全屏';
+    }
+  }
+
+  function syncViewportHeight() {
+    const vv = window.visualViewport;
+    const height = vv && vv.height > 0 ? vv.height : window.innerHeight;
+    if (!(height > 0)) return;
+    document.documentElement.style.setProperty('--app-height', Math.round(height) + 'px');
+  }
+
+  let viewportSyncFrame = 0;
+
+  function scheduleViewportSync() {
+    if (viewportSyncFrame) return;
+    viewportSyncFrame = window.requestAnimationFrame(function () {
+      viewportSyncFrame = 0;
+      syncViewportHeight();
+      ambient.resize();
+      if (activeScreen === 'game') fitArena();
+    });
+  }
+
+  function lockPortrait() {
+    if (!IMMERSIVE_TOUCH || !window.screen || !window.screen.orientation) return;
+    const orientation = window.screen.orientation;
+    if (typeof orientation.lock !== 'function') return;
+    try {
+      const result = orientation.lock('portrait');
+      if (result && typeof result.catch === 'function') result.catch(function () {});
+    } catch (error) {
+      // Orientation lock is unavailable on most desktop and iOS browsers.
+    }
+  }
+
+  function unlockOrientation() {
+    if (!window.screen || !window.screen.orientation) return;
+    if (typeof window.screen.orientation.unlock !== 'function') return;
+    try {
+      window.screen.orientation.unlock();
+    } catch (error) {
+      // Ignore unsupported unlock calls.
+    }
+  }
+
+  function requestWakeLock() {
+    if (!('wakeLock' in navigator) || immersive.wakeLock) return;
+    if (!immersive.active && !IMMERSIVE_TOUCH) return;
+    if (activeScreen !== 'game' || !currentGame || currentGame.paused) return;
+    if (document.visibilityState !== 'visible') return;
+    try {
+      navigator.wakeLock.request('screen').then(function (lock) {
+        immersive.wakeLock = lock;
+        lock.addEventListener('release', function () {
+          if (immersive.wakeLock === lock) immersive.wakeLock = null;
+        });
+      }).catch(function () {
+        // Wake lock can be denied by power saving settings.
+      });
+    } catch (error) {
+      // Older browsers expose no wake lock.
+    }
+  }
+
+  function releaseWakeLock() {
+    const lock = immersive.wakeLock;
+    immersive.wakeLock = null;
+    if (!lock || typeof lock.release !== 'function') return;
+    try {
+      lock.release();
+    } catch (error) {
+      // The lock may already be gone.
+    }
+  }
+
+  function showImmersiveHint() {
+    if (standaloneLaunch()) return;
+    if (IS_IOS) {
+      showGlobalToast('iPhone / iPad：分享 → 添加到主屏幕，即可全屏启动', 'info', 5600);
+    } else {
+      showGlobalToast('当前浏览器不支持网页全屏，请使用系统浏览器全屏', 'error', 3600);
+    }
+  }
+
+  function enterImmersive(options) {
+    const silent = !!(options && options.silent);
+    if (standaloneLaunch()) {
+      immersive.active = true;
+      refreshImmersiveButtons();
+      return Promise.resolve(true);
+    }
+    if (fullscreenElement()) return Promise.resolve(true);
+    if (!fullscreenSupported()) {
+      if (silent) {
+        if (IS_IOS && !immersive.hintShown) {
+          immersive.hintShown = true;
+          showImmersiveHint();
+        }
+      } else {
+        showImmersiveHint();
+      }
+      return Promise.resolve(false);
+    }
+    const el = document.documentElement;
+    let result = null;
+    try {
+      if (typeof el.requestFullscreen === 'function') result = el.requestFullscreen({ navigationUI: 'hide' });
+      else if (typeof el.webkitRequestFullscreen === 'function') result = el.webkitRequestFullscreen();
+      else if (typeof el.msRequestFullscreen === 'function') result = el.msRequestFullscreen();
+    } catch (error) {
+      result = null;
+    }
+    return Promise.resolve(result).then(function () {
+      // Some embedded browsers resolve the request without dispatching
+      // fullscreenchange; sync once so the HUD/class state is correct.
+      syncImmersiveState();
+      return true;
+    }).catch(function () {
+      if (!silent) showImmersiveHint();
+      return false;
+    });
+  }
+
+  function exitImmersive() {
+    if (!fullscreenElement()) return;
+    immersive.requestedExit = true;
+    const exit = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+    if (typeof exit !== 'function') return;
+    try {
+      const result = exit.call(document);
+      if (result && typeof result.then === 'function') {
+        result.then(syncImmersiveState).catch(function () {});
+      } else {
+        window.setTimeout(syncImmersiveState, 60);
+      }
+    } catch (error) {
+      // Ignore browsers that reject the exit call.
+    }
+  }
+
+  function toggleImmersive() {
+    if (immersive.active) {
+      setImmersivePreference(false);
+      if (standaloneLaunch()) {
+        showGlobalToast('当前已通过主屏幕应用模式全屏运行', 'info', 3200);
+      } else {
+        exitImmersive();
+      }
+    } else {
+      setImmersivePreference(true);
+      enterImmersive();
+    }
+    audio.play('ui');
+  }
+
+  function maybeAutoImmersive() {
+    if (immersive.active || standaloneLaunch()) return;
+    if (!immersive.pref) return;
+    if (!IMMERSIVE_TOUCH && IMMERSIVE_OVERRIDE !== true) return;
+    // Must run inside the tap that starts the level so the browser
+    // treats it as a user gesture.
+    enterImmersive({ silent: true });
+  }
+
+  function syncImmersiveState() {
+    const active = !!fullscreenElement() || standaloneLaunch();
+    if (active === immersive.active) {
+      refreshImmersiveButtons();
+      return;
+    }
+    immersive.active = active;
+    if (!active) {
+      if (!immersive.requestedExit) {
+        // The player left fullscreen with the system gesture / Esc.
+        setImmersivePreference(false);
+      }
+      immersive.requestedExit = false;
+      unlockOrientation();
+      releaseWakeLock();
+    } else {
+      immersive.requestedExit = false;
+      lockPortrait();
+      requestWakeLock();
+    }
+    refreshImmersiveButtons();
+    syncViewportHeight();
+    ambient.resize();
+    if (activeScreen === 'game') fitArena();
+    if (currentGame) currentGame.resize();
+  }
+
   let activeScreen = 'home';
   let currentGame = null;
   let currentLevelId = null;
@@ -120,12 +449,16 @@
   let autoPausedForRotation = false;
   let arenaToastTimer = 0;
   let legendTimer = 0;
+  let waveIntelTimer = 0;
+  let resetArmTimer = 0;
+  let resetArmed = false;
   let levelIntroTimer = 0;
   let helpLastFocus = null;
   let lastFrame = performance.now();
   let globalToastEl = null;
   let globalToastTimer = 0;
   let onboardingPause = false;
+  let pendingTraitTraits = [];
 
   const els = {
     screens: {},
@@ -148,8 +481,14 @@
     arenaFrame: $('arena-frame'),
     levelIntro: $('level-intro'),
     pauseOverlay: $('pause-overlay'),
-    pauseBar: $('pause-bar'),
+    pauseBar: $('pause-actions'),
+    hud: document.querySelector('.game-hud'),
     pauseButton: $('btn-game-pause'),
+    traitBriefing: $('trait-briefing'),
+    traitBriefingTitle: $('trait-briefing-title'),
+    traitBriefingLead: $('trait-briefing-lead'),
+    traitBriefingList: $('trait-briefing-list'),
+    traitBriefingClose: $('btn-trait-close'),
     resultOverlay: $('result-overlay'),
     onboarding: $('onboarding'),
     helpModal: $('help-modal'),
@@ -161,10 +500,12 @@
     waveBannerTitle: $('wave-banner-title'),
     waveBannerSub: $('wave-banner-sub'),
     coreFill: $('hud-core-fill'),
-    coreBar: document.querySelector('.hud-core-line'),
     coreValue: $('hud-core-value'),
     coreDelta: $('hud-core-delta'),
-    coreStat: document.querySelector('.hud-inline-core'),
+    coreReadout: $('core-readout'),
+    coreAlert: $('core-alert'),
+    coreAlertTitle: $('core-alert-title'),
+    coreAlertSub: $('core-alert-sub'),
     crystals: $('hud-crystals'),
     crystalDelta: $('hud-crystal-delta'),
     wave: $('hud-wave'),
@@ -172,16 +513,54 @@
     waveStatusKicker: $('wave-status-kicker'),
     waveStatusValue: $('wave-status-value'),
     waveStatusProgress: $('wave-status-progress'),
+    waveIntel: $('wave-intel'),
+    waveIntelBody: $('wave-intel-body'),
+    waveIntelKicker: $('wave-intel-kicker'),
+    waveIntelClose: $('wave-intel-close'),
     speedLabel: $('speed-label'),
     gameScreen: $('screen-game'),
     placementLegend: $('placement-legend'),
     skillsGoldBig: $('skills-gold-big'),
+    skillsReset: $('btn-skills-reset'),
+    skillResetLabel: $('skill-reset-label'),
+    skillResetRefund: $('skill-reset-refund'),
     helpEnemyList: $('help-enemy-list'),
+    helpTowerList: $('help-tower-list'),
+    helpTraitList: $('help-trait-list'),
+    debugPanel: $('debug-panel'),
+    debugBody: $('debug-body'),
+    debugFab: $('debug-fab'),
+    debugHud: $('btn-game-debug'),
+    debugBadge: $('hud-debug-badge'),
+    debugClose: $('debug-close'),
   };
 
   ['home', 'levels', 'skills', 'game'].forEach(function (name) {
     els.screens[name] = $('screen-' + name);
   });
+
+  // Brief only the traits that are actually introduced by a level, not the
+  // baseline armor/weakness carried by early enemies.
+  const TRAIT_BRIEFING_ORDER = ['split', 'energyResist', 'shield', 'stealth', 'ward', 'superArmor', 'boss'];
+  const TRAIT_INTRO_LEVELS = (function () {
+    const intro = {};
+    for (let i = 0; i < C.LEVELS.length; i++) {
+      const level = C.LEVELS[i];
+      for (let w = 0; w < level.waves.length; w++) {
+        const groups = level.waves[w].groups || [];
+        for (let g = 0; g < groups.length; g++) {
+          const enemy = C.ENEMIES[groups[g].type];
+          if (!enemy || !enemy.traits) continue;
+          for (let t = 0; t < enemy.traits.length; t++) {
+            const id = enemy.traits[t];
+            if (TRAIT_BRIEFING_ORDER.indexOf(id) < 0) continue;
+            if (!intro[id] || level.id < intro[id]) intro[id] = level.id;
+          }
+        }
+      }
+    }
+    return intro;
+  })();
 
   /* ============================================================
      Ambient starfield
@@ -406,13 +785,15 @@
 
   function computeMods() {
     return {
-      baseHp: (save.skills.core || 0) * 15,
+      baseHp: (save.skills.core || 0) * 20,
       crystalMult: 1 + (save.skills.crystal || 0) * 0.1,
-      damageMult: 1 + (save.skills.overclock || 0) * 0.06,
+      damageMult: 1 + (save.skills.overclock || 0) * 0.08,
       costMult: 1 - (save.skills.build || 0) * 0.05,
-      enemySpeedMult: 1 - (save.skills.stasis || 0) * 0.03,
-      repair: (save.skills.repair || 0) * 5,
-      startCrystals: (save.skills.start || 0) * 30,
+      enemySpeedMult: 1 - (save.skills.stasis || 0) * 0.04,
+      repair: (save.skills.repair || 0) * 6,
+      startCrystals: (save.skills.start || 0) * 25,
+      godMode: debug.enabled && debug.godMode,
+      freeBuild: debug.enabled && debug.freeBuild,
     };
   }
 
@@ -421,6 +802,8 @@
     if (skill.id === 'core') return '+' + rank * skill.per + ' 完整度';
     if (skill.id === 'repair') return '+' + rank * skill.per + ' / 波';
     if (skill.id === 'start') return '+' + rank * skill.per + ' 晶元';
+    // Reduction skills (建造协议 / 静滞场域) must display a minus sign.
+    if (skill.id === 'build' || skill.id === 'stasis') return '-' + rank * skill.per + '%';
     return '+' + rank * skill.per + '%';
   }
 
@@ -440,6 +823,26 @@
     });
     if (els.skillsGoldBig) els.skillsGoldBig.textContent = U.formatInt(save.gold);
     refreshSoundButtons();
+  }
+
+  function grantDebugGold() {
+    if (!debug.enabled) return 0;
+    let granted = false;
+    try {
+      granted = window.localStorage.getItem(DEBUG_GOLD_KEY) === '1';
+    } catch (error) {
+      granted = false;
+    }
+    if (granted) return 0;
+    try {
+      window.localStorage.setItem(DEBUG_GOLD_KEY, '1');
+    } catch (error) {
+      // The grant still applies for this session when storage is unavailable.
+    }
+    save.gold += DEBUG_GOLD_AMOUNT;
+    persist();
+    refreshMeta();
+    return DEBUG_GOLD_AMOUNT;
   }
 
   function refreshSoundButtons() {
@@ -470,9 +873,386 @@
     if (name === 'game') {
       requestAnimationFrame(fitArena);
     }
+    updateDebugChrome();
+    updateResumeUI();
   }
 
-  function showGlobalToast(message, type) {
+  function refreshGameLayout() {
+    if (activeScreen !== 'game') return;
+    window.requestAnimationFrame(function () {
+      fitArena();
+      if (currentGame) currentGame.resize();
+    });
+  }
+
+  function suspendedRunInfo() {
+    if (!currentGame || activeScreen === 'game') return null;
+    if (!els.resultOverlay || !els.resultOverlay.classList.contains('hidden')) return null;
+    if (currentGame.phase === 'victory' || currentGame.phase === 'defeat') return null;
+    const level = C.LEVELS[(currentLevelId || 1) - 1];
+    if (!level) return null;
+    const state = currentGame.getHudState();
+    return {
+      level: level,
+      wave: Math.max(1, state.wave || 1),
+      total: state.totalWaves,
+      running: state.phase === 'wave',
+    };
+  }
+
+  function updateResumeUI() {
+    const info = suspendedRunInfo();
+    const buttons = [$('btn-home-resume'), $('btn-levels-resume')];
+    buttons.forEach(function (button) {
+      if (button) button.classList.toggle('hidden', !info);
+    });
+    if (!info) return;
+    const meta = info.level.code + ' ' + info.level.name + ' · 第 ' + info.wave + ' / ' + info.total + ' 波 · ' + (info.running ? '交战中' : '待发兵');
+    $$('[data-resume-title]').forEach(function (node) {
+      node.textContent = '继续作战';
+    });
+    $$('[data-resume-meta]').forEach(function (node) {
+      node.textContent = meta;
+    });
+    buttons.forEach(function (button) {
+      if (button) button.setAttribute('aria-label', '继续作战：' + info.level.name + '，第 ' + info.wave + ' 波');
+    });
+  }
+
+  function suspendCurrentRun() {
+    if (!currentGame) return false;
+    currentGame.setPaused(true);
+    hidePauseBar();
+    hideWaveIntel();
+    updatePauseButton(true);
+    releaseWakeLock();
+    return true;
+  }
+
+  function resumeSuspendedRun() {
+    if (!currentGame) {
+      openLevels();
+      return;
+    }
+    closeDebugPanel();
+    closeHelp();
+    hideWaveIntel();
+    showScreen('game');
+    fitArena();
+    window.requestAnimationFrame(function () {
+      fitArena();
+      if (!currentGame) return;
+      currentGame.resize();
+      currentGame.refreshUI();
+      updateHud(currentGame.getHudState());
+      updateBuildAffordability();
+      renderIntel({ mode: 'none' });
+      if (currentGame.paused) openPause();
+      else hidePauseBar();
+    });
+    audio.ensure();
+    audio.play('ui');
+  }
+
+  function traitBriefingsForLevel(levelId) {
+    return TRAIT_BRIEFING_ORDER.filter(function (id) {
+      return TRAIT_INTRO_LEVELS[id] === levelId && !save.seenTraits[id];
+    }).map(function (id) {
+      return C.TRAITS[id];
+    });
+  }
+
+  function maybeShowTraitBriefing() {
+    if (!pendingTraitTraits.length || !els.traitBriefing) return;
+    if (!els.onboarding.classList.contains('hidden')) return;
+    if (!els.resultOverlay.classList.contains('hidden')) return;
+    const level = C.LEVELS[(currentLevelId || 1) - 1];
+    const traits = pendingTraitTraits.slice();
+    if (els.traitBriefingTitle) {
+      els.traitBriefingTitle.textContent = traits.length > 1 ? '新特性 × ' + traits.length : '新特性 · ' + traits[0].name;
+    }
+    if (els.traitBriefingLead) {
+      els.traitBriefingLead.textContent = level && level.intel
+        ? level.intel
+        : '本星区出现新的敌人特性。先读简报，再调整防御阵列。';
+    }
+    if (els.traitBriefingList) {
+      els.traitBriefingList.innerHTML = traits.map(function (trait) {
+        return (
+          '<div class="trait-brief-item" style="--trait-color:' + trait.color + '">' +
+            '<span class="trait-brief-badge" aria-hidden="true">' + trait.short + '</span>' +
+            '<div class="trait-brief-copy">' +
+              '<b>' + trait.name + '</b>' +
+              '<p>' + trait.desc + '</p>' +
+              '<span class="trait-brief-counter">克制：<b>' + trait.counter + '</b></span>' +
+            '</div>' +
+          '</div>'
+        );
+      }).join('');
+    }
+    els.traitBriefing.classList.remove('hidden');
+    if (currentGame) {
+      currentGame.setPaused(true);
+      showPauseBar();
+    }
+    audio.play('warning');
+  }
+
+  function closeTraitBriefing() {
+    if (!els.traitBriefing || els.traitBriefing.classList.contains('hidden')) return;
+    pendingTraitTraits.forEach(function (trait) {
+      save.seenTraits[trait.id] = true;
+    });
+    pendingTraitTraits = [];
+    persist();
+    els.traitBriefing.classList.add('hidden');
+    refreshGameLayout();
+    audio.play('ui');
+  }
+
+  /* ============================================================
+     Debug mode
+     ============================================================ */
+  function updateDebugChrome() {
+    document.body.classList.toggle('debug-enabled', debug.enabled);
+    if (els.debugBadge) els.debugBadge.classList.toggle('hidden', !debug.enabled);
+    if (els.debugFab) {
+      els.debugFab.classList.toggle('hidden', !debug.enabled);
+      els.debugFab.textContent = debug.panelOpen ? 'CLOSE' : 'DEBUG';
+    }
+    if (els.debugHud) {
+      els.debugHud.classList.toggle('hidden', !debug.enabled || activeScreen !== 'game');
+    }
+    if (debug.panelOpen) renderDebugPanel();
+  }
+
+  function setDebugMode(enabled) {
+    debug.enabled = !!enabled;
+    let granted = 0;
+    if (!debug.enabled) {
+      debug.godMode = false;
+      debug.freeBuild = false;
+      if (currentGame) {
+        currentGame.setGodMode(false);
+        currentGame.setFreeBuild(false);
+      }
+      closeDebugPanel();
+    } else {
+      granted = grantDebugGold();
+    }
+    try {
+      window.localStorage.setItem(DEBUG_KEY, debug.enabled ? '1' : '0');
+    } catch (error) {
+      // Debug preference is optional.
+    }
+    updateDebugChrome();
+    renderLevelList();
+    refreshMeta();
+    renderDebugPanel();
+    if (debug.enabled) {
+      showGlobalToast(granted ? '调试模式已开启 · 已赠送 ' + U.formatInt(granted) + ' 金币' : '调试模式已开启', 'success');
+    } else {
+      showGlobalToast('调试模式已关闭', 'info');
+    }
+  }
+
+  function openDebugPanel() {
+    if (!debug.enabled) return;
+    debug.panelOpen = true;
+    renderDebugPanel();
+    if (els.debugPanel) els.debugPanel.classList.remove('hidden');
+    updateDebugChrome();
+    audio.play('ui');
+  }
+
+  function closeDebugPanel() {
+    debug.panelOpen = false;
+    if (els.debugPanel) els.debugPanel.classList.add('hidden');
+    updateDebugChrome();
+  }
+
+  function toggleDebugPanel() {
+    if (debug.panelOpen) closeDebugPanel();
+    else openDebugPanel();
+  }
+
+  function debugLevelButtons() {
+    return C.LEVELS.map(function (level) {
+      const active = currentLevelId === level.id;
+      return (
+        '<button class="debug-level' + (active ? ' active' : '') + '" type="button" data-debug-level="' + level.id + '">' +
+          '<b>' + pad2(level.id) + '</b><small>' + level.name + '</small>' +
+        '</button>'
+      );
+    }).join('');
+  }
+
+  function debugEnemyButtons() {
+    return C.ENEMY_ORDER.filter(function (type) {
+      return type !== 'shard';
+    }).map(function (type) {
+      const def = C.ENEMIES[type];
+      return (
+        '<button class="debug-enemy" type="button" data-debug-spawn="' + type + '" style="--enemy-color:' + def.color + '" title="' + def.name + ' · ' + def.tag + '">' +
+          '<i></i><span>' + def.name + '</span>' +
+        '</button>'
+      );
+    }).join('');
+  }
+
+  function renderDebugPanel() {
+    if (!els.debugBody) return;
+    if (!debug.enabled) {
+      els.debugBody.innerHTML = '';
+      return;
+    }
+    const game = currentGame;
+    const disabled = game ? '' : ' disabled';
+    const state = game ? game.getHudState() : null;
+    const status = game ? game.debugStatus() : null;
+    const statusHtml = status
+      ? (
+        '<div class="debug-stat"><span>阶段</span><b>' + status.phase + '</b></div>' +
+        '<div class="debug-stat"><span>波次</span><b>' + status.wave + ' / ' + status.totalWaves + '</b></div>' +
+        '<div class="debug-stat"><span>核心</span><b>' + status.baseHp + ' / ' + status.baseMax + '</b></div>' +
+        '<div class="debug-stat"><span>晶元</span><b>' + U.formatInt(status.crystals) + '</b></div>' +
+        '<div class="debug-stat"><span>敌军</span><b>' + status.enemies + '</b></div>' +
+        '<div class="debug-stat"><span>防御塔</span><b>' + status.towers + '</b></div>'
+      )
+      : '<p class="debug-note">尚未进入战斗。选择上方关卡即可直达任意星区。</p>';
+    let skillTotal = 0;
+    for (let i = 0; i < C.SKILLS.length; i++) skillTotal += save.skills[C.SKILLS[i].id] || 0;
+    const levelInfo = state
+      ? '第 ' + state.wave + ' / ' + state.totalWaves + ' 波'
+      : (currentLevelId ? 'SECTOR ' + pad2(currentLevelId) : '星图待命');
+    els.debugBody.innerHTML =
+      '<section class="debug-section">' +
+        '<h4>关卡直达 <span>' + levelInfo + '</span></h4>' +
+        '<div class="debug-levels">' + debugLevelButtons() + '</div>' +
+        '<div class="debug-actions">' +
+          '<button type="button" data-debug-action="unlock-all">解锁全部星区</button>' +
+          '<button type="button" data-debug-action="add-gold">+1000 金币</button>' +
+        '</div>' +
+      '</section>' +
+      '<section class="debug-section">' +
+        '<h4>技能加点 <span>' + skillTotal + ' / ' + (C.SKILLS.length * C.SKILL_MAX) + '</span></h4>' +
+        '<div class="debug-actions">' +
+          '<button type="button" data-debug-action="max-skills">全技能 5 阶</button>' +
+          '<button type="button" data-debug-action="reset-skills">技能清零</button>' +
+        '</div>' +
+        '<p class="debug-note">调试模式初始赠送 10000 金币；技能升级按正常费用消耗，可在技能矩阵重置并全额返还。</p>' +
+      '</section>' +
+      '<section class="debug-section">' +
+        '<h4>局内控制</h4>' +
+        '<div class="debug-toggles">' +
+          '<button type="button" class="debug-toggle" data-debug-toggle="god" aria-pressed="' + (debug.godMode ? 'true' : 'false') + '">无敌核心</button>' +
+          '<button type="button" class="debug-toggle" data-debug-toggle="free" aria-pressed="' + (debug.freeBuild ? 'true' : 'false') + '">免费建造 / 升级</button>' +
+        '</div>' +
+        '<div class="debug-actions">' +
+          '<button type="button" data-debug-action="add-crystals"' + disabled + '>+500 晶元</button>' +
+          '<button type="button" data-debug-action="heal-core"' + disabled + '>修复核心 +50</button>' +
+          '<button type="button" data-debug-action="max-towers"' + disabled + '>攻击塔 5 级</button>' +
+          '<button type="button" data-debug-action="prep-30"' + disabled + '>准备时间 30s</button>' +
+        '</div>' +
+        '<div class="debug-actions">' +
+          '<button type="button" data-debug-action="next-wave"' + disabled + '>立即发兵</button>' +
+          '<button type="button" data-debug-action="kill-all"' + disabled + '>清空敌军</button>' +
+          '<button type="button" class="danger" data-debug-action="win"' + disabled + '>直接胜利</button>' +
+          '<button type="button" class="danger" data-debug-action="lose"' + disabled + '>直接失败</button>' +
+        '</div>' +
+      '</section>' +
+      '<section class="debug-section">' +
+        '<h4>测试敌群 <span>×5</span></h4>' +
+        '<div class="debug-enemies">' + debugEnemyButtons() + '</div>' +
+        '<p class="debug-note">在局内点击生成 5 个测试单位；准备阶段点击会自动进入交战。</p>' +
+      '</section>' +
+      '<section class="debug-section">' +
+        '<h4>实时状态</h4>' +
+        '<div class="debug-status" id="debug-status">' + statusHtml + '</div>' +
+        '<p class="debug-note">快捷键：Ctrl + Shift + D 开关调试模式；?debug=1 强制开启。</p>' +
+      '</section>';
+    refreshDebugStatus();
+  }
+
+  function refreshDebugStatus() {
+    if (!debug.panelOpen || !debug.enabled) return;
+    const target = $('debug-status');
+    if (!target) return;
+    if (!currentGame) {
+      target.innerHTML = '<p class="debug-note">尚未进入战斗。选择上方关卡即可直达任意星区。</p>';
+      return;
+    }
+    const s = currentGame.debugStatus();
+    target.innerHTML =
+      '<div class="debug-stat"><span>阶段</span><b>' + s.phase + '</b></div>' +
+      '<div class="debug-stat"><span>波次</span><b>' + s.wave + ' / ' + s.totalWaves + '</b></div>' +
+      '<div class="debug-stat"><span>核心</span><b>' + s.baseHp + ' / ' + s.baseMax + '</b></div>' +
+      '<div class="debug-stat"><span>晶元</span><b>' + U.formatInt(s.crystals) + '</b></div>' +
+      '<div class="debug-stat"><span>敌军</span><b>' + s.enemies + '</b></div>' +
+      '<div class="debug-stat"><span>防御塔</span><b>' + s.towers + '</b></div>';
+  }
+
+  function debugSetAllSkills(rank) {
+    for (let i = 0; i < C.SKILLS.length; i++) {
+      save.skills[C.SKILLS[i].id] = U.clamp(rank, 0, C.SKILL_MAX);
+    }
+    persist();
+    refreshMeta();
+    renderSkills();
+  }
+
+  function handleDebugAction(action, target) {
+    if (!debug.enabled) return;
+    if (action === 'unlock-all') {
+      save.unlocked = C.LEVELS.length;
+      persist();
+      refreshMeta();
+      renderLevelList();
+      showGlobalToast('已解锁全部星区', 'success');
+    } else if (action === 'add-gold') {
+      save.gold += 1000;
+      persist();
+      refreshMeta();
+      showGlobalToast('金币 +1000', 'success');
+    } else if (action === 'max-skills') {
+      debugSetAllSkills(C.SKILL_MAX);
+      showGlobalToast('全部技能已提升至 5 阶', 'success');
+    } else if (action === 'reset-skills') {
+      debugSetAllSkills(0);
+      showGlobalToast('技能已重置', 'info');
+    } else if (action === 'add-crystals' && currentGame) {
+      currentGame.debugAddCrystals(500);
+      showGlobalToast('晶元 +500', 'success');
+    } else if (action === 'heal-core' && currentGame) {
+      const healed = currentGame.debugHealCore(50);
+      showGlobalToast('核心修复 +' + healed, 'success');
+    } else if (action === 'max-towers' && currentGame) {
+      const count = currentGame.debugMaxTowers();
+      showGlobalToast('已将 ' + count + ' 座攻击塔提升至 5 级（灯塔不参与）', 'success');
+    } else if (action === 'prep-30' && currentGame) {
+      currentGame.debugSetPrep(30);
+      showGlobalToast('准备时间已设为 30 秒', 'info');
+    } else if (action === 'next-wave' && currentGame) {
+      const started = currentGame.debugNextWave();
+      showGlobalToast(started ? '已立即发兵' : '当前无法发兵（战斗已开始或已结束）', started ? 'success' : 'error');
+    } else if (action === 'kill-all' && currentGame) {
+      const killed = currentGame.debugKillAll();
+      showGlobalToast('已清除 ' + killed + ' 个敌军', 'success');
+    } else if (action === 'win' && currentGame) {
+      currentGame.debugWin();
+      closeDebugPanel();
+      return;
+    } else if (action === 'lose' && currentGame) {
+      currentGame.debugLose();
+      closeDebugPanel();
+      return;
+    }
+    renderDebugPanel();
+    refreshDebugStatus();
+    if (target) target.blur();
+  }
+
+  function showGlobalToast(message, type, duration) {
     if (!globalToastEl) {
       globalToastEl = document.createElement('div');
       globalToastEl.className = 'global-toast';
@@ -485,7 +1265,7 @@
     clearTimeout(globalToastTimer);
     globalToastTimer = window.setTimeout(function () {
       globalToastEl.classList.remove('show');
-    }, 2200);
+    }, duration || 2200);
   }
 
   function showArenaToast(message, type) {
@@ -557,7 +1337,7 @@
     if (!els.levelList) return;
     const html = C.LEVELS.map(function (level) {
       const stars = save.bestStars[level.id] || 0;
-      const locked = level.id > save.unlocked;
+      const locked = level.id > save.unlocked && !debug.enabled;
       const cleared = stars > 0;
       const isCurrent = !cleared && level.id === save.unlocked;
       const gates = (level.map.join('').match(/S/g) || []).length;
@@ -566,6 +1346,9 @@
       if (locked) {
         status = 'ENCRYPTED';
         statusClass = 'locked';
+      } else if (debug.enabled) {
+        status = 'DEBUG ACCESS';
+        statusClass = 'debug';
       } else if (cleared) {
         status = 'CLEARED';
         statusClass = 'cleared';
@@ -612,7 +1395,15 @@
   }
 
   function openLevels() {
-    if (activeScreen === 'game') destroyGame();
+    if (activeScreen === 'game') {
+      const canSuspend = !!currentGame &&
+        els.resultOverlay.classList.contains('hidden') &&
+        currentGame.phase !== 'victory' &&
+        currentGame.phase !== 'defeat' &&
+        els.onboarding.classList.contains('hidden');
+      if (canSuspend) suspendCurrentRun();
+      else destroyGame();
+    }
     renderLevelList();
     refreshMeta();
     showScreen('levels');
@@ -622,12 +1413,15 @@
   function startLevel(levelId) {
     const level = C.LEVELS[levelId - 1];
     if (!level) return;
-    if (levelId > save.unlocked) {
+    if (levelId > save.unlocked && !debug.enabled) {
       showGlobalToast('该星区尚未解锁', 'error');
       return;
     }
+    maybeAutoImmersive();
+    closeDebugPanel();
     destroyGame();
     closeHelp();
+    pendingTraitTraits = traitBriefingsForLevel(level.id);
     els.pauseOverlay.classList.add('hidden');
     els.resultOverlay.classList.add('hidden');
     els.onboarding.classList.add('hidden');
@@ -643,6 +1437,7 @@
     els.waveBanner.classList.remove('show', 'boss');
     els.arenaToast.classList.remove('show');
     els.placementLegend.classList.remove('show');
+    hideWaveIntel();
     clearTimeout(arenaToastTimer);
     clearTimeout(legendTimer);
     showScreen('game');
@@ -673,6 +1468,11 @@
       canvas: canvas,
     });
     currentGame.speed = gameSpeed;
+    resetCoreFeedback();
+    if (els.gameScreen && currentGame.grid) {
+      const cols = (C.GRID && C.GRID.cols) || 9;
+      els.gameScreen.style.setProperty('--core-x', String((currentGame.grid.base.x + 0.5) / cols));
+    }
     requestAnimationFrame(function () {
       fitArena();
       if (currentGame) {
@@ -684,26 +1484,17 @@
     updateBuildSelection(null);
     renderIntel({ mode: 'none' });
     showLevelIntro(level);
-    const seenTutorial = save.tutorialSeen;
+    const seenTutorial = save.tutorialSeen || debug.enabled;
+    // Every level opens paused so the first wave never starts before the
+    // player has had a chance to look over the map.
+    currentGame.setPaused(true);
+    updatePauseButton(true);
     if (!seenTutorial) {
-      currentGame.setPaused(true);
       onboardingPause = true;
       els.onboarding.classList.remove('hidden');
     } else {
-      window.setTimeout(function () {
-        if (
-          currentGame &&
-          currentLevelId === levelId &&
-          activeScreen === 'game' &&
-          !currentGame.paused &&
-          currentGame.phase === 'prep' &&
-          currentGame.currentWave === 0 &&
-          currentGame.structures.length === 0 &&
-          currentGame.prepRemaining > 3.5
-        ) {
-          showArenaToast('选择阵列部署 · 倒计时结束后自动发兵', 'info');
-        }
-      }, 1100);
+      showPauseBar();
+      maybeShowTraitBriefing();
     }
     audio.ensure();
   }
@@ -714,18 +1505,25 @@
       currentGame = null;
     }
     currentLevelId = null;
+    resetCoreFeedback();
     clearTimeout(legendTimer);
     clearTimeout(arenaToastTimer);
     if (els.pauseOverlay) els.pauseOverlay.classList.add('hidden');
     if (els.pauseBar) els.pauseBar.classList.add('hidden');
+    if (els.gameScreen) els.gameScreen.classList.remove('hud-paused');
     updatePauseButton(false);
     if (els.resultOverlay) els.resultOverlay.classList.add('hidden');
     if (els.onboarding) els.onboarding.classList.add('hidden');
     if (els.arenaToast) els.arenaToast.classList.remove('show');
     if (els.waveBanner) els.waveBanner.classList.remove('show', 'boss');
     if (els.placementLegend) els.placementLegend.classList.remove('show');
+    hideWaveIntel();
     resultSummary = null;
     onboardingPause = false;
+    pendingTraitTraits = [];
+    if (els.traitBriefing) els.traitBriefing.classList.add('hidden');
+    releaseWakeLock();
+    updateResumeUI();
   }
 
   /* ============================================================
@@ -735,6 +1533,7 @@
     if (!currentGame) return;
     updateHud(state);
     updateBuildAffordability();
+    refreshDebugStatus();
     if (
       !deploymentPromptShown &&
       !currentGame.paused &&
@@ -782,6 +1581,7 @@
   function handleWaveStart(info) {
     if (!currentGame) return;
     hideLevelIntro();
+    hideWaveIntel();
     showWaveBanner(info);
     if (!currentGame.selectedBuild) {
       renderIntel({ mode: 'none' });
@@ -790,6 +1590,7 @@
 
   function handleWaveClear(info) {
     if (!currentGame || !info) return;
+    hideWaveIntel();
     if (!info.hasNext) {
       showArenaToast('最终波已肃清 · 核心信号稳定', 'reward');
       return;
@@ -811,7 +1612,10 @@
   }
 
   const hudMemory = { core: null, crystals: null, wave: null };
+  const coreWarn = { danger: false, critical: false };
   let coreDeltaTimer = 0;
+  let coreRevealTimer = 0;
+  let coreAlertTimer = 0;
 
   function popHudValue(el) {
     if (!el) return;
@@ -820,10 +1624,56 @@
     el.classList.add('hud-value-pop');
   }
 
+  // The core readout is transient by design: it appears on damage, stays while the
+  // core is in danger, and can be summoned on demand by tapping the core.
+  function revealCoreStatus(showDetail) {
+    if (!currentGame || !els.coreReadout) return;
+    els.coreReadout.classList.add('is-revealed');
+    window.clearTimeout(coreRevealTimer);
+    coreRevealTimer = window.setTimeout(function () {
+      if (els.coreReadout) els.coreReadout.classList.remove('is-revealed');
+    }, 3200);
+    if (!showDetail) return;
+    const state = currentGame.getHudState();
+    const integrity = Math.round(U.clamp(state.baseHp / Math.max(1, state.baseMax), 0, 1) * 100);
+    showArenaToast(
+      '核心完整度 ' + Math.max(0, Math.ceil(state.baseHp)) + ' / ' + state.baseMax +
+        ' · ' + integrity + '% · 累计漏怪 ' + state.leaked,
+      integrity < 30 ? 'warning' : 'info'
+    );
+    audio.play('ui');
+  }
+
+  function flashCoreAlert(lost) {
+    if (!els.coreAlert) return;
+    if (els.coreAlertTitle) els.coreAlertTitle.textContent = '核心受击';
+    if (els.coreAlertSub) els.coreAlertSub.textContent = '−' + Math.max(1, Math.round(lost));
+    els.coreAlert.classList.remove('show');
+    void els.coreAlert.offsetWidth;
+    els.coreAlert.classList.add('show');
+    window.clearTimeout(coreAlertTimer);
+    coreAlertTimer = window.setTimeout(function () {
+      if (els.coreAlert) els.coreAlert.classList.remove('show');
+    }, 1000);
+  }
+
+  function resetCoreFeedback() {
+    window.clearTimeout(coreRevealTimer);
+    window.clearTimeout(coreAlertTimer);
+    coreWarn.danger = false;
+    coreWarn.critical = false;
+    hudMemory.core = null;
+    if (els.coreReadout) els.coreReadout.classList.remove('is-revealed', 'is-danger', 'is-critical');
+    if (els.coreAlert) els.coreAlert.classList.remove('show');
+    if (els.gameScreen) els.gameScreen.classList.remove('core-danger', 'core-critical');
+  }
+
   function updateHud(state) {
     if (!state) return;
     const ratio = U.clamp(state.baseHp / Math.max(1, state.baseMax), 0, 1);
     const coreNow = Math.max(0, Math.ceil(state.baseHp));
+    const danger = ratio < 0.3;
+    const critical = ratio < 0.1;
     if (els.coreValue && els.coreValue.textContent !== String(coreNow)) {
       els.coreValue.textContent = String(coreNow);
       popHudValue(els.coreValue);
@@ -838,11 +1688,33 @@
         coreDeltaTimer = window.setTimeout(function () { els.coreDelta.classList.remove('show'); }, 900);
       }
     }
+    if (hudMemory.core != null && coreNow < hudMemory.core) {
+      flashCoreAlert(hudMemory.core - coreNow);
+      revealCoreStatus(false);
+      if (critical && !coreWarn.critical) audio.play('critical');
+      else if (danger && !coreWarn.danger) audio.play('warning');
+    }
+    if (!danger) coreWarn.danger = false;
+    if (!critical) coreWarn.critical = false;
+    if (danger) coreWarn.danger = true;
+    if (critical) coreWarn.critical = true;
     hudMemory.core = coreNow;
-    els.coreFill.style.width = (ratio * 100).toFixed(1) + '%';
-    if (els.coreBar) els.coreBar.classList.toggle('low', ratio < 0.34);
-    if (els.coreStat) els.coreStat.classList.toggle('danger', ratio < 0.3);
+    if (els.coreFill) els.coreFill.style.width = (ratio * 100).toFixed(1) + '%';
+    if (els.coreReadout) {
+      els.coreReadout.classList.toggle('is-danger', danger);
+      els.coreReadout.classList.toggle('is-critical', critical);
+    }
+    if (els.gameScreen) {
+      els.gameScreen.classList.toggle('core-danger', danger);
+      els.gameScreen.classList.toggle('core-critical', critical);
+    }
     const crystalNow = U.formatInt(state.crystals);
+    if (els.crystals) {
+      const crystalDigits = String(Math.floor(state.crystals)).length;
+      els.crystals.classList.toggle('is-long', crystalDigits >= 4);
+      els.crystals.classList.toggle('is-dense', crystalDigits >= 5);
+      if (els.hud) els.hud.classList.toggle('crystal-long', crystalDigits >= 4);
+    }
     if (els.crystals && els.crystals.textContent !== crystalNow) {
       els.crystals.textContent = crystalNow;
       popHudValue(els.crystals);
@@ -867,32 +1739,43 @@
       const isCleared = state.phase === 'victory-pending' || state.phase === 'victory';
       const isLost = state.phase === 'defeat';
       const seconds = isPrep ? Math.max(0, Math.ceil(Number(state.prepRemaining) || 0)) : 0;
+      const paused = !!(currentGame && currentGame.paused);
       status.classList.toggle('prep', isPrep);
       status.classList.toggle('active', isLive);
-      status.classList.toggle('imminent', isPrep && seconds > 0 && seconds <= 3);
+      status.classList.toggle('imminent', isPrep && !paused && seconds > 0 && seconds <= 3);
       status.classList.toggle('cleared', isCleared);
       status.classList.toggle('lost', isLost);
-      status.disabled = !isPrep || !!(currentGame && currentGame.paused);
+      status.disabled = !(isPrep || isLive);
       let statusTitle = '';
-      if (isPrep && currentGame && !currentGame.paused) {
-        const preview = currentGame.getNextWavePreview();
-        const previewText = preview && preview.enemies.length
-          ? preview.enemies.map(function (enemy) { return enemy.name + '×' + enemy.count; }).join(' · ')
-          : '';
-        statusTitle = previewText ? '下一波：' + previewText + ' · 点击立即发兵' : '点击立即发兵';
+      if (isPrep && currentGame) {
+        const summary = previewSummary(currentGame.getNextWavePreview());
+        const action = paused ? ' · 点击立即发兵并恢复作战' : ' · 点击立即发兵';
+        statusTitle = summary.names
+          ? '下一波：' + summary.names + (summary.traits ? ' · 特性：' + summary.traits : '') + action
+          : '点击立即发兵';
+      } else if (isLive && currentGame) {
+        const summary = previewSummary(currentGame.getWavePreview(state.wave));
+        const action = paused ? ' · 点击恢复作战' : ' · 交战中';
+        statusTitle = summary.names
+          ? '第 ' + state.wave + ' 波：' + summary.names + (summary.traits ? ' · 特性：' + summary.traits : '') + action
+          : (paused ? '点击恢复作战' : '交战中');
       }
       status.title = statusTitle;
       if (isPrep) {
-        els.waveStatusKicker.textContent = '自动发兵';
-        els.waveStatusValue.textContent = String(seconds).padStart(2, '0') + 's';
+        els.waveStatusKicker.textContent = paused ? '待发兵' : '自动发兵';
+        els.waveStatusValue.textContent = paused ? '发兵' : String(seconds).padStart(2, '0') + 's';
         const total = Math.max(1, Number(state.prepTotal) || 1);
         els.waveStatusProgress.style.width = (U.clamp(seconds / total, 0, 1) * 100).toFixed(1) + '%';
-        status.setAttribute('aria-label', '第 ' + state.wave + ' 波将在 ' + seconds + ' 秒后自动来袭，点击立即发兵');
+        status.setAttribute('aria-label', paused
+          ? '第 ' + state.wave + ' 波待发兵，点击立即发兵并恢复作战'
+          : '第 ' + state.wave + ' 波将在 ' + seconds + ' 秒后自动来袭，点击立即发兵');
       } else if (isLive) {
         const remaining = Math.max(0, Number(state.waveRemaining != null ? state.waveRemaining : state.enemiesAlive) || 0);
-        els.waveStatusKicker.textContent = '剩余敌军';
+        els.waveStatusKicker.textContent = paused ? '已暂停' : '剩余';
         els.waveStatusValue.textContent = String(remaining);
-        status.setAttribute('aria-label', '第 ' + state.wave + ' 波交战中，剩余 ' + remaining + ' 个敌人');
+        status.setAttribute('aria-label', paused
+          ? '第 ' + state.wave + ' 波已暂停，剩余 ' + remaining + ' 个敌人，点击恢复作战'
+          : '第 ' + state.wave + ' 波交战中，剩余 ' + remaining + ' 个敌人');
       } else if (isCleared) {
         els.waveStatusKicker.textContent = '区域肃清';
         els.waveStatusValue.textContent = '—';
@@ -1004,6 +1887,15 @@
   function statChips(type, stats, nextStats) {
     if (!stats) return '';
     const chips = [];
+    if (type === 'beacon') {
+      let rangeChip = '侦测半径 <b>' + stats.range.toFixed(1) + '</b>';
+      if (nextStats && Math.abs(nextStats.range - stats.range) > 0.01) {
+        rangeChip += ' <span class="level-gain">→' + nextStats.range.toFixed(1) + '</span>';
+      }
+      chips.push('<span>' + rangeChip + '</span>');
+      chips.push('<span>占用 1 塔位</span>');
+      return chips.join('');
+    }
     const primaryLabel = type === 'laser' ? 'DPS' : '伤害';
     const primary = type === 'laser' ? stats.dps : stats.damage;
     const nextPrimary = nextStats ? (type === 'laser' ? nextStats.dps : nextStats.damage) : null;
@@ -1043,6 +1935,98 @@
     return String(Math.round(value * 10) / 10);
   }
 
+  function intelTagMarkup(info) {
+    if (!info) return '';
+    const tags = [];
+    if (info.damageTypeName) {
+      tags.push('<span class="intel-tag damage" style="--tag-color:' + info.damageTypeColor + '">' + info.damageTypeName + '</span>');
+    }
+    const rawTags = info.tags || [];
+    for (let i = 0; i < rawTags.length; i++) {
+      const tag = rawTags[i];
+      if (tag === info.damageTypeName) continue;
+      tags.push('<span class="intel-tag' + (tag === '反隐' ? ' detect' : '') + '">' + tag + '</span>');
+    }
+    if (!tags.length) return '';
+    return '<div class="intel-tags">' + tags.join('') + '</div>';
+  }
+
+  function previewSummary(preview) {
+    if (!preview || !preview.enemies.length) return { names: '', traits: '' };
+    return {
+      names: preview.enemies.map(function (enemy) { return enemy.name + '×' + enemy.count; }).join(' · '),
+      traits: (preview.threats || []).map(function (threat) { return threat.name; }).join(' / '),
+    };
+  }
+
+  function enemyChipsHtml(preview, limit) {
+    if (!preview || !preview.enemies.length) return '';
+    const max = Math.max(1, limit || preview.enemies.length);
+    return preview.enemies.slice(0, max).map(function (enemy) {
+      const traitDefs = (enemy.traits || []).map(function (id) {
+        return C.TRAITS[id];
+      }).filter(Boolean);
+      const traitMark = traitDefs.slice(0, 2).map(function (trait) {
+        return '<em class="trait-mark" style="--trait-color:' + trait.color + '">' + trait.short + '</em>';
+      }).join('');
+      const traitNames = traitDefs.map(function (trait) { return trait.name; }).join(' / ');
+      const title = enemy.name + ' × ' + enemy.count + (traitNames ? ' · ' + traitNames : '');
+      return '<span class="enemy-chip shape-' + enemy.shape + (enemy.boss ? ' boss' : '') + (traitDefs.length ? ' has-traits' : '') + '" style="color:' + enemy.color + '" title="' + title + '"><i></i>' + enemy.count + traitMark + '</span>';
+    }).join('');
+  }
+
+  function waveThreatsHtml(preview) {
+    if (!preview || !preview.threats || !preview.threats.length) return '';
+    return '<div class="next-wave-threats">' + preview.threats.map(function (threat) {
+      return '<span style="--trait-color:' + threat.color + '">' + threat.name + '</span>';
+    }).join('') + '</div>';
+  }
+
+  function setPauseIntelExpanded(expanded) {
+    const button = $('btn-pause-intel');
+    if (button) button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+  }
+
+  function hideWaveIntel() {
+    window.clearTimeout(waveIntelTimer);
+    waveIntelTimer = 0;
+    if (els.waveIntel) els.waveIntel.classList.remove('show');
+    setPauseIntelExpanded(false);
+  }
+
+  function showWaveIntel(options) {
+    if (!currentGame || !els.waveIntel || !els.waveIntelBody) return;
+    const duration = options && options.duration ? options.duration : 7000;
+    const number = currentGame.phase === 'wave' ? Math.max(1, currentGame.currentWave) : currentGame.waveCursor + 1;
+    const preview = currentGame.getWavePreview(number);
+    if (!preview || !preview.enemies.length) {
+      hideWaveIntel();
+      return;
+    }
+    const summary = previewSummary(preview);
+    const traitNames = preview.threats.length
+      ? preview.threats.map(function (threat) { return threat.name; }).join(' / ')
+      : '无特殊特性';
+    window.clearTimeout(arenaToastTimer);
+    if (els.arenaToast) els.arenaToast.classList.remove('show');
+    if (els.waveIntelKicker) els.waveIntelKicker.textContent = 'WAVE ' + pad2(preview.number);
+    els.waveIntelBody.innerHTML =
+      '<p class="wave-intel-summary">' + summary.names + '</p>' +
+      '<div class="next-wave-preview wave-intel-chips"><span class="next-wave-label">COUNT</span>' + enemyChipsHtml(preview) + '</div>' +
+      '<p class="wave-intel-traits">特性：' + traitNames + '</p>';
+    els.waveIntel.classList.add('show');
+    setPauseIntelExpanded(true);
+    window.clearTimeout(waveIntelTimer);
+    waveIntelTimer = window.setTimeout(hideWaveIntel, duration);
+    audio.play('ui');
+  }
+
+  function togglePauseIntel() {
+    if (!currentGame || !els.pauseBar || els.pauseBar.classList.contains('hidden')) return;
+    if (els.waveIntel && els.waveIntel.classList.contains('show')) hideWaveIntel();
+    else showWaveIntel({ duration: 7000 });
+  }
+
   function renderIntel(info) {
     if (!els.intelContent) return;
     if (els.gameScreen) {
@@ -1070,10 +2054,7 @@
       }
       let previewHtml = '';
       if (preview && preview.enemies.length) {
-        const chips = preview.enemies.slice(0, 4).map(function (enemy) {
-          return '<span class="enemy-chip shape-' + enemy.shape + (enemy.boss ? ' boss' : '') + '" style="color:' + enemy.color + '" title="' + enemy.name + ' × ' + enemy.count + '"><i></i>' + enemy.count + '</span>';
-        }).join('');
-        previewHtml = '<div class="next-wave-preview"><span class="next-wave-label">NEXT</span>' + chips + '</div>';
+        previewHtml = '<div class="next-wave-preview"><span class="next-wave-label">NEXT</span>' + enemyChipsHtml(preview, 5) + waveThreatsHtml(preview) + '</div>';
       }
       els.intelContent.innerHTML =
         '<div class="intel-default">' +
@@ -1091,7 +2072,9 @@
         '<div class="intel-copy">' +
           '<div class="intel-title-row"><strong>' + info.name + '</strong><span class="intel-level cost' + costClass + '">' + gemSvg() + info.cost + '</span><span class="intel-level">' + capacityLabel + '</span></div>' +
           '<div class="intel-sub">' + info.role + ' · ' + info.tagline + '</div>' +
+          intelTagMarkup(info) +
           '<div class="intel-stats">' + (info.isWall ? '<span>阻挡通行 · 强制重寻路</span><span>不可被攻击</span>' : statChips(info.type, info.stats)) + '</div>' +
+          (info.counter ? '<div class="intel-counter">克制：' + info.counter + '</div>' : '') +
         '</div>' +
         '<div class="intel-actions"><button class="mini-button cancel" type="button" data-intel-action="cancel">取消</button></div>';
       const canvas = els.intelContent.querySelector('.intel-sigil canvas');
@@ -1099,14 +2082,19 @@
       return;
     }
     if (info.mode === 'structure' && info.isWall) {
+      const canUndo = !!info.canUndo;
+      const sellLabel = canUndo ? '撤销' : '回收';
+      const sellAria = canUndo
+        ? '撤销部署，全额返还 ' + info.sellValue + ' 晶元'
+        : '回收壁垒，获得 ' + info.sellValue + ' 晶元';
       els.intelContent.innerHTML =
         '<div class="intel-sigil" style="--intel-color:' + info.color + '"><canvas width="36" height="36"></canvas></div>' +
         '<div class="intel-copy">' +
           '<div class="intel-title-row"><strong>' + info.name + '</strong><span class="intel-level">结构</span></div>' +
           '<div class="intel-sub">' + info.tagline + ' · 阻挡通行，无法被攻击</div>' +
-          '<div class="intel-stats"><span>部署投入 <b>' + info.spent + '</b></span><span>可回收 <b>+' + info.sellValue + '</b></span></div>' +
+          '<div class="intel-stats"><span>部署投入 <b>' + info.spent + '</b></span><span>' + (canUndo ? '可全额撤销' : '可回收') + ' <b>+' + info.sellValue + '</b></span></div>' +
         '</div>' +
-        '<div class="intel-actions"><button class="mini-button sell" type="button" data-intel-action="sell" aria-label="回收壁垒，获得 ' + info.sellValue + ' 晶元"><span class="sell-label">回收</span>' + gemSvg() + '+' + info.sellValue + '</button></div>';
+        '<div class="intel-actions"><button class="mini-button sell' + (canUndo ? ' undo' : '') + '" type="button" data-intel-action="sell" aria-label="' + sellAria + '"><span class="sell-label">' + sellLabel + '</span>' + gemSvg() + '+' + info.sellValue + '</button></div>';
       const canvas = els.intelContent.querySelector('.intel-sigil canvas');
       GFX.towerIcon(canvas, 'wall');
       return;
@@ -1125,8 +2113,10 @@
         '<div class="intel-sigil' + (maxed ? ' level-max' : '') + '" style="--intel-color:' + info.color + '"><canvas width="36" height="36"></canvas></div>' +
         '<div class="intel-copy">' +
           '<div class="intel-title-row"><strong>' + info.name + '</strong><span class="intel-level' + (maxed ? ' max' : '') + '">LV.' + info.level + ' / ' + info.maxLevel + '</span></div>' +
-          '<div class="intel-sub">' + info.role + ' · ' + info.special + '</div>' +
+          '<div class="intel-sub">' + info.role + (info.tierName ? ' · ' + info.tierName : '') + ' · ' + info.special + '</div>' +
+          intelTagMarkup(info) +
           '<div class="intel-stats">' + statChips(info.type, info.stats, info.nextStats) + '</div>' +
+          (info.counter ? '<div class="intel-counter">克制：' + info.counter + '</div>' : '') +
         '</div>' +
         '<div class="intel-actions">' +
           '<button class="mini-button upgrade' + (maxed ? ' maxed' : '') + '" type="button" data-intel-action="upgrade" aria-label="升级防御塔"' + (maxed ? ' disabled' : '') + '>' + upgradeLabel + '</button>' +
@@ -1151,6 +2141,8 @@
   function renderSkills(flashId) {
     if (!els.skillList) return;
     els.skillsGoldBig.textContent = U.formatInt(save.gold);
+    const debugNote = $('skills-debug-note');
+    if (debugNote) debugNote.classList.toggle('hidden', !debug.enabled);
     const html = C.SKILLS.map(function (skill) {
       const rank = save.skills[skill.id] || 0;
       const maxed = rank >= C.SKILL_MAX;
@@ -1191,10 +2183,56 @@
       const canvas = card.querySelector('.skill-icon-wrap canvas');
       if (skill && canvas) GFX.skillIcon(canvas, skill, save.skills[skill.id] || 0);
     });
+    updateSkillReset();
+  }
+
+  function skillRefundTotal() {
+    let total = 0;
+    for (let i = 0; i < C.SKILLS.length; i++) {
+      const skill = C.SKILLS[i];
+      const rank = save.skills[skill.id] || 0;
+      for (let r = 0; r < rank; r++) total += skill.costs[r] || 0;
+    }
+    return total;
+  }
+
+  function updateSkillReset() {
+    if (!els.skillsReset) return;
+    const refund = skillRefundTotal();
+    const armed = resetArmed && refund > 0;
+    if (els.skillResetRefund) els.skillResetRefund.textContent = U.formatInt(refund);
+    els.skillsReset.disabled = refund <= 0;
+    els.skillsReset.classList.toggle('confirming', armed);
+    if (els.skillResetLabel) els.skillResetLabel.textContent = armed ? '再次点击确认' : '重置技能';
+    els.skillsReset.setAttribute('aria-label', refund > 0
+      ? (armed ? '再次点击确认重置技能，返还 ' + refund + ' 金币' : '重置技能矩阵，返还 ' + refund + ' 金币')
+      : '当前没有可重置的技能');
+  }
+
+  function disarmSkillReset() {
+    resetArmed = false;
+    window.clearTimeout(resetArmTimer);
+    resetArmTimer = 0;
+    updateSkillReset();
+  }
+
+  function resetSkills() {
+    const refund = skillRefundTotal();
+    if (refund <= 0) return 0;
+    for (let i = 0; i < C.SKILLS.length; i++) save.skills[C.SKILLS[i].id] = 0;
+    save.gold += refund;
+    persist();
+    refreshMeta();
+    resetArmed = false;
+    window.clearTimeout(resetArmTimer);
+    resetArmTimer = 0;
+    renderSkills();
+    return refund;
   }
 
   function openSkills(returnTo) {
     skillsReturn = returnTo || 'home';
+    disarmSkillReset();
     renderSkills();
     refreshMeta();
     showScreen('skills');
@@ -1260,6 +2298,28 @@
     els.pauseButton.setAttribute('aria-label', paused ? '继续作战' : '暂停作战');
   }
 
+  function showPauseBar() {
+    if (els.pauseBar) els.pauseBar.classList.remove('hidden');
+    if (els.gameScreen) els.gameScreen.classList.add('hud-paused');
+    updatePauseButton(true);
+    hideWaveIntel();
+  }
+
+  function hidePauseBar() {
+    if (els.pauseBar) els.pauseBar.classList.add('hidden');
+    if (els.gameScreen) els.gameScreen.classList.remove('hud-paused');
+    updatePauseButton(false);
+    hideWaveIntel();
+  }
+
+  function maybeShowDeployPrompt() {
+    if (!currentGame || deploymentPromptShown) return;
+    if (currentGame.phase !== 'prep' || currentGame.currentWave !== 0 || currentGame.structures.length > 0) return;
+    if (currentGame.prepRemaining <= 3.5) return;
+    deploymentPromptShown = true;
+    showArenaToast('选择阵列部署 · 倒计时结束后自动发兵', 'info');
+  }
+
   function openPause() {
     if (!currentGame || activeScreen !== 'game') return;
     if (currentGame.phase === 'victory' || currentGame.phase === 'defeat' || currentGame.phase === 'victory-pending') return;
@@ -1267,17 +2327,20 @@
     if (els.pauseBar && !els.pauseBar.classList.contains('hidden')) return;
     currentGame.setPaused(true);
     pauseReadout();
+    releaseWakeLock();
     if (els.pauseOverlay) els.pauseOverlay.classList.add('hidden');
-    if (els.pauseBar) els.pauseBar.classList.remove('hidden');
-    updatePauseButton(true);
+    showPauseBar();
     audio.play('ui');
   }
 
   function closePause(resume) {
-    if (els.pauseBar) els.pauseBar.classList.add('hidden');
-    if (els.pauseOverlay) els.pauseOverlay.classList.add('hidden');
-    updatePauseButton(false);
-    if (resume && currentGame) currentGame.setPaused(false);
+    hidePauseBar();
+    if (resume && currentGame) {
+      currentGame.setPaused(false);
+      currentGame.refreshUI();
+      maybeShowDeployPrompt();
+      requestWakeLock();
+    }
   }
 
   function togglePause() {
@@ -1298,26 +2361,29 @@
     let firstClear = false;
     let improved = false;
     if (success) {
-      const previousStars = save.bestStars[level.id] || 0;
-      firstClear = previousStars === 0;
-      improved = summary.stars > previousStars;
-      const base = firstClear ? level.gold : Math.floor(level.gold * 0.3);
-      const bonus = firstClear ? Math.max(0, summary.stars - 1) * 15 : Math.max(0, summary.stars - previousStars) * 10;
-      goldEarned = Math.max(0, Math.round(base + bonus));
-      save.gold += goldEarned;
-      save.bestStars[level.id] = Math.max(previousStars, summary.stars);
-      save.unlocked = Math.max(save.unlocked, Math.min(C.LEVELS.length, level.id + 1));
-      persist();
-      refreshMeta();
-      resultAction = level.id < C.LEVELS.length ? 'next' : 'levels';
+      if (debug.enabled) {
+        resultAction = level.id < C.LEVELS.length ? 'next' : 'levels';
+      } else {
+        const previousStars = save.bestStars[level.id] || 0;
+        firstClear = previousStars === 0;
+        improved = summary.stars > previousStars;
+        const base = firstClear ? level.gold : Math.floor(level.gold * 0.3);
+        const bonus = firstClear ? Math.max(0, summary.stars - 1) * 15 : Math.max(0, summary.stars - previousStars) * 10;
+        goldEarned = Math.max(0, Math.round(base + bonus));
+        save.gold += goldEarned;
+        save.bestStars[level.id] = Math.max(previousStars, summary.stars);
+        save.unlocked = Math.max(save.unlocked, Math.min(C.LEVELS.length, level.id + 1));
+        persist();
+        refreshMeta();
+        resultAction = level.id < C.LEVELS.length ? 'next' : 'levels';
+      }
     } else {
       resultAction = 'retry';
     }
-    resultSummary = { level: level, summary: summary, gold: goldEarned, firstClear: firstClear, improved: improved };
+    resultSummary = { level: level, summary: summary, gold: goldEarned, firstClear: firstClear, improved: improved, debug: debug.enabled };
     currentGame.setPaused(true);
-    if (els.pauseBar) els.pauseBar.classList.add('hidden');
+    hidePauseBar();
     if (els.pauseOverlay) els.pauseOverlay.classList.add('hidden');
-    updatePauseButton(false);
     renderResult(resultSummary);
     els.resultOverlay.classList.remove('hidden');
     audio.play('ui');
@@ -1327,17 +2393,21 @@
     const level = result.level;
     const summary = result.summary;
     const success = summary.success;
+    const isDebug = !!result.debug;
     const stars = summary.stars || 0;
     $('result-card').style.setProperty('--result-accent', success ? level.accent : '#ff5d7a');
-    $('result-kicker').textContent = success ? 'SECTOR SECURED' : 'CORE SIGNAL LOST';
+    $('result-card').classList.toggle('debug-run', isDebug);
+    $('result-kicker').textContent = isDebug ? 'DEBUG RUN // NOT RECORDED' : success ? 'SECTOR SECURED' : 'CORE SIGNAL LOST';
     let title;
-    if (!success) title = '防线失守';
+    if (!success) title = isDebug ? '调试失守' : '防线失守';
+    else if (isDebug) title = '调试肃清';
     else if (stars === 3) title = '完美肃清';
     else if (stars === 2) title = '星区肃清';
     else title = '惨胜肃清';
     $('result-title').textContent = title;
     let copy;
-    if (!success) copy = '核心信号中断。重新调整防御阵列，再次尝试这条航道。';
+    if (isDebug) copy = '调试模式运行的战斗不会写入星图进度、星级或金币。可直接从调试面板跳转下一关。';
+    else if (!success) copy = '核心信号中断。重新调整防御阵列，再次尝试这条航道。';
     else if (result.firstClear) copy = level.id === C.LEVELS.length ? '星图尽头，核心仍在燃烧。你守住了最后的矢界。' : '首次肃清，下一片星区航道已经解锁。';
     else copy = result.improved ? '再次肃清，并刷新了星芒评价。' : '再次肃清，获得部分回收金币。';
     $('result-copy').textContent = copy;
@@ -1351,7 +2421,12 @@
     $('result-core').textContent = Math.round(summary.integrity * 100) + '%';
     $('result-time').textContent = U.formatTime(summary.time);
     const reward = $('reward-strip');
-    if (success) {
+    reward.classList.toggle('debug', isDebug);
+    if (isDebug) {
+      reward.classList.remove('defeat');
+      reward.querySelector('span').textContent = '调试运行 · 不计入进度与金币';
+      $('result-gold').textContent = '0';
+    } else if (success) {
       reward.classList.remove('defeat');
       reward.querySelector('span').textContent = result.firstClear ? '首次肃清奖励' : '重复肃清回收';
       $('result-gold').textContent = '+' + U.formatInt(result.gold);
@@ -1382,9 +2457,11 @@
         persist();
       }
       if (currentGame) {
-        currentGame.setPaused(false);
+        currentGame.setPaused(true);
         currentGame.refreshUI();
-        showArenaToast('建设阶段开始 · 首波将在倒计时结束后自动来袭', 'info');
+        showPauseBar();
+        maybeShowTraitBriefing();
+        showArenaToast('部署阶段 · 点击左上播放键开始作战', 'info');
       }
       onboardingPause = false;
       audio.play('ui');
@@ -1395,16 +2472,63 @@
      Help
      ============================================================ */
   function buildHelpManual() {
+    if (els.helpTowerList) {
+      const types = C.TOWER_ORDER.concat(['wall']);
+      els.helpTowerList.innerHTML = types.map(function (type) {
+        const def = type === 'wall' ? C.WALL : C.TOWERS[type];
+        const damage = def.damageType ? C.DAMAGE_TYPES[def.damageType] : null;
+        const tags = (def.tags || []).map(function (tag) {
+          return '<span>' + tag + '</span>';
+        }).join('');
+        return (
+          '<div class="tower-manual-row" style="--tower-color:' + def.color + '">' +
+            '<canvas width="64" height="64" aria-hidden="true"></canvas>' +
+            '<div class="tower-manual-copy">' +
+              '<b>' + def.name + '<span>' + def.en + ' // ' + def.role + '</span></b>' +
+              '<p>' + def.desc + '</p>' +
+              '<div class="manual-tags">' + tags + (damage ? '<span style="--tag-color:' + damage.color + '">' + damage.name + '</span>' : '') + '</div>' +
+              '<small>克制：' + (def.counter || '—') + '</small>' +
+            '</div>' +
+          '</div>'
+        );
+      }).join('');
+      $$('.tower-manual-row canvas', els.helpTowerList).forEach(function (canvas, index) {
+        GFX.towerIcon(canvas, types[index]);
+      });
+    }
+    if (els.helpTraitList) {
+      els.helpTraitList.innerHTML = Object.keys(C.TRAITS).map(function (id) {
+        const trait = C.TRAITS[id];
+        return (
+          '<div class="trait-manual-row" style="--trait-color:' + trait.color + '">' +
+            '<span class="trait-swatch">' + trait.short + '</span>' +
+            '<div class="trait-manual-copy">' +
+              '<b>' + trait.name + '</b>' +
+              '<p>' + trait.desc + '</p>' +
+              '<small>克制：' + trait.counter + '</small>' +
+            '</div>' +
+          '</div>'
+        );
+      }).join('');
+    }
     if (!els.helpEnemyList) return;
     const types = C.ENEMY_ORDER.filter(function (type) {
       return type !== 'shard';
     });
     els.helpEnemyList.innerHTML = types.map(function (type) {
       const def = C.ENEMIES[type];
+      const traits = (def.traits || []).map(function (id) {
+        const trait = C.TRAITS[id];
+        if (!trait) return '';
+        return '<span style="--tag-color:' + trait.color + '">' + trait.name + '</span>';
+      }).join('');
       return (
         '<div class="enemy-manual-row" style="--enemy-color:' + def.color + '">' +
           '<canvas width="64" height="64" aria-hidden="true"></canvas>' +
-          '<div class="enemy-manual-copy"><b>' + def.name + '<span>' + def.en + ' // ' + def.tag + '</span></b><p>' + def.desc + '</p></div>' +
+          '<div class="enemy-manual-copy"><b>' + def.name + '<span>' + def.en + ' // ' + def.tag + '</span></b><p>' + def.desc + '</p>' +
+            '<div class="manual-tags">' + traits + '</div>' +
+            '<small>克制：' + (def.counter || '—') + '</small>' +
+          '</div>' +
         '</div>'
       );
     }).join('');
@@ -1415,6 +2539,9 @@
 
   function openHelp() {
     helpLastFocus = document.activeElement;
+    const debugSection = $('help-debug-section');
+    if (debugSection) debugSection.classList.toggle('hidden', !debug.enabled);
+    document.body.classList.add('help-open');
     els.helpModal.classList.remove('hidden');
     $('help-close').focus();
     audio.play('ui');
@@ -1423,6 +2550,7 @@
   function closeHelp() {
     if (!els.helpModal || els.helpModal.classList.contains('hidden')) return;
     els.helpModal.classList.add('hidden');
+    document.body.classList.remove('help-open');
     if (helpLastFocus && document.contains(helpLastFocus)) {
       try { helpLastFocus.focus(); } catch (error) { /* noop */ }
     }
@@ -1437,16 +2565,66 @@
     return helpOpen()
       || !els.pauseOverlay.classList.contains('hidden')
       || !els.resultOverlay.classList.contains('hidden')
-      || !els.onboarding.classList.contains('hidden');
+      || !els.onboarding.classList.contains('hidden')
+      || !els.traitBriefing.classList.contains('hidden');
   }
 
   /* ============================================================
      Bind UI
      ============================================================ */
+  function debugToggle(flag) {
+    if (!debug.enabled) return;
+    if (flag === 'god') {
+      debug.godMode = !debug.godMode;
+      if (currentGame) currentGame.setGodMode(debug.godMode);
+    } else if (flag === 'free') {
+      debug.freeBuild = !debug.freeBuild;
+      if (currentGame) currentGame.setFreeBuild(debug.freeBuild);
+    }
+    renderDebugPanel();
+    refreshDebugStatus();
+  }
+
+  function handleDebugClick(event) {
+    const levelButton = event.target.closest('[data-debug-level]');
+    if (levelButton) {
+      const levelId = Number(levelButton.getAttribute('data-debug-level'));
+      if (levelId) {
+        audio.ensure();
+        startLevel(levelId);
+      }
+      return;
+    }
+    const spawnButton = event.target.closest('[data-debug-spawn]');
+    if (spawnButton) {
+      if (!currentGame) {
+        showGlobalToast('请先进入一个关卡再生成测试敌群', 'error');
+        return;
+      }
+      const type = spawnButton.getAttribute('data-debug-spawn');
+      currentGame.debugSpawn(type, 5);
+      refreshDebugStatus();
+      return;
+    }
+    const toggleButton = event.target.closest('[data-debug-toggle]');
+    if (toggleButton) {
+      debugToggle(toggleButton.getAttribute('data-debug-toggle'));
+      return;
+    }
+    const actionButton = event.target.closest('[data-debug-action]');
+    if (actionButton && !actionButton.disabled) {
+      handleDebugAction(actionButton.getAttribute('data-debug-action'), actionButton);
+    }
+  }
+
   function bindUI() {
     $('btn-deploy').addEventListener('click', openLevels);
     $('btn-skills-home').addEventListener('click', function () { openSkills('home'); });
     $('btn-help').addEventListener('click', openHelp);
+    if (els.debugFab) els.debugFab.addEventListener('click', toggleDebugPanel);
+    if (els.debugHud) els.debugHud.addEventListener('click', toggleDebugPanel);
+    if (els.debugClose) els.debugClose.addEventListener('click', closeDebugPanel);
+    if (els.debugPanel) els.debugPanel.addEventListener('click', handleDebugClick);
     $$('[data-nav="home"]').forEach(function (button) {
       button.addEventListener('click', function () {
         showScreen('home');
@@ -1460,6 +2638,9 @@
     els.helpModal.querySelector('.overlay-scrim').addEventListener('click', closeHelp);
     $$('.sound-button').forEach(function (button) {
       button.addEventListener('click', toggleSound);
+    });
+    $$('.immersive-toggle').forEach(function (button) {
+      button.addEventListener('click', toggleImmersive);
     });
 
     els.levelList.addEventListener('click', function (event) {
@@ -1476,6 +2657,28 @@
       if (!button) return;
       buySkill(button.getAttribute('data-skill'));
     });
+
+    if (els.skillsReset) {
+      els.skillsReset.addEventListener('click', function () {
+        const refund = skillRefundTotal();
+        if (refund <= 0) return;
+        if (!resetArmed) {
+          resetArmed = true;
+          updateSkillReset();
+          window.clearTimeout(resetArmTimer);
+          resetArmTimer = window.setTimeout(function () {
+            resetArmed = false;
+            resetArmTimer = 0;
+            updateSkillReset();
+          }, 3800);
+          audio.play('ui');
+          return;
+        }
+        const refunded = resetSkills();
+        audio.play('sell');
+        showGlobalToast('技能已重置 · 返还 ' + U.formatInt(refunded) + ' 金币', 'success');
+      });
+    }
 
     els.buildList.addEventListener('click', function (event) {
       const card = event.target.closest('.build-card');
@@ -1495,10 +2698,25 @@
     });
 
     els.waveStatus.addEventListener('click', function () {
-      if (!currentGame || currentGame.phase !== 'prep' || currentGame.paused) return;
+      if (!currentGame) return;
       audio.ensure();
-      currentGame.startWave();
+      const paused = !!currentGame.paused;
+      if (currentGame.phase === 'prep') {
+        // The card is also the "send wave" control: tapping it while the
+        // level is paused must resume the battle and release the wave.
+        if (paused) closePause(true);
+        if (currentGame.phase === 'prep') currentGame.startWave();
+        return;
+      }
+      if (currentGame.phase === 'wave' && paused) closePause(true);
     });
+
+    if (els.waveIntelClose) {
+      els.waveIntelClose.addEventListener('click', function () {
+        hideWaveIntel();
+        audio.play('ui');
+      });
+    }
 
     els.pauseButton.addEventListener('click', togglePause);
     $('btn-pause-restart').addEventListener('click', function () {
@@ -1510,7 +2728,10 @@
       closePause(false);
       openLevels();
     });
-    $('btn-pause-manual').addEventListener('click', openHelp);
+    $('btn-pause-intel').addEventListener('click', togglePauseIntel);
+    $('btn-trait-close').addEventListener('click', closeTraitBriefing);
+    $('btn-home-resume').addEventListener('click', resumeSuspendedRun);
+    $('btn-levels-resume').addEventListener('click', resumeSuspendedRun);
 
     els.gameScreen.addEventListener('contextmenu', function (event) {
       if (!currentGame) return;
@@ -1571,6 +2792,11 @@
         currentGame.cancelSelection();
         return;
       }
+      if (currentGame.grid.isBase(cell.x, cell.y)) {
+        if (currentGame.selectedBuild) currentGame.cancelSelection();
+        revealCoreStatus(true);
+        return;
+      }
       currentGame.handleTap({ x: cell.x, y: cell.y });
     });
     els.gameCanvas.addEventListener('pointermove', function (event) {
@@ -1588,12 +2814,24 @@
     });
 
     window.addEventListener('resize', function () {
+      syncViewportHeight();
       ambient.resize();
       fitArena();
       if (currentGame) currentGame.resize();
     });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', scheduleViewportSync);
+      window.visualViewport.addEventListener('scroll', scheduleViewportSync, { passive: true });
+    }
+    ['fullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange'].forEach(function (name) {
+      document.addEventListener(name, syncImmersiveState);
+    });
     window.addEventListener('orientationchange', function () {
-      window.setTimeout(fitArena, 180);
+      window.setTimeout(function () {
+        syncViewportHeight();
+        fitArena();
+        if (currentGame) currentGame.resize();
+      }, 180);
     });
 
     if (window.ResizeObserver) {
@@ -1630,11 +2868,16 @@
     }
 
     document.addEventListener('visibilitychange', function () {
-      if (document.hidden && currentGame && activeScreen === 'game') {
-        if (els.pauseBar && !els.pauseBar.classList.contains('hidden')) return;
-        if (currentGame.phase !== 'wave' && currentGame.phase !== 'prep') return;
-        if (!els.onboarding.classList.contains('hidden') || helpOpen()) return;
-        openPause();
+      if (document.hidden) {
+        releaseWakeLock();
+        if (currentGame && activeScreen === 'game') {
+          if (els.pauseBar && !els.pauseBar.classList.contains('hidden')) return;
+          if (currentGame.phase !== 'wave' && currentGame.phase !== 'prep') return;
+          if (!els.onboarding.classList.contains('hidden') || helpOpen()) return;
+          openPause();
+        }
+      } else {
+        requestWakeLock();
       }
     });
 
@@ -1647,10 +2890,50 @@
     refreshMeta();
   }
 
+  function isTextEntryTarget(target) {
+    if (!target || !target.tagName) return false;
+    const tag = target.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable;
+  }
+
   function handleKeydown(event) {
+    if ((event.ctrlKey || event.metaKey) && event.shiftKey && (event.key === 'd' || event.key === 'D')) {
+      event.preventDefault();
+      setDebugMode(!debug.enabled);
+      return;
+    }
+    if (
+      (event.key === ' ' || event.key === 'Spacebar') &&
+      !event.repeat &&
+      activeScreen === 'game' &&
+      currentGame &&
+      !debug.panelOpen &&
+      !helpOpen() &&
+      els.onboarding.classList.contains('hidden') &&
+      els.traitBriefing.classList.contains('hidden') &&
+      els.resultOverlay.classList.contains('hidden') &&
+      els.pauseOverlay.classList.contains('hidden') &&
+      !isTextEntryTarget(event.target)
+    ) {
+      // Space is reserved for pause/resume on the battlefield; stop it from
+      // activating the focused HUD control or scrolling the page.
+      event.preventDefault();
+      togglePause();
+      return;
+    }
     if (event.key === 'Escape') {
+      if (debug.panelOpen) {
+        closeDebugPanel();
+        event.preventDefault();
+        return;
+      }
       if (helpOpen()) {
         closeHelp();
+        event.preventDefault();
+        return;
+      }
+      if (!els.traitBriefing.classList.contains('hidden')) {
+        closeTraitBriefing();
         event.preventDefault();
         return;
       }
@@ -1685,6 +2968,7 @@
       currentGame &&
       !helpOpen() &&
       els.onboarding.classList.contains('hidden') &&
+      els.traitBriefing.classList.contains('hidden') &&
       els.resultOverlay.classList.contains('hidden')
     ) {
       togglePause();
@@ -1692,7 +2976,7 @@
       return;
     }
     if (activeScreen !== 'game' || gameInputBlocked() || !currentGame) return;
-    if (event.key >= '1' && event.key <= '7') {
+    if (event.key >= '1' && event.key <= String(C.TOWER_ORDER.length)) {
       const type = C.TOWER_ORDER[Number(event.key) - 1];
       if (type) {
         currentGame.selectBuild(type);
@@ -1733,6 +3017,7 @@
      Boot
      ============================================================ */
   function boot() {
+    syncViewportHeight();
     const dpr = Math.min(window.devicePixelRatio || 1, 2.25);
     els.homeCore.width = Math.round(220 * dpr);
     els.homeCore.height = Math.round(220 * dpr);
@@ -1740,8 +3025,14 @@
     els.skillHero.height = Math.round(160 * dpr);
     ambient.resize();
     bindUI();
+    syncImmersiveState();
+    grantDebugGold();
     refreshMeta();
     showScreen('home');
+    updateDebugChrome();
+    if (debug.enabled) {
+      console.info('[VECTOR] Debug mode enabled. Toggle with Ctrl+Shift+D or ?debug=1.');
+    }
     requestAnimationFrame(loop);
   }
 
@@ -1749,6 +3040,19 @@
   window.__VECTOR = {
     get save() { return save; },
     get game() { return currentGame; },
+    get immersive() {
+      return {
+        active: immersive.active,
+        pref: immersive.pref,
+        supported: fullscreenSupported(),
+        standalone: standaloneLaunch(),
+        fullscreen: !!fullscreenElement(),
+        wakeLock: !!immersive.wakeLock,
+      };
+    },
+    toggleImmersive: toggleImmersive,
+    enterImmersive: function () { return enterImmersive(); },
+    exitImmersive: exitImmersive,
     startLevel: startLevel,
     openLevels: openLevels,
     openSkills: openSkills,
@@ -1770,6 +3074,53 @@
     },
     spawnDebugWave: function () {
       if (currentGame) currentGame.startWave();
+    },
+    debug: {
+      get enabled() { return debug.enabled; },
+      enable: function () { setDebugMode(true); },
+      disable: function () { setDebugMode(false); },
+      toggle: function () { setDebugMode(!debug.enabled); },
+      get state() { return { enabled: debug.enabled, godMode: debug.godMode, freeBuild: debug.freeBuild, panelOpen: debug.panelOpen }; },
+      status: function () { return currentGame ? currentGame.debugStatus() : null; },
+      maxSkills: function () { debugSetAllSkills(C.SKILL_MAX); },
+      resetSkills: function () { debugSetAllSkills(0); },
+      setSkill: function (id, rank) {
+        if (!save.skills.hasOwnProperty(id)) return false;
+        save.skills[id] = U.clamp(Math.floor(rank || 0), 0, C.SKILL_MAX);
+        persist();
+        refreshMeta();
+        renderSkills();
+        return true;
+      },
+      godMode: function (value) {
+        debug.godMode = !!value;
+        if (currentGame) currentGame.setGodMode(debug.godMode);
+        renderDebugPanel();
+        return debug.godMode;
+      },
+      freeBuild: function (value) {
+        debug.freeBuild = !!value;
+        if (currentGame) currentGame.setFreeBuild(debug.freeBuild);
+        renderDebugPanel();
+        return debug.freeBuild;
+      },
+      addCrystals: function (amount) {
+        if (!currentGame) return null;
+        return currentGame.debugAddCrystals(amount || 500);
+      },
+      healCore: function (amount) {
+        if (!currentGame) return null;
+        return currentGame.debugHealCore(amount || 50);
+      },
+      spawn: function (type, count) {
+        if (!currentGame) return false;
+        return currentGame.debugSpawn(type, count || 5);
+      },
+      win: function () { if (currentGame) currentGame.debugWin(); },
+      lose: function () { if (currentGame) currentGame.debugLose(); },
+      killAll: function () { if (currentGame) currentGame.debugKillAll(); },
+      nextWave: function () { if (currentGame) currentGame.debugNextWave(); },
+      maxTowers: function () { if (currentGame) currentGame.debugMaxTowers(); },
     },
   };
 

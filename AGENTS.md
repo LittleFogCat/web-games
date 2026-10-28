@@ -16,7 +16,7 @@
 
 | 游戏 | 目录 | 类型 | 线上地址 | 文档 |
 | --- | --- | --- | --- | --- |
-| VECTOR // 矢界防线 | [`vector-td/`](vector-td/) | 竖版深空塔防 | <https://xiaoniu.tech/games/vector-td/> | [开发约定](vector-td/AGENTS.md) · [游戏说明](vector-td/README.md) |
+| VECTOR // 矢界防线 | [`vector-td/`](vector-td/) | 竖版深空塔防 | <https://xiaoniu.tech/games/vector-td/> | [开发约定](vector-td/AGENTS.md) · [游戏说明](vector-td/README.md) · [策划文档](docs/游戏策划文档.md) · [单位图鉴](docs/单位图鉴.md) |
 
 新增游戏时在表格追加一行。版本号、玩法数值与 UI 约定以各游戏目录的 `AGENTS.md` 和 `README.md` 为准。
 
@@ -26,6 +26,7 @@
 index.html                 游戏集合入口页
 README.md                  游戏列表与仓库说明
 AGENTS.md                  本文件：仓库通用约定
+docs/                      仓库级游戏策划文档与单位图鉴
 .gitignore                 隐私与临时文件忽略
 vector-td/                 游戏目录（示例）
   AGENTS.md                该游戏的开发约定

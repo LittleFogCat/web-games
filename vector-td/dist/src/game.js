@@ -17,11 +17,17 @@
     enemySpeedMult: 1,
     repair: 0,
     startCrystals: 0,
+    godMode: false,
+    freeBuild: false,
   };
+
+  const WAVE_HP_GROWTH = C.WAVE_HP_GROWTH || 1.015;
 
   const PREP_INITIAL = 25;
   const PREP_BETWEEN = 12;
   const PREP_WARNING_AT = 3;
+  const FLOAT_LIFE = 1.1;
+  const SELL_HINT_LIFE = 3.5;
 
   const TOWER_SPECIAL_LABELS = {
     prism: '齐射',
@@ -130,6 +136,8 @@
         waveActive: this.phase === 'wave',
         isLastWave: this.phase === 'prep' && this.waveCursor === this.totalWaves - 1,
         selectedBuild: this.selectedBuild,
+        godMode: !!this.mods.godMode,
+        freeBuild: !!this.mods.freeBuild,
       };
     }
 
@@ -152,6 +160,7 @@
     }
 
     getBuildCost(type) {
+      if (this.mods.freeBuild) return 0;
       const def = type === 'wall' ? C.WALL : C.TOWERS[type];
       if (!def) return 0;
       return Math.max(1, Math.round(def.cost * this.mods.costMult));
@@ -159,18 +168,40 @@
 
     getUpgradeCost(structure) {
       if (!structure || structure.kind !== 'tower') return 0;
-      if (structure.level >= C.TOWER_MAX_LEVEL) return 0;
+      if (structure.level >= this._towerMaxLevel(structure.type)) return 0;
+      if (this.mods.freeBuild) return 0;
       const def = C.TOWERS[structure.type];
       const base = def.upgradeCosts[Math.max(0, structure.level - 1)];
       const tierMultiplier = C.UPGRADE_COST_MULTIPLIERS[Math.max(0, structure.level - 1)] || 1;
       return Math.max(1, Math.round(base * tierMultiplier * this.mods.costMult));
     }
 
+    _towerMaxLevel(type) {
+      const def = C.TOWERS[type];
+      return (def && def.maxLevel) || C.TOWER_MAX_LEVEL;
+    }
+
+    _enemyRevealed(enemy) {
+      if (!enemy || !enemy.def || !enemy.def.stealth) return true;
+      for (let i = 0; i < this.structures.length; i++) {
+        const beacon = this.structures[i];
+        if (beacon.kind !== 'tower' || beacon.type !== 'beacon') continue;
+        const def = C.TOWERS.beacon;
+        if (!def) continue;
+        const range = def.levels[Math.min(beacon.level || 1, def.levels.length) - 1].range;
+        const dx = enemy.x - (beacon.x + 0.5);
+        const dy = enemy.y - (beacon.y + 0.5);
+        const reach = range + (enemy.def.radius || 0) * 0.35;
+        if (dx * dx + dy * dy <= reach * reach) return true;
+      }
+      return false;
+    }
+
     canUndoSale(structure) {
       return !!structure &&
-        structure.kind === 'tower' &&
+        (structure.kind === 'tower' || structure.kind === 'wall') &&
         structure.level === 1 &&
-        this.phase === 'prep' &&
+        (this.phase === 'prep' || this.paused) &&
         this.lastBuiltStructure === structure;
     }
 
@@ -188,6 +219,7 @@
         const cost = this.getBuildCost(type);
         const stats = isWall ? null : this._towerDisplayStats(type, 1);
         const towerCount = this._towerCount();
+        const damage = isWall ? null : C.DAMAGE_TYPES[def.damageType] || null;
         return {
           mode: 'build',
           type: type,
@@ -206,6 +238,13 @@
           canAfford: this.crystals >= cost,
           crystals: Math.floor(this.crystals),
           stats: stats,
+          damageType: damage ? damage.id : null,
+          damageTypeName: damage ? damage.name : null,
+          damageTypeColor: damage ? damage.color : null,
+          tags: def.tags || [],
+          reveal: !isWall && !!def.reveal,
+          revealRange: !isWall && def.reveal ? def.levels[0].range : 0,
+          counter: def.counter || '',
           special: isWall ? '强制敌人重新寻路' : this._specialLabel(type, def.levels[0]),
         };
       }
@@ -222,13 +261,16 @@
             tagline: C.WALL.tagline,
             desc: C.WALL.desc,
             color: C.WALL.color,
+            canUndo: this.canUndoSale(s),
             sellValue: this.getSellValue(s),
             spent: s.spent,
           };
         }
         const def = C.TOWERS[s.type];
-        const maxed = s.level >= C.TOWER_MAX_LEVEL;
+        const maxLevel = this._towerMaxLevel(s.type);
+        const maxed = s.level >= maxLevel;
         const upgradeCost = maxed ? 0 : this.getUpgradeCost(s);
+        const damage = C.DAMAGE_TYPES[def.damageType] || null;
         return {
           mode: 'structure',
           isWall: false,
@@ -241,9 +283,17 @@
           color: def.color,
           accent: def.accent,
           level: s.level,
-          maxLevel: C.TOWER_MAX_LEVEL,
+          tierName: (def.tierNames && def.tierNames[s.level - 1]) || '',
+          maxLevel: maxLevel,
           stats: this._towerDisplayStats(s.type, s.level),
           nextStats: maxed ? null : this._towerDisplayStats(s.type, s.level + 1),
+          damageType: damage ? damage.id : null,
+          damageTypeName: damage ? damage.name : null,
+          damageTypeColor: damage ? damage.color : null,
+          tags: def.tags || [],
+          reveal: !!def.reveal,
+          revealRange: def.reveal ? def.levels[Math.min(s.level, def.levels.length) - 1].range : 0,
+          counter: def.counter || '',
           special: this._specialLabel(s.type, this.getTowerStats(s)),
           nextSpecial: maxed ? null : this._specialLabel(s.type, C.TOWERS[s.type].levels[s.level]),
           upgradeCost: upgradeCost,
@@ -259,7 +309,7 @@
 
     _towerDisplayStats(type, level) {
       const def = C.TOWERS[type];
-      const base = def.levels[Math.min(C.TOWER_MAX_LEVEL, level) - 1];
+      const base = def.levels[Math.min(this._towerMaxLevel(type), level) - 1];
       const stats = Object.assign({}, base);
       if (typeof stats.damage === 'number') stats.damage *= this.mods.damageMult;
       if (typeof stats.dps === 'number') stats.dps *= this.mods.damageMult;
@@ -268,6 +318,7 @@
 
     _specialLabel(type, stats) {
       if (!stats) return '';
+      if (type === 'beacon') return '侦测半径 ' + stats.range.toFixed(1);
       if (type === 'prism' && stats.shots > 1) return '×' + stats.shots + ' 齐射';
       if (type === 'gatling') return (1 / stats.cooldown).toFixed(1) + '/s';
       if (type === 'cannon') return '半径 ' + stats.splash.toFixed(2);
@@ -278,9 +329,11 @@
       return TOWER_SPECIAL_LABELS[type] || '';
     }
 
-    getNextWavePreview() {
-      if (this.phase !== 'prep' || this.waveCursor >= this.totalWaves) return null;
-      const wave = this.level.waves[this.waveCursor];
+    getWavePreview(waveNumber) {
+      const number = Math.max(1, Math.round(Number(waveNumber) || 0));
+      if (!number || number > this.totalWaves) return null;
+      const wave = this.level.waves[number - 1];
+      if (!wave) return null;
       const counts = {};
       for (let i = 0; i < wave.groups.length; i++) {
         const group = wave.groups[i];
@@ -298,16 +351,38 @@
           name: def.name,
           shape: def.shape,
           boss: !!def.boss,
+          traits: (def.traits || []).slice(),
+          shield: !!def.shield,
+          stealth: !!def.stealth,
+          superArmor: !!def.superArmor,
+          resist: def.resist || null,
         });
       }
+      const threats = [];
+      const seen = {};
+      for (let i = 0; i < list.length; i++) {
+        const traits = list[i].traits;
+        for (let t = 0; t < traits.length; t++) {
+          if (traits[t] === 'boss' || seen[traits[t]]) continue;
+          seen[traits[t]] = true;
+          const trait = C.TRAITS[traits[t]];
+          if (trait) threats.push({ id: traits[t], name: trait.name, short: trait.short, color: trait.color });
+        }
+      }
       return {
-        number: this.waveCursor + 1,
+        number: number,
         total: this.totalWaves,
         enemies: list,
+        threats: threats,
         isBoss: list.some(function (entry) {
           return entry.boss;
         }),
       };
+    }
+
+    getNextWavePreview() {
+      if (this.phase !== 'prep' || this.waveCursor >= this.totalWaves) return null;
+      return this.getWavePreview(this.waveCursor + 1);
     }
 
     refreshUI() {
@@ -449,16 +524,15 @@
       };
       this.crystals -= cost;
       this.structures.push(structure);
-      // A prep-phase placement stays undoable until another action or the wave begins.
-      this.lastBuiltStructure = this.phase === 'prep' ? structure : null;
+      // Keep the last placement refundable in prep or while paused.
+      this.lastBuiltStructure = structure;
       this._refreshPaths(true);
       this._addRing(x + 0.5, y + 0.5, def.color, 0.12, 0.62, 0.4, 1.2, true);
       this._burst(x + 0.5, y + 0.5, def.color, buildType === 'wall' ? 8 : 13, 0.7, 2.6, 0.035, true);
       this._play('build');
       if (this.selectedStructure === structure) this.selectedStructure = null;
-      if (buildType !== 'wall' && this._towerCount() >= C.TOWER_CAPACITY) {
-        this.selectedBuild = null;
-      }
+      // One deployment per pick: keep the next tap from placing another copy.
+      this.selectedBuild = null;
       this._emitSelection();
       this._emitStats();
       return true;
@@ -473,8 +547,9 @@
     upgradeSelected() {
       const s = this.selectedStructure;
       if (!s || s.kind !== 'tower') return;
-      if (s.level >= C.TOWER_MAX_LEVEL) {
-        this._toast('该节点已达到五级上限');
+      const maxLevel = this._towerMaxLevel(s.type);
+      if (s.level >= maxLevel) {
+        this._toast('该节点已达到等级上限');
         return;
       }
       const cost = this.getUpgradeCost(s);
@@ -513,7 +588,7 @@
         this._addRing(s.x + 0.5, s.y + 0.5, color, 0.1, 0.5, 0.35, 1, true);
         this._burst(s.x + 0.5, s.y + 0.5, color, 8, 0.5, 1.8, 0.03, true);
       }
-      this._float(s.x + 0.5, s.y + 0.35, '+' + refund + ' ◇', undo ? '#7df4c6' : '#ffd35c');
+      this._float(s.x + 0.5, s.y + 0.35, '+' + refund + ' ◇', undo ? '#7df4c6' : '#ffd35c', false, SELL_HINT_LIFE);
       this._play('sell');
       this._emitSelection();
       this._emitStats();
@@ -529,7 +604,6 @@
       this.currentWave = this.waveCursor + 1;
       this.waveCursor += 1;
       this.phase = 'wave';
-      this.lastBuiltStructure = null;
       this.waveElapsed = 0;
       this.prepRemaining = 0;
       this.prepWarningEmitted = true;
@@ -582,7 +656,7 @@
       const nodes = pathCells.slice(1).map(function (c) {
         return { x: c.x + 0.5, y: c.y + 0.5 };
       });
-      const hpFactor = this.level.hpScale * (entry.hpMul || 1) * Math.pow(1.024, Math.max(0, this.currentWave - 1));
+      const hpFactor = this.level.hpScale * (entry.hpMul || 1) * Math.pow(WAVE_HP_GROWTH, Math.max(0, this.currentWave - 1));
       const enemy = this._makeEnemy(entry.type, {
         x: startX,
         y: startY,
@@ -611,16 +685,19 @@
       const def = C.ENEMIES[type];
       const hpFactor = options.hpFactor != null
         ? options.hpFactor
-        : this.level.hpScale * Math.pow(1.024, Math.max(0, this.currentWave - 1));
+        : this.level.hpScale * Math.pow(WAVE_HP_GROWTH, Math.max(0, this.currentWave - 1));
       const waveNumber = options.waveNumber || Math.max(1, this.currentWave);
       const lateProgress = U.clamp((waveNumber - 1) / Math.max(1, this.totalWaves - 1), 0, 1);
       const lateHpFactor = 1 + (this.level.lateWaveHp || 0) * lateProgress * lateProgress;
       const lateSpeedFactor = 1 + (this.level.lateWaveSpeed || 0) * lateProgress * lateProgress;
-      const hp = Math.max(1, Math.round(def.hp * hpFactor * lateHpFactor));
+      const swarmHp = def.boss ? 1 : (C.SWARM_HP_SCALE || 1);
+      const hp = Math.max(1, Math.round(def.hp * hpFactor * lateHpFactor * swarmHp));
+      const shieldMax = def.shield ? Math.max(1, Math.round(hp * def.shield)) : 0;
       const speedVariance = 0.97 + Math.random() * 0.06;
       const speed = def.speed * this.level.speedScale * this.mods.enemySpeedMult * speedVariance * lateSpeedFactor;
-      const reward = Math.max(1, Math.round(def.reward * this.level.rewardScale * (1 + Math.max(0, waveNumber - 1) * 0.012)));
-      const damage = Math.max(1, Math.round(def.damage * (1 + (this.level.id - 1) * 0.048)));
+      const swarmReward = def.boss ? 1 : (C.SWARM_REWARD_SCALE || 1);
+      const reward = Math.max(1, Math.round(def.reward * this.level.rewardScale * (1 + Math.max(0, waveNumber - 1) * 0.012) * swarmReward));
+      const damage = Math.max(1, Math.round(def.damage * (1 + (this.level.id - 1) * 0.060)));
       return {
         id: 'e' + this.uid++,
         type: type,
@@ -630,6 +707,10 @@
         nodes: options.nodes || [],
         hp: hp,
         maxHp: hp,
+        shield: shieldMax,
+        maxShield: shieldMax,
+        shieldFlash: 0,
+        shieldBroken: false,
         speed: speed,
         reward: reward,
         damage: damage,
@@ -752,8 +833,14 @@
        Simulation
        ------------------------------------------------------------ */
     update(realDelta) {
-      if (this.paused || this.disposed) return;
+      if (this.disposed) return;
       const clamped = Math.min(realDelta, 0.07);
+      if (this.paused) {
+        // Paused only freezes combat; transient UI feedback keeps aging so
+        // hints, selection flashes and sell readouts never linger on the map.
+        this._updateVisuals(clamped);
+        return;
+      }
       let remaining = clamped * this.speed;
       const fixed = 1 / 60;
       let steps = 0;
@@ -766,8 +853,7 @@
       this._flushStats();
     }
 
-    _step(dt) {
-      this.clock += dt;
+    _updateVisuals(dt) {
       this.shake = Math.max(0, this.shake - dt * 23);
       this.baseFlash = Math.max(0, this.baseFlash - dt * 2.8);
       if (this.placementError) {
@@ -777,6 +863,11 @@
       this._updateEffects(dt);
       this._updateParticles(dt);
       this._updateFloatTexts(dt);
+    }
+
+    _step(dt) {
+      this.clock += dt;
+      this._updateVisuals(dt);
       this._updateTowerTimers(dt);
 
       if (this.phase === 'victory-pending') {
@@ -857,6 +948,8 @@
     _updateEnemy(enemy, dt) {
       enemy.spawnAnim = Math.min(1, enemy.spawnAnim + dt * 4.5);
       enemy.hitFlash = Math.max(0, enemy.hitFlash - dt * 7);
+      enemy.shieldFlash = Math.max(0, (enemy.shieldFlash || 0) - dt * 5.5);
+      if (enemy.slowBlocked > 0) enemy.slowBlocked = Math.max(0, enemy.slowBlocked - dt);
       if (enemy.slowTimer > 0) {
         enemy.slowTimer = Math.max(0, enemy.slowTimer - dt);
         if (enemy.slowTimer === 0) enemy.slowFactor = 0;
@@ -927,9 +1020,11 @@
       enemy.leaked = true;
       this.leaked++;
       this.leaksThisWave++;
-      const damage = Math.max(1, enemy.damage);
-      this.baseHp = Math.max(0, this.baseHp - damage);
-      this.baseFlash = Math.max(this.baseFlash, 0.85);
+      const damage = this.mods.godMode ? 0 : Math.max(1, enemy.damage);
+      if (damage > 0) {
+        this.baseHp = Math.max(0, this.baseHp - damage);
+        this.baseFlash = Math.max(this.baseFlash, enemy.def.boss ? 1.25 : 1);
+      }
       this.shake = Math.max(this.shake, enemy.def.boss ? 13 : 4.5);
       this._addRing(
         this.grid.base.x + 0.5,
@@ -939,6 +1034,16 @@
         enemy.def.boss ? 1.6 : 0.8,
         0.42,
         1.3,
+        true
+      );
+      this._addRing(
+        this.grid.base.x + 0.5,
+        this.grid.base.y + 0.5,
+        '#ffd0d8',
+        0.24,
+        enemy.def.boss ? 2.4 : 1.4,
+        0.55,
+        0.9,
         true
       );
       this._burst(
@@ -954,9 +1059,9 @@
       this._float(
         this.grid.base.x + 0.5,
         this.grid.base.y - 0.1,
-        '-' + damage,
-        '#ff8a9c',
-        enemy.def.boss
+        this.mods.godMode ? 'GOD' : '-' + damage,
+        this.mods.godMode ? '#7df4c6' : '#ff8a9c',
+        enemy.def.boss || this.mods.godMode
       );
       this._play('leak');
       this._emitStats();
@@ -971,6 +1076,11 @@
         if (tower.kind !== 'tower') continue;
         const stats = this.getTowerStats(tower);
         const def = C.TOWERS[tower.type];
+        if (tower.type === 'beacon') {
+          tower.targetId = null;
+          tower.firing = 0;
+          continue;
+        }
         if (idleOnly || this.phase !== 'wave') {
           tower.targetId = null;
           continue;
@@ -1052,6 +1162,7 @@
       for (let i = 0; i < this.enemies.length; i++) {
         const enemy = this.enemies[i];
         if (enemy.dead || enemy.leaked) continue;
+        if (!this._enemyRevealed(enemy)) continue;
         if (exclude && exclude[enemy.id]) continue;
         const dx = enemy.x - center.x;
         const dy = enemy.y - center.y;
@@ -1075,6 +1186,7 @@
       for (let i = 0; i < this.enemies.length; i++) {
         const enemy = this.enemies[i];
         if (enemy.dead || enemy.leaked) continue;
+        if (!this._enemyRevealed(enemy)) continue;
         const dx = enemy.x - center.x;
         const dy = enemy.y - center.y;
         if (dx * dx + dy * dy <= (range + enemy.def.radius * 0.5) * (range + enemy.def.radius * 0.5)) {
@@ -1097,6 +1209,7 @@
       for (let i = 0; i < this.enemies.length; i++) {
         const enemy = this.enemies[i];
         if (enemy.dead || enemy.leaked) continue;
+        if (!this._enemyRevealed(enemy)) continue;
         const dx = enemy.x - center.x;
         const dy = enemy.y - center.y;
         const reach = range + enemy.def.radius * 0.4;
@@ -1131,10 +1244,11 @@
           color: def.accent,
           angle: angle,
           life: 3,
+          tier: tower.level || 1,
           tower: tower,
         });
       }
-      this._addMuzzle(center.x, center.y, tower.angle, def.accent, 0.55);
+      this._addMuzzle(center.x, center.y, tower.angle, def.accent, 0.55, tower.level);
       this._burst(center.x + Math.cos(tower.angle) * 0.25, center.y + Math.sin(tower.angle) * 0.25, def.color, 2, 0.2, 0.8, 0.02, true);
       tower.recoil = 1;
       tower.firing = 0.12;
@@ -1159,9 +1273,10 @@
         color: def.color,
         angle: angle,
         life: 2,
+        tier: tower.level || 1,
         tower: tower,
       });
-      this._addMuzzle(center.x + Math.cos(angle) * 0.26, center.y + Math.sin(angle) * 0.26, angle, def.accent, 0.4);
+      this._addMuzzle(center.x + Math.cos(angle) * 0.26, center.y + Math.sin(angle) * 0.26, angle, def.accent, 0.4, tower.level);
       tower.recoil = 0.8;
       tower.firing = 0.1;
       tower.cooldown = stats.cooldown;
@@ -1187,9 +1302,10 @@
         splash: stats.splash,
         life: 4,
         spin: 0,
+        tier: tower.level || 1,
         tower: tower,
       });
-      this._addMuzzle(center.x + Math.cos(angle) * 0.32, center.y + Math.sin(angle) * 0.32, angle, def.accent, 0.9);
+      this._addMuzzle(center.x + Math.cos(angle) * 0.32, center.y + Math.sin(angle) * 0.32, angle, def.accent, 0.9, tower.level);
       this._burst(center.x + Math.cos(angle) * 0.3, center.y + Math.sin(angle) * 0.3, def.color, 5, 0.2, 1.1, 0.028, true);
       tower.recoil = 1.2;
       tower.firing = 0.24;
@@ -1208,8 +1324,11 @@
         this._damageEnemy(enemy, stats.damage, 'energy', tower);
         this._applySlow(enemy, stats.slow, stats.slowTime);
       }
-      this._addRing(center.x, center.y, def.color, 0.16, stats.range, 0.44, 2, true);
-      this._addRing(center.x, center.y, def.accent, 0.05, stats.range * 0.72, 0.34, 1, false);
+      this._addRing(center.x, center.y, def.color, 0.16, stats.range, 0.44, 2, true, tower.level);
+      this._addRing(center.x, center.y, def.accent, 0.05, stats.range * 0.72, 0.34, 1, false, tower.level);
+      if ((tower.level || 1) >= 4) {
+        this._addRing(center.x, center.y, def.accent, 0.02, stats.range * 1.05, 0.58, 0.7, false, tower.level);
+      }
       this._burst(center.x, center.y, def.color, 9, 0.9, 2.4, 0.03, true);
       this.shake = Math.max(this.shake, 1.5);
       this._play('shock');
@@ -1231,6 +1350,7 @@
           color: def.color,
           life: 0.22,
           maxLife: 0.22,
+          tier: tower.level || 1,
         });
         this._burst(enemy.x, enemy.y, def.color, 3, 0.2, 0.7, 0.025, true);
       }
@@ -1254,6 +1374,7 @@
         for (let e = 0; e < this.enemies.length; e++) {
           const enemy = this.enemies[e];
           if (enemy.dead || enemy.leaked || hit[enemy.id]) continue;
+          if (!this._enemyRevealed(enemy)) continue;
           const dx = enemy.x - current.x;
           const dy = enemy.y - current.y;
           const d2 = dx * dx + dy * dy;
@@ -1282,6 +1403,7 @@
         life: 0.16,
         maxLife: 0.16,
         width: 1.35,
+        tier: tower.level || 1,
       });
       tower.recoil = 0.3;
       tower.firing = 0.18;
@@ -1325,10 +1447,14 @@
           }
         }
         if (target) {
-          const dx = target.x - center.x;
-          const dy = target.y - center.y;
-          if (dx * dx + dy * dy > (stats.range + target.def.radius) * (stats.range + target.def.radius)) {
+          if (!this._enemyRevealed(target)) {
             target = null;
+          } else {
+            const dx = target.x - center.x;
+            const dy = target.y - center.y;
+            if (dx * dx + dy * dy > (stats.range + target.def.radius) * (stats.range + target.def.radius)) {
+              target = null;
+            }
           }
         }
       }
@@ -1361,6 +1487,8 @@
           life: 0.15,
           maxLife: 0.15,
           width: 1.2 + charge * 1.6,
+          tier: tower.level || 1,
+          charge: tower.laserCharge,
         });
         tower.beamFx = 0.08;
         this._play('laser');
@@ -1413,8 +1541,11 @@
             this._damageEnemy(enemy, p.damage, 'kinetic', p.tower);
           }
         }
-        this._addRing(p.x, p.y, p.color, 0.12, p.splash, 0.45, 2.2, true);
-        this._addRing(p.x, p.y, '#fff0cf', 0.04, p.splash * 0.55, 0.26, 1, false);
+        this._addRing(p.x, p.y, p.color, 0.12, p.splash, 0.45, 2.2, true, p.tier);
+        this._addRing(p.x, p.y, '#fff0cf', 0.04, p.splash * 0.55, 0.26, 1, false, p.tier);
+        if ((p.tier || 1) >= 4) {
+          this._addRing(p.x, p.y, p.color, 0.02, p.splash * 1.35, 0.62, 0.8, false, p.tier);
+        }
         this._burst(p.x, p.y, p.color, 14, 0.9, 3.2, 0.035, true);
         this.shake = Math.max(this.shake, 2.8);
         this._play('hit');
@@ -1432,6 +1563,11 @@
 
     _applySlow(enemy, factor, duration) {
       if (!enemy || enemy.dead) return;
+      if (!this._enemyRevealed(enemy)) return;
+      if (enemy.def.superArmor) {
+        enemy.slowBlocked = 0.35;
+        return;
+      }
       if (factor >= enemy.slowFactor || enemy.slowTimer <= 0) {
         enemy.slowFactor = Math.max(enemy.slowFactor, factor);
       }
@@ -1440,11 +1576,32 @@
 
     _damageEnemy(enemy, amount, type, tower, continuous) {
       if (!enemy || enemy.dead || enemy.leaked) return 0;
-      let damage = Math.max(0.01, amount);
-      if (enemy.def.resist && enemy.def.resist[type]) {
-        damage *= 1 - enemy.def.resist[type];
+      if (!this._enemyRevealed(enemy)) return 0;
+      const incoming = Math.max(0.01, amount);
+      const resist = enemy.def.resist || {};
+      const resistMult = Math.max(0, 1 - (resist[type] || 0));
+      let hpDamage = incoming * resistMult;
+
+      if (enemy.shield > 0) {
+        const typeDef = C.DAMAGE_TYPES[type] || { shield: 1 };
+        const shieldMult = typeDef.shield || 1;
+        const shieldDamage = incoming * shieldMult;
+        const absorbed = Math.min(enemy.shield, shieldDamage);
+        enemy.shield = Math.max(0, enemy.shield - absorbed);
+        enemy.shieldFlash = Math.max(enemy.shieldFlash || 0, continuous ? 0.04 : 0.16);
+        const overflow = Math.max(0, shieldDamage - absorbed);
+        hpDamage = (overflow / shieldMult) * resistMult;
+        if (enemy.shield <= 0 && !enemy.shieldBroken) {
+          enemy.shieldBroken = true;
+          this._shieldBreak(enemy);
+        }
+        if (hpDamage <= 0.0001) {
+          enemy.hitFlash = Math.max(enemy.hitFlash, continuous ? 0.02 : 0.06);
+          return 0;
+        }
       }
-      enemy.hp -= damage;
+
+      enemy.hp -= hpDamage;
       enemy.hitFlash = Math.max(enemy.hitFlash, continuous ? 0.02 : 0.08);
       if (!continuous && Math.random() < 0.28) {
         this._burst(enemy.x, enemy.y, enemy.def.color, 1, 0.2, 0.9, 0.018, false);
@@ -1452,7 +1609,15 @@
       if (enemy.hp <= 0) {
         this._killEnemy(enemy, tower);
       }
-      return damage;
+      return hpDamage;
+    }
+
+    _shieldBreak(enemy) {
+      enemy.shieldFlash = 0.4;
+      this._addRing(enemy.x, enemy.y, '#6fe7ff', 0.08, 0.9, 0.44, 1.5, true);
+      this._burst(enemy.x, enemy.y, '#6fe7ff', 11, 0.5, 2.4, 0.028, true);
+      this._float(enemy.x, enemy.y - 0.12, '护盾破裂', '#9bfaff', false);
+      this._play('shieldBreak');
     }
 
     _killEnemy(enemy, sourceTower) {
@@ -1550,7 +1715,7 @@
       this.effects.push(effect);
     }
 
-    _addRing(x, y, color, r0, r1, life, width, second) {
+    _addRing(x, y, color, r0, r1, life, width, second, tier) {
       this._addEffect({
         type: 'ring',
         x: x,
@@ -1562,10 +1727,11 @@
         maxLife: life,
         width: width || 1,
         second: !!second,
+        tier: tier || 1,
       });
     }
 
-    _addMuzzle(x, y, angle, color, size) {
+    _addMuzzle(x, y, angle, color, size, tier) {
       this._addEffect({
         type: 'muzzle',
         x: x + Math.cos(angle) * 0.1,
@@ -1574,6 +1740,7 @@
         life: 0.1,
         maxLife: 0.1,
         size: size || 0.6,
+        tier: tier || 1,
       });
     }
 
@@ -1598,14 +1765,15 @@
       }
     }
 
-    _float(x, y, text, color, big) {
+    _float(x, y, text, color, big, life) {
+      const span = life || FLOAT_LIFE;
       this.floatTexts.push({
         x: x,
         y: y,
         text: text,
         color: color,
-        life: 1.1,
-        maxLife: 1.1,
+        life: span,
+        maxLife: span,
         big: !!big,
       });
     }
@@ -1650,7 +1818,7 @@
         let safeBottom = 0;
         if (hud) {
           const hr = hud.getBoundingClientRect();
-          safeTop = Math.max(0, hr.bottom - rect.top + 4);
+          safeTop = Math.max(0, hr.bottom - rect.top + 14);
         }
         if (dock) {
           const dr = dock.getBoundingClientRect();
@@ -1681,6 +1849,165 @@
     setPaused(paused) {
       this.paused = !!paused;
       this._emitStats();
+    }
+
+    /* ------------------------------------------------------------
+       Debug helpers (enabled by the debug panel only)
+       ------------------------------------------------------------ */
+    setGodMode(value) {
+      this.mods.godMode = !!value;
+      this._emitStats();
+    }
+
+    setFreeBuild(value) {
+      this.mods.freeBuild = !!value;
+      this._emitSelection();
+      this._emitStats();
+    }
+
+    debugAddCrystals(amount) {
+      const delta = Math.max(0, Math.round(amount || 0));
+      this.crystals += delta;
+      this._float(this.grid.base.x + 0.5, this.grid.base.y - 0.2, '+' + delta + ' ◇', '#9ffaff', true);
+      this._emitStats();
+      return this.crystals;
+    }
+
+    debugHealCore(amount) {
+      const before = this.baseHp;
+      this.baseHp = Math.min(this.baseMax, this.baseHp + Math.max(0, amount || 0));
+      this._emitStats();
+      return Math.round(this.baseHp - before);
+    }
+
+    debugKillAll() {
+      if (this.phase !== 'wave') return 0;
+      let killed = 0;
+      let guard = 0;
+      while (this.enemies.length && guard++ < 16) {
+        const list = this.enemies.slice();
+        for (let i = 0; i < list.length; i++) {
+          const enemy = list[i];
+          if (enemy.dead || enemy.leaked) continue;
+          enemy.hp = 0;
+          this._killEnemy(enemy, null);
+          killed++;
+        }
+      }
+      this.spawnQueue.length = 0;
+      this.projectiles.length = 0;
+      this.enemies = this.enemies.filter(function (enemy) {
+        return !enemy.dead && !enemy.leaked;
+      });
+      this._emitStats();
+      if (this.phase === 'wave' && this.enemies.length === 0) {
+        this._completeWave();
+      }
+      return killed;
+    }
+
+    debugSpawn(type, count) {
+      if (!C.ENEMIES[type]) return false;
+      if (this.phase === 'victory' || this.phase === 'defeat') return false;
+      if (this.phase !== 'wave') {
+        this.phase = 'wave';
+        this.currentWave = Math.max(1, this.currentWave || this.waveCursor || 1);
+        this.prepRemaining = 0;
+        this.prepWarningEmitted = true;
+        this.spawnQueue = [];
+        this.killsThisWave = 0;
+        this.leaksThisWave = 0;
+        this.waveElapsed = 0;
+        this._emitPhase();
+      }
+      const n = U.clamp(Math.round(count || 1), 1, 60);
+      const gates = this.grid.gates;
+      for (let i = 0; i < n; i++) {
+        const gate = gates[this._gateCursor++ % gates.length];
+        const path = this.grid.pathFrom(this.field, gate);
+        const nodes = path.slice(1).map(function (cell) {
+          return { x: cell.x + 0.5, y: cell.y + 0.5 };
+        });
+        const hpFactor = this.level.hpScale * Math.pow(WAVE_HP_GROWTH, Math.max(0, this.currentWave - 1));
+        const enemy = this._makeEnemy(type, {
+          x: gate.x + 0.5,
+          y: gate.y + 0.5,
+          nodes: nodes,
+          hpFactor: hpFactor,
+          waveNumber: Math.max(1, this.currentWave),
+          spawnAnim: 0.4,
+        });
+        this.enemies.push(enemy);
+        this._burst(enemy.x, enemy.y, enemy.def.color, 4, 0.3, 1.2, 0.024, true);
+      }
+      this._emitStats();
+      return true;
+    }
+
+    debugNextWave() {
+      if (this.phase !== 'prep') return false;
+      const wasPaused = this.paused;
+      this.paused = false;
+      this.prepRemaining = 0;
+      const started = this.startWave();
+      this.paused = wasPaused;
+      this._emitStats();
+      return started;
+    }
+
+    debugSetPrep(seconds) {
+      if (this.phase !== 'prep') return false;
+      const value = U.clamp(Number(seconds) || 0, 0, 120);
+      this.prepRemaining = value;
+      this.prepTotal = Math.max(1, value);
+      this._lastPrepSecond = Math.ceil(value);
+      this.prepWarningEmitted = false;
+      this._emitStats();
+      return true;
+    }
+
+    debugMaxTowers() {
+      let count = 0;
+      for (let i = 0; i < this.structures.length; i++) {
+        const structure = this.structures[i];
+        if (structure.kind !== 'tower' || structure.type === 'beacon') continue;
+        const maxLevel = this._towerMaxLevel(structure.type);
+        if (structure.level < maxLevel) {
+          structure.level = maxLevel;
+          count++;
+        }
+      }
+      this._emitSelection();
+      this._emitStats();
+      return count;
+    }
+
+    debugWin() {
+      if (this.resultSent) return false;
+      this._finishVictory();
+      return true;
+    }
+
+    debugLose() {
+      if (this.resultSent) return false;
+      this.baseHp = 0;
+      this._defeat();
+      return true;
+    }
+
+    debugStatus() {
+      return {
+        phase: this.phase,
+        wave: this.currentWave,
+        totalWaves: this.totalWaves,
+        baseHp: Math.max(0, Math.ceil(this.baseHp)),
+        baseMax: this.baseMax,
+        crystals: Math.floor(this.crystals),
+        enemies: this.enemies.length,
+        towers: this._towerCount(),
+        godMode: !!this.mods.godMode,
+        freeBuild: !!this.mods.freeBuild,
+      };
     }
 
     destroy() {

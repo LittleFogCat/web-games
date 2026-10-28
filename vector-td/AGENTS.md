@@ -6,13 +6,25 @@
 
 - 仓库：**LittleFogCat/web-games**
 - 游戏目录：`vector-td/`
-- 当前版本：**0.14.2-dev**（2026-10-28 起按 0.x 迭代；旧线 1.13.1 已归档，见 [扩容机制报告](docs/design/游戏扩容机制报告.md)）
+- 当前版本：**0.14.3-dev**（2026-10-28 起按 0.x 迭代；旧线 1.13.1 已归档，见 [扩容机制报告](docs/design/游戏扩容机制报告.md)）
 - 线上地址：<https://xiaoniu.tech/games/vector-td/>
 - 集合页：<https://xiaoniu.tech/games/>
 - 服务器目录：`/usr/local/compose/www/games/vector-td`
 - 存档键：`vector_geotd_save_v1`（localStorage）
 
 游戏使用 HTML + CSS + 原生 JavaScript，无构建系统、无框架、无外部图片或字体资源；所有几何图形由 Canvas 2D 程序化绘制。
+
+## 开发基线（强制）
+
+- 功能开发以 `docs/baseline/baseline_<version>.md` 为唯一范围依据；当前基线见 [baseline_log.md](docs/baseline/baseline_log.md)。
+- 开始任何功能 / 平衡 / UI 任务前，先读当前基线文档与日志；只做“范围”内的事项。
+- 基线文档的“验收标准”是完成定义；未全部通过不得标记 `accepted`。
+- 每次进展、范围或验收变化，必须同时更新：
+  1. 对应 `baseline_<version>.md` 的状态、进度、完成记录；
+  2. `baseline_log.md` 的进度表与“最后更新”。
+- 完成基线：同步版本号 / `BUILD` / `?v=` / `dist` / `release` / 部署 / 文档；在基线文档与日志标记 `accepted` 后，才能开始下一基线。
+- 范围变更先改文档再写代码；禁止“代码先行、文档后补”。
+- 未验收不启动下一基线；紧急修复走 patch 版本并登记。
 
 ## 本地运行
 
@@ -47,6 +59,7 @@ vector-td/
   release/                  静态部署包与 SHA-256
   dist/                     可直接部署的镜像目录
   docs/deployment.md        游戏专属部署、备份、回滚与线上验证文档
+  docs/baseline/            开发基线与进度日志（每个基线一个文档）
   docs/design/              策划总案、单位图鉴与扩容文档
   docs/prd/                 UI/视觉评审文档
   docs/reference/           XiaoniuTech 运维文档快照
@@ -181,4 +194,5 @@ window.__VECTOR.debug.status()             // 当前局内摘要
 
 - 策划总案：`docs/design/游戏策划文档.md`
 - 单位图鉴：`docs/design/单位图鉴.md`
+- 开发基线：`docs/baseline/baseline_log.md`
 - 修改塔 / 敌人 / 关卡数值后，必须同步这两份文档中的相关表格与“首次出现”信息。

@@ -97,6 +97,7 @@ vector-td/
 
 ## 修改流程
 
+0. **改 UTF-8 文本的纪律**：不要用 PowerShell 的 `Get-Content | Set-Content` / `Set-Content`（PS 5.1 默认 ANSI 编码）修改含中文的 HTML/MD/JS——会把整文件写成乱码（0.14.1 事故根源）。用编辑工具，或 `[IO.File]::ReadAllText/WriteAllText` 显式 UTF-8，或 Python 字节级替换。改动后检查 `U+FFFD`（`\xef\xbf\xbd`）计数必须为 0。
 1. 先读相关文件，避免整文件重写。
 2. 修改后检查语法：
 

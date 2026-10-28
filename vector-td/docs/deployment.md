@@ -198,7 +198,8 @@ chmod -R u+rwX,go+rX "$TARGET"
 - 目标：`/usr/local/compose/www/games/vector-td`（真实目录）
 - 公网：`https://xiaoniu.tech/games/vector-td/`
 - 备份：`/usr/local/compose/bak/vector-td-20261028-224009.tar.gz`
-- 发布包：`release/vector-td-v0.14.1-dev-static.zip`，SHA-256 `d9a2eac9d3586fac9714108cee029dd22cc3aeff89a640f7e9f4a86c1e81237f`（16 个条目，POSIX 路径，Python zipfile 生成）
+- 发布包：`release/vector-td-v0.14.1-dev-static.zip`，SHA-256 `a55ea5d4055ad97b4d6f3b0631ee8f0a460a6b96e1a279d3a10303fffc225d54`（16 个条目，POSIX 路径，Python zipfile 生成）
+- 修正重部署：2026-10-28 23:00 发现首次部署的 `index.html` 被本地 ANSI 编码误写损坏（106 处 U+FFFD，中文乱码）；从 v0.14.0 发布包恢复纯净版并字节级重放两处修改（版本号、灯塔文案）后重新部署；staging 增加"无 U+FFFD"校验；备份 `vector-td-20261028-230057.tar.gz`（损坏版）与更早的 `vector-td-20261028-224009.tar.gz`
 - 部署方式：静态 tar 上传 → 服务器备份 → staging 校验（`BUILD 0.14.1-dev`、16 个文件、index/styles/config/game/render/app 六文件 SHA-256 与本地一致、manifest 存在、无嵌套 `icons/icons`）→ 原子替换
 - 线上验证：服务器本机 Host 头验证 `page 200 text/html`、`css 200 text/css`、`game.js / config.js 200 application/javascript`、`manifest 200 application/json`；页脚 `BUILD 0.14.1-dev`
 - 内容摘要：重棱物免 40%、铁壁物免 65%/生命 380、首领动能抗性 25%/护盾 50%、盾卫护盾 65%、护盾倍率 动 0.45/能 1.9、波次 HP 成长 1.035；小行星实心岩体化（对比 6.57×）；灯塔可升阶（125 晶元、半径 4.5）；建造协议/静滞场域技能显示为负号

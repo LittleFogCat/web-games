@@ -7,6 +7,8 @@
   const C = window.GEOTD_CONFIG;
   const U = window.GEOTD_UTIL;
   const P = window.GEOTD_PATH;
+  /* 控制命中累积目标韧性：单敌可被控制的总时间有上限，控制流无法无限锁单。 */
+  const CONTROL_TENACITY_GAIN = 0.12;
   const G = window.GEOTD_GAME || {};
   const TAU = Math.PI * 2;
   const DEFAULT_MODS = {
@@ -1544,7 +1546,8 @@
           if (enemy.dead || enemy.leaked) continue;
           const dx = enemy.x - p.x;
           const dy = enemy.y - p.y;
-          if (dx * dx + dy * dy <= (p.splash + enemy.def.radius * 0.3) * (p.splash + enemy.def.radius * 0.3)) {
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist <= p.splash + enemy.def.radius * 0.3) {
             this._damageEnemy(enemy, p.damage, 'kinetic', p.tower);
           }
         }
@@ -1581,6 +1584,8 @@
         enemy.slowFactor = Math.max(enemy.slowFactor, effective);
       }
       enemy.slowTimer = Math.max(enemy.slowTimer, duration);
+      // 控制命中累积韧性：同一敌人被反复控制会越来越抗控。
+      enemy.tenacity = Math.min(1, (enemy.tenacity || 0) + CONTROL_TENACITY_GAIN);
     }
 
     _applyKnockback(enemy, distance) {

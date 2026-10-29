@@ -1548,16 +1548,24 @@
 
     _impactProjectile(p) {
       if (p.type === 'shell') {
-        const targets = this.enemies.slice();
-        for (let i = 0; i < targets.length; i++) {
-          const enemy = targets[i];
+        const hits = [];
+        for (let i = 0; i < this.enemies.length; i++) {
+          const enemy = this.enemies[i];
           if (enemy.dead || enemy.leaked) continue;
           const dx = enemy.x - p.x;
           const dy = enemy.y - p.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist <= p.splash + enemy.def.radius * 0.3) {
-            this._damageEnemy(enemy, p.damage, 'kinetic', p.tower);
+            hits.push({ enemy: enemy, dist: dist });
           }
+        }
+        hits.sort(function (a, b) { return a.dist - b.dist; });
+        // 溅射重做：最多命中最近 3 个目标，伤害随距离衰减（边缘 40%）——
+        // 封顶"聚怪一锅端"的收益；单体重炮不受影响。
+        const maxTargets = 3;
+        for (let i = 0; i < Math.min(maxTargets, hits.length); i++) {
+          const falloff = 1 - 0.6 * Math.min(1, hits[i].dist / Math.max(0.01, p.splash));
+          this._damageEnemy(hits[i].enemy, p.damage * falloff, 'kinetic', p.tower);
         }
         this._addRing(p.x, p.y, p.color, 0.12, p.splash, 0.45, 2.2, true, p.tier);
         this._addRing(p.x, p.y, '#fff0cf', 0.04, p.splash * 0.55, 0.26, 1, false, p.tier);
@@ -1611,7 +1619,7 @@
       }
       // 每个敌人独立击退冷却：多座震荡塔也无法叠加推挤。
       if ((enemy.knockbackCd || 0) > 0) return;
-      enemy.knockbackCd = 0.9;
+      enemy.knockbackCd = 1.3;
       const back = Math.min(effective, 0.6);
       const nx = U.clamp(enemy.x - Math.cos(enemy.angle) * back, 0.15, P.COLS - 0.15);
       const ny = U.clamp(enemy.y - Math.sin(enemy.angle) * back, 0.15, P.ROWS - 0.15);

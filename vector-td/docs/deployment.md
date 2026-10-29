@@ -191,7 +191,20 @@ chmod -R u+rwX,go+rX "$TARGET"
 
 ## 8. 当前线上记录
 
-### 0.14.3-dev（当前）
+### 0.14.4-dev（当前）
+
+- 部署时间：2026-10-29 14:56（选中详情不再遮挡战场最下方两行）
+- 版本：**0.14.4-dev**
+- 目标：`/usr/local/compose/www/games/vector-td`（真实目录）
+- 公网：`https://xiaoniu.tech/games/vector-td/`
+- 备份：`/usr/local/compose/bak/vector-td-20261029-145639.tar.gz`（217K，0.14.3-dev）
+- 发布包：`release/vector-td-v0.14.4-dev-static.zip`，SHA-256 `bd570af4d4db85e14be41990a68e231417310c0f09b80f5a9be7fa17df7ac2a3`（16 个条目，POSIX 路径，Python zipfile 生成）
+- 部署方式：静态 tar 上传 → 服务器备份 → staging 校验（`BUILD 0.14.4-dev`、16 个文件、index/styles/app/game/render/config/pathgrid/util/audio/manifest 十个文件 SHA-256 与本地一致、`manifest.json` 存在、无嵌套 `icons/icons`、无 U+FFFD）→ 原子替换
+- 线上验证：服务器本机 Host 头与公网 URL 均返回 `page 200 text/html`、`css 200`、`app 200`；公网页脚 `BUILD 0.14.4-dev`
+- 内容摘要：选中建造卡片或设施时，详情面板接管建造栏所在的底部条带（与建造栏同宽、同底、同高，高度由 `--intel-h` 实测同步），不再向上覆盖第 15、16 行网格；取消、部署成功或点击空白处恢复 9 栏建造栏。Playwright 28 项回归通过（9 种卡片 + 设施详情三档视口 overlap=0、底行真实点击建造、升级/回收、右键取消、暂停不移动网格、无溢出/控制台错误）
+- 说明：本机直连公网 HTTPS 被网络策略重置，公网校验通过服务器出网 `curl` 与 Host 头完成；部署后目标目录 16 个文件、BUILD 与本地 SHA-256 一致。
+
+### 0.14.3-dev（上一版）
 
 - 部署时间：2026-10-29 01:23（调试面板字号可读性放大；补丁线收尾）
 - 版本：**0.14.3-dev**

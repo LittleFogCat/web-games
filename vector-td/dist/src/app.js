@@ -1574,7 +1574,16 @@
     const availableHeight = Math.max(80, els.arenaWrap.clientHeight - paddingY);
     els.arenaFrame.style.width = Math.floor(availableWidth) + 'px';
     els.arenaFrame.style.height = Math.floor(availableHeight) + 'px';
+    syncIntelPanelHeight();
     if (currentGame) currentGame.resize();
+  }
+
+  // The selection detail sheet takes over the build-bar footprint; match its
+  // height exactly so it can never rise into the lower grid rows.
+  function syncIntelPanelHeight() {
+    if (!els.intelPanel || !els.buildDock) return;
+    const height = Math.round(els.buildDock.getBoundingClientRect().height);
+    if (height > 0) els.intelPanel.style.setProperty('--intel-h', height + 'px');
   }
 
   /* ============================================================
@@ -2066,6 +2075,7 @@
     if (els.buildCapacityCurrent) els.buildCapacityCurrent.textContent = '0';
     if (els.buildCapacityTotal) els.buildCapacityTotal.textContent = String(C.TOWER_CAPACITY);
     updateBuildAffordability();
+    syncIntelPanelHeight();
   }
 
   function updateBuildAffordability() {

@@ -8088,3 +8088,43 @@ body.is-immersive #app {
     font-size: 9.5px;
   }
 }
+
+/* Selection detail sheet replaces the build bar instead of floating above it.
+   It is sized to the dock footprint, so the two bottom grid rows stay visible
+   and tappable while a tower or structure is selected. */
+.screen-game .intel-panel {
+  right: 6px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 6px);
+  left: 6px;
+  height: var(--intel-h, auto);
+  min-height: 0;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  overflow: hidden;
+  border-color: rgba(96, 200, 225, 0.16);
+  background:
+    linear-gradient(180deg, rgba(4, 12, 20, 0.96), rgba(3, 9, 15, 0.985)),
+    radial-gradient(ellipse at 50% 120%, color-mix(in srgb, var(--friendly) 9%, transparent), transparent 66%);
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(140, 220, 240, 0.05);
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+}
+
+.screen-game .intel-panel .intel-content {
+  height: 100%;
+}
+
+.screen-game .intel-panel .intel-copy {
+  gap: 1px;
+}
+
+.screen-game .intel-panel .intel-tags,
+.screen-game .intel-panel .intel-counter {
+  margin-top: 2px;
+}
+
+@media (max-width: 380px) {
+  .screen-game .intel-panel {
+    right: 5px;
+    left: 5px;
+  }
+}

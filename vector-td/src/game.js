@@ -950,6 +950,14 @@
     }
 
     _updateEnemy(enemy, dt) {
+      // 击退位移（0.1s 快推）：期间覆盖正常移动，推完立即恢复前进。
+      if (enemy.knockbackT > 0) {
+        const kdt = Math.min(dt, enemy.knockbackT);
+        enemy.x = U.clamp(enemy.x + enemy.kbDx * kdt, 0.15, P.COLS - 0.15);
+        enemy.y = U.clamp(enemy.y + enemy.kbDy * kdt, 0.15, P.ROWS - 0.15);
+        enemy.knockbackT -= kdt;
+        return;
+      }
       enemy.spawnAnim = Math.min(1, enemy.spawnAnim + dt * 4.5);
       enemy.hitFlash = Math.max(0, enemy.hitFlash - dt * 7);
       enemy.shieldFlash = Math.max(0, (enemy.shieldFlash || 0) - dt * 5.5);
@@ -1607,8 +1615,11 @@
       const back = Math.min(effective, 0.6);
       const nx = U.clamp(enemy.x - Math.cos(enemy.angle) * back, 0.15, P.COLS - 0.15);
       const ny = U.clamp(enemy.y - Math.sin(enemy.angle) * back, 0.15, P.ROWS - 0.15);
-      // 在原路径上插入一个"后方航点"：先退后走，路径与后续寻路保持有效。
-      enemy.nodes.unshift({ x: nx, y: ny });
+      // 击退是 0.1s 的快速位移（快推），不是让敌人慢慢走回去——
+      // 推完立即恢复前进，避免敌人把大把时间浪费在"往回走"上。
+      enemy.kbDx = (nx - enemy.x) / 0.1;
+      enemy.kbDy = (ny - enemy.y) / 0.1;
+      enemy.knockbackT = 0.1;
       this._burst(enemy.x, enemy.y, '#ffcf57', 5, 0.35, 1.4, 0.02, true);
     }
 

@@ -412,7 +412,24 @@ function runLevel(levelIndex, skills, opts) {
     game.update(dt);
     if (game.clock > 7200) break; // 2 sim-hours safety net
   }
-  if (!result) result = { win: false, wave: game.currentWave, timeout: true };
+  if (!result) {
+    console.log("TIMEOUT DUMP: wave=" + game.currentWave + " clock=" + Math.round(game.clock) + "s");
+    for (const e of game.enemies) {
+      let nearest = null;
+      for (const st of game.structures) {
+        if (st.type !== 'shock') continue;
+        const d = Math.hypot((st.x + 0.5) - e.x, (st.y + 0.5) - e.y);
+        if (nearest === null || d < nearest) nearest = d;
+      }
+      console.log("  enemy " + e.type + " hp=" + Math.round(e.hp) + "/" + e.maxHp + " pos=" + e.x.toFixed(1) + "," + e.y.toFixed(1) +
+        " slowT=" + (e.slowTenacity || 0).toFixed(2) + " kbT=" + (e.kbTenacity || 0).toFixed(2) +
+        " nodes=" + e.nodes.length + " nearestShock=" + (nearest === null ? "none" : nearest.toFixed(2)) +
+        " revealed=" + game._enemyRevealed(e));
+    }
+    console.log("  towers: " + game.structures.filter(s => s.kind === 'tower').map(st => st.type[0].toUpperCase() + st.level + "@" + st.x + "," + st.y).join(" "));
+    result = { win: false, wave: game.currentWave, timeout: true, hp: game.baseHp, baseMax: game.baseMax };
+  } else {
+  }
   const compDump = {};
   for (const s of game.structures) { const k = s.type + ":L" + s.level; compDump[k] = (compDump[k] || 0) + 1; }
   console.log("BUILD:", JSON.stringify(compDump));

@@ -325,7 +325,7 @@
       if (type === 'gatling') return (1 / stats.cooldown).toFixed(1) + '/s';
       if (type === 'cannon') return '半径 ' + stats.splash.toFixed(2);
       if (type === 'laser') return '升温 ×' + stats.ramp.toFixed(1);
-      if (type === 'shock') return '-' + Math.round(stats.slow * 100) + '% 速度';
+      if (type === 'shock') return '击退 ' + (stats.knockback || 0).toFixed(2) + ' 格';
       if (type === 'frost') return '-' + Math.round(stats.slow * 100) + '% · ' + stats.targets + ' 目标';
       if (type === 'tesla') return stats.chains + ' 链锁';
       return TOWER_SPECIAL_LABELS[type] || '';
@@ -1106,7 +1106,9 @@
         }
         if (tower.type === 'shock') {
           if (tower.cooldown > 0) continue;
-          const targets = this._enemiesInRange(tower, stats.range);
+          // 冲击环外沿 0.5 格余量：在射程边界悬停的敌人也会被脉冲命中
+          // （伤害 + 韧性成长），否则会在边界外永生振荡（软锁）。
+          const targets = this._enemiesInRange(tower, stats.range + 0.5);
           if (!targets.length) {
             tower.targetId = null;
             continue;
@@ -1340,8 +1342,7 @@
       for (let i = 0; i < targets.length; i++) {
         const enemy = targets[i];
         this._damageEnemy(enemy, stats.damage, 'energy', tower);
-        this._applySlow(enemy, stats.slow, stats.slowTime);
-        this._applyKnockback(enemy, stats.knockback || 0.4);
+        this._applyKnockback(enemy, stats.knockback || 0.4, tower, stats.range);
       }
       this._addRing(center.x, center.y, def.color, 0.16, stats.range, 0.44, 2, true, tower.level);
       this._addRing(center.x, center.y, def.accent, 0.05, stats.range * 0.72, 0.34, 1, false, tower.level);
@@ -1595,7 +1596,7 @@
       // 韧性分轨道结算：减速与击退各自独立累积、独立减免。
       // 成长上限 0.8——重度削减但非绝对免疫；100% 免疫为终焉专属。
       const effective = factor * (1 - (enemy.slowTenacity || 0));
-      if (effective <= 0.001) {
+      if (!Number.isFinite(effective) || effective <= 0.001) {
         enemy.slowBlocked = 0.35;
         return;
       }
@@ -1607,7 +1608,7 @@
       enemy.slowTenacity = Math.min(enemy.tenacityCap, (enemy.slowTenacity || 0) + CONTROL_TENACITY_GAIN);
     }
 
-    _applyKnockback(enemy, distance) {
+    _applyKnockback(enemy, distance, tower, pulseRange) {
       if (!enemy || enemy.dead || enemy.leaked) return;
       if (!this._enemyRevealed(enemy)) return;
       // 核心引力区：最后一段航道不受击退，防止震荡塔无限顶停敌群。
@@ -1620,10 +1621,17 @@
         enemy.slowBlocked = 0.35;
         return;
       }
-      // 每个敌人独立击退冷却：多座震荡塔也无法叠加推挤。
+      // 击退免疫窗：多座震荡塔错峰齐射时，无窗会让敌人永久振荡软锁（实测 120min 超时）。
       if ((enemy.knockbackCd || 0) > 0) return;
-      enemy.knockbackCd = 1.3;
-      const back = Math.min(effective, 0.6);
+      enemy.knockbackCd = 0.9;
+      // 位移上限：敌人不得被推出本塔脉冲可达范围（range + 0.4）——
+      // 否则会在射程边界外 0.2 格相位锁定悬停，不吃伤害也不漏怪（软锁）。
+      let back = Math.min(effective, 0.6);
+      if (tower) {
+        const td = Math.hypot(enemy.x - (tower.x + 0.5), enemy.y - (tower.y + 0.5));
+        back = Math.min(back, Math.max(0, (pulseRange || 1.5) + 0.4 - td));
+      }
+      if (back <= 0.02) return;
       const nx = U.clamp(enemy.x - Math.cos(enemy.angle) * back, 0.15, P.COLS - 0.15);
       const ny = U.clamp(enemy.y - Math.sin(enemy.angle) * back, 0.15, P.ROWS - 0.15);
       // 击退是 0.1s 的快速位移（快推），不是让敌人慢慢走回去——

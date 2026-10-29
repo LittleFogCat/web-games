@@ -13,12 +13,16 @@
      node tools/sim-headless.js --skills full       # all skills maxed
      node tools/sim-headless.js --tower gatling     # pure gatling instead of prism
 
-   Bot strategy (models the reported degenerate play):
+   Bot strategy (v2, verified against L10):
      1. Greedy wall (barrier) placement that maximizes total path
         length -> funnels every rift into one shared corridor.
-     2. Fill all 12 tower slots around that corridor with one
-        single-target kinetic tower (prism by default).
-     3. Cheapest-first upgrades, surplus crystals into more walls.
+     2. Beacon policy: long corridors get a second beacon; the first is
+        scored and upgraded for L2 radius 4.5 (L10-verified: this frees an
+        attack slot vs two L1 beacons and keeps boss DPS healthy).
+     3. Lasers open early for anti-mix levels — L10 waves 2-4 are a
+        shield/ward/superArmor wall that mono-prism openings cannot
+        survive on a realistic skill budget.
+     4. Cheapest-first upgrades, surplus crystals into more walls.
    ============================================================ */
 'use strict';
 
@@ -61,6 +65,21 @@ const SKILL_PRESETS = {
   econ: { startCrystals: 125, crystalMult: 1.5, costMult: 0.75 },
   /* 经济三件套 + 武器超频（刷金币后的第二优先级） */
   econDmg: { startCrystals: 125, crystalMult: 1.5, costMult: 0.75, damageMult: 1.4 },
+  /* 首达 L10 · 纯首通金币 ~1595G：crystal5+build5+start2+core2+overclock1+stasis1 */
+  first10A: {
+    baseHp: 40, crystalMult: 1.5, damageMult: 1.08, costMult: 0.75,
+    enemySpeedMult: 0.96, startCrystals: 50,
+  },
+  /* 首达 L10 · 火力流 ~1700G：overclock5+crystal4+build3+core2+start2+stasis2 */
+  first10B: {
+    baseHp: 40, crystalMult: 1.4, damageMult: 1.4, costMult: 0.85,
+    enemySpeedMult: 0.92, startCrystals: 50,
+  },
+  /* 首通 + 轻度刷重复通关 ~2995G：overclock5+crystal5+build5+stasis4+core3+start3+repair2 */
+  farmed10: {
+    baseHp: 60, crystalMult: 1.5, damageMult: 1.4, costMult: 0.75,
+    enemySpeedMult: 0.84, repair: 12, startCrystals: 75,
+  },
   none: {},
   full: {
     baseHp: 100,
@@ -110,6 +129,7 @@ class CorridorBot {
     this.antiArmorSlots = opts.antiArmorSlots || 0;
     this.maxWallsPerPrep = 10;
     this.wallsBuiltTotal = 0;
+    this.beacons = opts.beacons || 1;
     this.levelHasStealth = opts.levelHasStealth || false;
     this.firstStealthWave = opts.firstStealthWave || Infinity;
   }
@@ -126,6 +146,9 @@ class CorridorBot {
     if (game._towerCount() < 4 && game.waveCursor + 1 < this.firstStealthWave - 1) return 0;
     const grid = game.grid;
     const corridor = corridorCells(grid, grid.buildField(game.structures));
+    // Long corridors still want a second beacon (L7+ stealth levels);
+    // the L2 upgrade and the 4.5-radius scoring below make the first one
+    // pull most of the weight (verified on L10: the 2nd often never places).
     return corridor.size > 26 ? 2 : 1;
   }
 
@@ -133,7 +156,7 @@ class CorridorBot {
     const grid = game.grid;
     const field = grid.buildField(game.structures);
     const corridor = corridorCells(grid, field);
-    const range = 3.5 + 0.2;
+    const range = 3.5 + 0.2; // score for the L1 radius it actually starts with
     let best = null;
     for (const cell of buildableCells(grid)) {
       if (game._structureAt(cell.x, cell.y)) continue;
@@ -149,6 +172,7 @@ class CorridorBot {
     }
     return best;
   }
+
 
   act(game) {
     if (game.phase !== 'prep') return;
@@ -346,7 +370,8 @@ function runLevel(levelIndex, skills, opts) {
   const bot = new CorridorBot({
     towerType: opts.towerType,
     comp: opts.comp,
-    antiArmorSlots: opts.comp === 'mixed' && (levelUsesTrait(level, 'armor') || levelUsesTrait(level, 'shield')) ? 3 : 0,
+    beacons: opts.beacons,
+    antiArmorSlots: opts.comp === 'mixed' && (levelUsesTrait(level, 'armor') || levelUsesTrait(level, 'shield')) ? (opts.lasers || 3) : 0,
     levelHasStealth: levelUsesStealth(level),
     firstStealthWave: firstWaveWithTrait(level, 'stealth'),
   });
@@ -356,6 +381,13 @@ function runLevel(levelIndex, skills, opts) {
     return origLeak(enemy);
   };
   game.paused = false;
+  /* Track the lowest core HP reached (full-HP runs report minHpPct = 100). */
+  let minHp = null;
+  const origUpdate = game.update.bind(game);
+  game.update = function (dt) {
+    if (minHp === null || this.baseHp < minHp) minHp = this.baseHp;
+    return origUpdate(dt);
+  };
   const dt = 1 / 30;
   let guard = 0;
   while (!result && guard < 4_000_000) {
@@ -365,6 +397,9 @@ function runLevel(levelIndex, skills, opts) {
     if (game.clock > 7200) break; // 2 sim-hours safety net
   }
   if (!result) result = { win: false, wave: game.currentWave, timeout: true };
+  const compDump = {};
+  for (const s of game.structures) { const k = s.type + ":L" + s.level; compDump[k] = (compDump[k] || 0) + 1; }
+  console.log("BUILD:", JSON.stringify(compDump));
   const hud = game.getHudState();
   const leakTypes = {};
   for (const e of game.leakLog || []) leakTypes[e] = (leakTypes[e] || 0) + 1;
@@ -372,6 +407,7 @@ function runLevel(levelIndex, skills, opts) {
     win: result.win,
     wave: result.wave || hud.totalWaves,
     hpPct: Math.round((result.hp / game.baseMax) * 100),
+    minHpPct: Math.round(((minHp === null ? game.baseMax : minHp) / game.baseMax) * 100),
     kills: game.kills,
     leaked: game.leaked,
     walls: bot.wallsBuiltTotal,
@@ -392,6 +428,8 @@ function main() {
   const skills = SKILL_PRESETS[get('skills', 'econ')] || SKILL_PRESETS.econ;
   const towerType = get('tower', 'prism');
   const comp = get('comp', 'mono');
+  const lasers = parseInt(get('lasers', '3'), 10);
+  const beacons = parseInt(get('beacons', '1'), 10);
   const runs = parseInt(get('runs', '3'), 10);
   const waveReport = args.indexOf('--waves') >= 0;
 
@@ -399,22 +437,22 @@ function main() {
     ? [parseInt(levelArg, 10) - 1]
     : C.LEVELS.map((_, i) => i);
 
-  console.log(`# sim: tower=${towerType} comp=${comp} skills=${get('skills', 'econ')} runs=${runs}`);
-  console.log('| 关 | 结果 | 波次 | 完整度% | 击杀 | 漏怪 | 壁垒 | 塔 | 局内时长(min) |');
-  console.log('|---:|---|---:|---:|---:|---:|---:|---:|---:|');
+  console.log(`# sim: tower=${towerType} comp=${comp} lasers=${lasers} beacons=${beacons} skills=${get('skills', 'econ')} runs=${runs}`);
+  console.log('| 关 | 结果 | 波次 | 完整度% | 最低完整度% | 击杀 | 漏怪 | 壁垒 | 塔 | 局内时长(min) |');
+  console.log('|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|');
   for (const i of indices) {
     let win = 0;
     let hpSum = 0;
     const reportRuns = [];
     for (let r = 0; r < runs; r++) {
-      const res = runLevel(i, skills, { towerType, comp });
+      const res = runLevel(i, skills, { towerType, comp, lasers, beacons });
       reportRuns.push(res);
       if (res.win) {
         win++;
         hpSum += res.hpPct;
       }
       console.log(
-        `| L${i + 1} | run${r + 1} ${res.win ? '通关' : '失败'} | ${res.wave} | ${res.hpPct} | ${res.kills} | ${res.leaked} | ${res.walls} | ${res.towers} | ${res.simMinutes} |${res.leakTypes ? ' 漏: ' + res.leakTypes : ''}`
+        `| L${i + 1} | run${r + 1} ${res.win ? '通关' : '失败'} | ${res.wave} | ${res.hpPct} | ${res.minHpPct} | ${res.kills} | ${res.leaked} | ${res.walls} | ${res.towers} | ${res.simMinutes} |${res.leakTypes ? ' 漏: ' + res.leakTypes : ''}`
       );
     }
     if (waveReport) {

@@ -1231,18 +1231,21 @@
       const center = this._towerCenter(tower);
       const primary = targets[0];
       this._aim(tower, primary);
+      // 主副箭：主箭全额伤害打主目标；副箭仅在存在第二目标时发射，伤害较低。
+      // 单目标时只射主箭（不把副箭砸在同一个目标上）。
+      const damages = [stats.damage];
+      if (stats.second) damages.push(stats.second);
       for (let i = 0; i < targets.length; i++) {
-        const target = targets[i];
-        const angle = Math.atan2(target.y - center.y, target.x - center.x);
+        const angle = Math.atan2(targets[i].y - center.y, targets[i].x - center.x);
         this.projectiles.push({
           type: 'arrow',
           x: center.x + Math.cos(angle) * 0.18,
           y: center.y + Math.sin(angle) * 0.18,
-          target: target,
-          lastX: target.x,
-          lastY: target.y,
+          target: targets[i],
+          lastX: targets[i].x,
+          lastY: targets[i].y,
           speed: 11.5,
-          damage: stats.damage,
+          damage: damages[Math.min(i, damages.length - 1)],
           damageType: 'kinetic',
           color: def.accent,
           angle: angle,

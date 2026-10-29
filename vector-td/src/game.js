@@ -717,7 +717,9 @@
         reward: reward,
         damage: damage,
         angle: Math.PI / 2,
-        tenacity: def.tenacity || 0,
+        slowTenacity: def.tenacity || 0,
+        kbTenacity: def.tenacity || 0,
+        tenacityCap: (def.tenacity || 0) >= 1 ? 1 : 0.8,
         knockbackCd: 0,
         slowFactor: 0,
         slowTimer: 0,
@@ -1590,8 +1592,9 @@
     _applySlow(enemy, factor, duration) {
       if (!enemy || enemy.dead) return;
       if (!this._enemyRevealed(enemy)) return;
-      // 韧性：按比例减免控制效果；韧性 100% 完全免疫（旧霸体）。
-      const effective = factor * (1 - (enemy.tenacity || 0));
+      // 韧性分轨道结算：减速与击退各自独立累积、独立减免。
+      // 成长上限 0.8——重度削减但非绝对免疫；100% 免疫为终焉专属。
+      const effective = factor * (1 - (enemy.slowTenacity || 0));
       if (effective <= 0.001) {
         enemy.slowBlocked = 0.35;
         return;
@@ -1600,8 +1603,8 @@
         enemy.slowFactor = Math.max(enemy.slowFactor, effective);
       }
       enemy.slowTimer = Math.max(enemy.slowTimer, duration);
-      // 控制命中累积韧性：同一敌人被反复控制会越来越抗控。
-      enemy.tenacity = Math.min(1, (enemy.tenacity || 0) + CONTROL_TENACITY_GAIN);
+      // 控制命中累积对应轨道的韧性：同一敌人被反复减速会越来越抗减速。
+      enemy.slowTenacity = Math.min(enemy.tenacityCap, (enemy.slowTenacity || 0) + CONTROL_TENACITY_GAIN);
     }
 
     _applyKnockback(enemy, distance) {
@@ -1612,7 +1615,7 @@
       const by = this.grid.base.y + 0.5;
       if (Math.hypot(enemy.x - bx, enemy.y - by) < 1.6) return;
       // 韧性按比例缩短击退距离；韧性 100% 完全免疫。
-      const effective = distance * (1 - (enemy.tenacity || 0));
+      const effective = distance * (1 - (enemy.kbTenacity || 0));
       if (effective <= 0.02) {
         enemy.slowBlocked = 0.35;
         return;
@@ -1628,6 +1631,8 @@
       enemy.kbDx = (nx - enemy.x) / 0.1;
       enemy.kbDy = (ny - enemy.y) / 0.1;
       enemy.knockbackT = 0.1;
+      // 击退命中累积击退轨道韧性，与减速轨道互不影响。
+      enemy.kbTenacity = Math.min(enemy.tenacityCap, (enemy.kbTenacity || 0) + CONTROL_TENACITY_GAIN);
       this._burst(enemy.x, enemy.y, '#ffcf57', 5, 0.35, 1.4, 0.02, true);
     }
 

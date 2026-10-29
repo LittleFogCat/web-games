@@ -2716,6 +2716,7 @@
     }
     $('result-skills').style.display = '';
     $('result-levels').style.display = '';
+    $('result-replay').style.display = success ? '' : 'none';
     GFX.drawResultSigil(els.resultCanvas, success, level.accent);
   }
 
@@ -3046,6 +3047,9 @@
       openSkills('result');
     });
     $('result-levels').addEventListener('click', openLevels);
+    $('result-replay').addEventListener('click', function () {
+      if (resultSummary) startLevel(resultSummary.level.id);
+    });
 
     els.gameCanvas.addEventListener('pointerdown', function (event) {
       if (!currentGame || activeScreen !== 'game') return;

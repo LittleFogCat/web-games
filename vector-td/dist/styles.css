@@ -3997,6 +3997,10 @@ body::before {
   min-height: 41px;
 }
 
+.result-actions #result-replay {
+  grid-column: 1 / -1;
+}
+
 /* onboarding */
 .onboarding-card {
   max-width: 400px;

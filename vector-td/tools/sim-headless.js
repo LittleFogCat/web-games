@@ -224,10 +224,26 @@ class CorridorBot {
       }
     }
 
-    // 3. Upgrades: cheapest first.
+    // 3. Upgrades: beacon L2 FIRST (the 4.5 radius is stealth coverage the
+    //    whole defense leans on — L9's wave-2 wraith leak kills the economy
+    //    otherwise), then cheapest-first across towers.
     let upgraded = true;
     while (upgraded) {
       upgraded = false;
+      const beacon = game.structures.find(function (s) {
+        return s.type === 'beacon' && (s.level || 1) < 2;
+      });
+      if (beacon) {
+        const bc = game.getUpgradeCost(beacon);
+        if (bc > 0 && game.crystals >= bc) {
+          game.selectedStructure = beacon;
+          game.upgradeSelected();
+          if (beacon.level >= 2) {
+            upgraded = true;
+            continue;
+          }
+        }
+      }
       let target = null;
       let cost = Infinity;
       for (const s of game.structures) {

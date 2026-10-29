@@ -2032,12 +2032,12 @@
       const spawnScale = 0.4 + U.easeOutCubic(spawn) * 0.6;
       const radius = def.radius * cell * spawnScale * (def.boss ? 1.1 : 1);
       const hitFlash = enemy.hitFlash || 0;
-      const slowed = enemy.slowTimer > 0 && !def.superArmor;
+      const slowed = enemy.slowTimer > 0 && (def.tenacity || 0) < 1;
       const angle = enemy.angle || Math.PI / 2;
       const sides = def.sides || (def.shape === 'octagon' ? 8 : def.shape === 'hex' ? 6 : def.shape === 'pentagon' ? 5 : def.shape === 'square' ? 4 : 3);
       const stealth = !!def.stealth;
       const revealed = !stealth || game._enemyRevealed(enemy);
-      const superArmor = !!def.superArmor;
+      const tenacious = (def.tenacity || 0) > 0;
       const shieldActive = enemy.shield > 0;
       const shieldRatio = enemy.maxShield ? U.clamp(enemy.shield / enemy.maxShield, 0, 1) : 0;
       const shieldFlash = enemy.shieldFlash || 0;
@@ -2119,7 +2119,7 @@
         ctx.stroke();
         ctx.setLineDash([]);
       }
-      if (superArmor && enemy.slowBlocked > 0) {
+      if (tenacious && enemy.slowBlocked > 0) {
         ctx.strokeStyle = 'rgba(255,154,98,' + U.clamp(enemy.slowBlocked * 2.4, 0, 0.9) + ')';
         ctx.lineWidth = 1.6;
         ctx.beginPath();
@@ -2191,7 +2191,7 @@
         ctx.moveTo(-radius * 0.55, radius * 0.5);
         ctx.lineTo(radius * 0.45, -radius * 0.55);
         ctx.stroke();
-      } else if (superArmor) {
+      } else if (tenacious) {
         ctx.strokeStyle = hexA('#ff9a62', 0.5);
         ctx.lineWidth = 1.4;
         ctx.strokeRect(-radius * 0.4, -radius * 0.4, radius * 0.8, radius * 0.8);
@@ -2265,8 +2265,8 @@
         ctx.restore();
       }
 
-      // Super-armour brace corners.
-      if (superArmor) {
+      // Tenacity brace corners.
+      if (tenacious) {
         ctx.save();
         ctx.strokeStyle = hexA('#ff9a62', 0.55);
         ctx.lineWidth = 1.5;
@@ -3154,7 +3154,7 @@
       ctx.moveTo(-10, 8);
       ctx.lineTo(9, -9);
       ctx.stroke();
-    } else if (def.superArmor) {
+    } else if (def.tenacity > 0) {
       ctx.strokeStyle = hexA('#ff9a62', 0.7);
       ctx.lineWidth = 1.2;
       ctx.strokeRect(-7, -7, 14, 14);

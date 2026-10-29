@@ -548,7 +548,7 @@
 
   // Brief only the traits that are actually introduced by a level, not the
   // baseline armor/weakness carried by early enemies.
-  const TRAIT_BRIEFING_ORDER = ['split', 'energyResist', 'shield', 'stealth', 'ward', 'superArmor', 'boss'];
+  const TRAIT_BRIEFING_ORDER = ['split', 'energyResist', 'shield', 'stealth', 'ward', 'tenacity', 'boss'];
   const TRAIT_INTRO_LEVELS = (function () {
     const intro = {};
     for (let i = 0; i < C.LEVELS.length; i++) {
@@ -2187,6 +2187,7 @@
       chips.push('<span>升温 <b>×' + stats.ramp.toFixed(1) + '</b></span>');
     } else if (type === 'shock') {
       chips.push('<span>减速 <b>' + Math.round(stats.slow * 100) + '%</b></span>');
+      chips.push('<span>击退 <b>' + (stats.knockback || 0).toFixed(2) + ' 格</b></span>');
     } else if (type === 'frost') {
       chips.push('<span>减速 <b>' + Math.round(stats.slow * 100) + '%</b></span>');
     } else if (type === 'tesla') {

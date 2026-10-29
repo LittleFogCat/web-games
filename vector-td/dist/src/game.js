@@ -354,7 +354,7 @@
           traits: (def.traits || []).slice(),
           shield: !!def.shield,
           stealth: !!def.stealth,
-          superArmor: !!def.superArmor,
+          tenacity: def.tenacity || 0,
           resist: def.resist || null,
         });
       }
@@ -715,6 +715,8 @@
         reward: reward,
         damage: damage,
         angle: Math.PI / 2,
+        tenacity: def.tenacity || 0,
+        knockbackCd: 0,
         slowFactor: 0,
         slowTimer: 0,
         hitFlash: 0,
@@ -950,6 +952,7 @@
       enemy.hitFlash = Math.max(0, enemy.hitFlash - dt * 7);
       enemy.shieldFlash = Math.max(0, (enemy.shieldFlash || 0) - dt * 5.5);
       if (enemy.slowBlocked > 0) enemy.slowBlocked = Math.max(0, enemy.slowBlocked - dt);
+      if (enemy.knockbackCd > 0) enemy.knockbackCd = Math.max(0, enemy.knockbackCd - dt);
       if (enemy.slowTimer > 0) {
         enemy.slowTimer = Math.max(0, enemy.slowTimer - dt);
         if (enemy.slowTimer === 0) enemy.slowFactor = 0;
@@ -1323,6 +1326,7 @@
         const enemy = targets[i];
         this._damageEnemy(enemy, stats.damage, 'energy', tower);
         this._applySlow(enemy, stats.slow, stats.slowTime);
+        this._applyKnockback(enemy, stats.knockback || 0.4);
       }
       this._addRing(center.x, center.y, def.color, 0.16, stats.range, 0.44, 2, true, tower.level);
       this._addRing(center.x, center.y, def.accent, 0.05, stats.range * 0.72, 0.34, 1, false, tower.level);
@@ -1564,14 +1568,40 @@
     _applySlow(enemy, factor, duration) {
       if (!enemy || enemy.dead) return;
       if (!this._enemyRevealed(enemy)) return;
-      if (enemy.def.superArmor) {
+      // 韧性：按比例减免控制效果；韧性 100% 完全免疫（旧霸体）。
+      const effective = factor * (1 - (enemy.tenacity || 0));
+      if (effective <= 0.001) {
         enemy.slowBlocked = 0.35;
         return;
       }
-      if (factor >= enemy.slowFactor || enemy.slowTimer <= 0) {
-        enemy.slowFactor = Math.max(enemy.slowFactor, factor);
+      if (effective >= enemy.slowFactor || enemy.slowTimer <= 0) {
+        enemy.slowFactor = Math.max(enemy.slowFactor, effective);
       }
       enemy.slowTimer = Math.max(enemy.slowTimer, duration);
+    }
+
+    _applyKnockback(enemy, distance) {
+      if (!enemy || enemy.dead || enemy.leaked) return;
+      if (!this._enemyRevealed(enemy)) return;
+      // 核心引力区：最后一段航道不受击退，防止震荡塔无限顶停敌群。
+      const bx = this.grid.base.x + 0.5;
+      const by = this.grid.base.y + 0.5;
+      if (Math.hypot(enemy.x - bx, enemy.y - by) < 1.6) return;
+      // 韧性按比例缩短击退距离；韧性 100% 完全免疫。
+      const effective = distance * (1 - (enemy.tenacity || 0));
+      if (effective <= 0.02) {
+        enemy.slowBlocked = 0.35;
+        return;
+      }
+      // 每个敌人独立击退冷却：多座震荡塔也无法叠加推挤。
+      if ((enemy.knockbackCd || 0) > 0) return;
+      enemy.knockbackCd = 0.9;
+      const back = Math.min(effective, 0.6);
+      const nx = U.clamp(enemy.x - Math.cos(enemy.angle) * back, 0.15, P.COLS - 0.15);
+      const ny = U.clamp(enemy.y - Math.sin(enemy.angle) * back, 0.15, P.ROWS - 0.15);
+      // 在原路径上插入一个"后方航点"：先退后走，路径与后续寻路保持有效。
+      enemy.nodes.unshift({ x: nx, y: ny });
+      this._burst(enemy.x, enemy.y, '#ffcf57', 5, 0.35, 1.4, 0.02, true);
     }
 
     _damageEnemy(enemy, amount, type, tower, continuous) {

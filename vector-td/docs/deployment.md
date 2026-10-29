@@ -191,7 +191,19 @@ chmod -R u+rwX,go+rX "$TARGET"
 
 ## 8. 当前线上记录
 
-### 0.14.4-dev（当前）
+### 0.14.5-dev（当前）
+
+- 部署时间：2026-10-29 16:26（控制机制重做：霸体 → 韧性 + 震荡击退；0.14.5 基线第一轴）
+- 版本：**0.14.5-dev**
+- 目标：`/usr/local/compose/www/games/vector-td`（真实目录）
+- 公网：`https://xiaoniu.tech/games/vector-td/`
+- 备份：`/usr/local/compose/bak/vector-td-20261029-162546.tar.gz`（220K；注：162519、162336 两次为上传重试产生的相同内容备份）
+- 发布包：`release/vector-td-v0.14.5-dev-static.zip`，SHA-256 `a068df934b2fa096f652ea3bdcbbc7e224e46dad277c6603477bd8943a0064fb`（16 个条目，POSIX 路径，Python zipfile 生成）
+- 部署方式：静态 tar 上传 → 服务器备份 → staging 校验（`BUILD 0.14.5-dev`、16 文件、index/styles/app/config/game/render 六文件 SHA-256 与本地一致、tenacity 改动存在、无 U+FFFD）→ 原子替换
+- 线上验证：服务器本机 Host 头 `page/css/cfg` 全 200 且 MIME 正确；公网页脚 `BUILD 0.14.5-dev`，手册出现「韧性」
+- 内容摘要：移除"霸体"（完全免疫减速）→ 新增"韧性"（按比例减免减速与击退；铁壁 80%、终焉棱镜 100%）；震荡塔新增击退（0.30–0.50 格，韧性缩短；每敌 0.9s 击退冷却；核心周围 1.6 格免疫区防无限顶停）；简报顺序 / 手册 / 图鉴 / 策划文档同步。Playwright 16 项回归通过（韧性减免 0.32→0.064 实测、击退冷却、Boss 免疫、简报、三视口无溢出、生产环境静默）
+
+### 0.14.4-dev（上一版）
 
 - 部署时间：2026-10-29 14:56（选中详情不再遮挡战场最下方两行）
 - 版本：**0.14.4-dev**

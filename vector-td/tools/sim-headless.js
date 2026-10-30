@@ -80,6 +80,11 @@ const SKILL_PRESETS = {
     baseHp: 60, crystalMult: 1.5, damageMult: 1.4, costMult: 0.75,
     enemySpeedMult: 0.84, repair: 12, startCrystals: 75,
   },
+  /* 首通预算档（方案 6.3）：~2,290G = overclock5+crystal5+build4+core4，不重复刷 */
+  firstBudget: {
+    baseHp: 80, crystalMult: 1.5, damageMult: 1.4, costMult: 0.75,
+    enemySpeedMult: 0.92, repair: 6, startCrystals: 0,
+  },
   none: {},
   full: {
     baseHp: 100,

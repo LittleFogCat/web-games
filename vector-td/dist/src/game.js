@@ -25,8 +25,8 @@
 
   const WAVE_HP_GROWTH = C.WAVE_HP_GROWTH || 1.015;
 
-  const PREP_INITIAL = 25;
-  const PREP_BETWEEN = 12;
+  const PREP_INITIAL = 20;
+  const PREP_BETWEEN = 10;
   const PREP_WARNING_AT = 3;
   const FLOAT_LIFE = 1.1;
   const SELL_HINT_LIFE = 3.5;

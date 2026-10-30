@@ -625,7 +625,7 @@
       name: '初次接触',
       en: 'FIRST CONTACT',
       difficulty: 1,
-      gold: 80,
+      gold: 112,
       startCrystals: 140,
       hpScale: 0.85,
       speedScale: 0.88,
@@ -656,10 +656,10 @@
         '....B....',
       ],
       waves: [
-        w([['scout', 7, 0.8]]),
+        w([['scout', 8, 0.65]]),
         w([['scout', 10, 0.55], ['drone', 2, 1.0]]),
         w([['drone', 7, 0.85]]),
-        w([['scout', 12, 0.45], ['brute', 1, 2.0]]),
+        w([['scout', 12, 0.45], ['brute', 2, 2.0]]),
         w([['drone', 9, 0.60], ['scout', 5, 0.50]]),
         w([['brute', 2, 1.60], ['scout', 10, 0.40]]),
         w([['drone', 11, 0.55], ['scout', 8, 0.35]]),
@@ -672,7 +672,7 @@
       name: '双生航路',
       en: 'TWIN VECTORS',
       difficulty: 1,
-      gold: 100,
+      gold: 140,
       startCrystals: 155,
       hpScale: 1.00,
       speedScale: 0.92,
@@ -704,8 +704,8 @@
       ],
       waves: [
         w([['scout', 9, 0.60]]),
-        w([['drone', 8, 0.80], ['scout', 4, 0.50]]),
-        w([['splitter', 3, 1.20], ['scout', 8, 0.45]]),
+        w([['drone', 7, 0.65], ['scout', 6, 0.50]]),
+        w([['splitter', 4, 1.10], ['scout', 8, 0.45]]),
         w([['brute', 2, 1.60], ['drone', 8, 0.60]]),
         w([['splitter', 6, 0.90], ['scout', 10, 0.35]]),
         w([['drone', 12, 0.50], ['brute', 2, 1.40]]),
@@ -720,7 +720,7 @@
       name: '棱镜回廊',
       en: 'PRISM CORRIDOR',
       difficulty: 2,
-      gold: 120,
+      gold: 168,
       startCrystals: 180,
       hpScale: 1.10,
       speedScale: 0.96,
@@ -753,8 +753,8 @@
       waves: [
         w([['scout', 10, 0.50], ['drone', 4, 0.70]]),
         w([['splitter', 3, 1.10], ['scout', 10, 0.40]]),
-        w([['drone', 10, 0.55], ['warden', 1, 2.00]]),
-        w([['splitter', 6, 0.80], ['warden', 2, 1.60]]),
+        w([['drone', 10, 0.55], ['warden', 2, 1.80]]),
+        w([['splitter', 6, 0.80], ['warden', 3, 1.50]]),
         w([['brute', 3, 1.40], ['scout', 14, 0.30]]),
         w([['warden', 3, 1.40], ['drone', 12, 0.45]]),
         w([['splitter', 8, 0.70], ['warden', 3, 1.30]]),
@@ -769,7 +769,7 @@
       name: '日冕风暴',
       en: 'CORONA STORM',
       difficulty: 2,
-      gold: 145,
+      gold: 203,
       startCrystals: 185,
       hpScale: 1.35,
       speedScale: 0.99,
@@ -818,7 +818,7 @@
       name: '碎裂星带',
       en: 'SHATTERED BELT',
       difficulty: 3,
-      gold: 170,
+      gold: 238,
       startCrystals: 200,
       hpScale: 1.55,
       speedScale: 1.02,
@@ -868,7 +868,7 @@
       name: '离子矿脉',
       en: 'ION VEIN',
       difficulty: 3,
-      gold: 200,
+      gold: 280,
       startCrystals: 215,
       hpScale: 1.75,
       speedScale: 1.05,
@@ -900,7 +900,7 @@
       ],
       waves: [
         w([['scout', 16, 0.35], ['drone', 8, 0.50]]),
-        w([['nullifier', 2, 1.50], ['scout', 14, 0.30]]),
+        w([['nullifier', 3, 1.40], ['scout', 14, 0.30]]),
         w([['aegis', 3, 1.10], ['nullifier', 2, 1.30]]),
         w([['wraith', 5, 0.80], ['warden', 4, 1.00]]),
         w([['nullifier', 3, 1.20], ['splitter', 10, 0.50]]),
@@ -918,7 +918,7 @@
       name: '镜像深渊',
       en: 'MIRROR ABYSS',
       difficulty: 4,
-      gold: 240,
+      gold: 336,
       startCrystals: 240,
       hpScale: 1.90,
       speedScale: 1.08,
@@ -950,7 +950,7 @@
       ],
       waves: [
         w([['scout', 18, 0.30], ['drone', 8, 0.45]]),
-        w([['juggernaut', 1, 2.00], ['warden', 3, 1.20]]),
+        w([['juggernaut', 2, 1.80], ['warden', 3, 1.20]]),
         w([['wraith', 6, 0.70], ['aegis', 3, 1.00]]),
         w([['juggernaut', 2, 1.60], ['nullifier', 3, 1.10]]),
         w([['brute', 6, 0.80], ['aegis', 4, 0.90]]),
@@ -969,7 +969,7 @@
       name: '事件视界',
       en: 'EVENT HORIZON',
       difficulty: 4,
-      gold: 285,
+      gold: 399,
       startCrystals: 280,
       hpScale: 2.00,
       speedScale: 1.10,
@@ -1020,8 +1020,8 @@
       name: '霓虹安魂曲',
       en: 'NEON REQUIEM',
       difficulty: 5,
-      gold: 340,
-      startCrystals: 340,
+      gold: 476,
+      startCrystals: 400,
       hpScale: 2.10,
       speedScale: 1.12,
       rewardScale: 1.40,
@@ -1072,7 +1072,7 @@
       name: '奇点降临',
       en: 'SINGULARITY',
       difficulty: 5,
-      gold: 420,
+      gold: 588,
       startCrystals: 380,
       hpScale: 2.20,
       speedScale: 1.15,
@@ -1161,12 +1161,16 @@
     for (let i = 0; i < EXTRA_WAVES_PER_LEVEL; i++) {
       const progress = EXTRA_WAVES_PER_LEVEL === 1 ? 0.5 : i / (EXTRA_WAVES_PER_LEVEL - 1);
       const src = pool[Math.min(pool.length - 1, Math.floor(progress * (pool.length - 1)))];
+      // 变体追加波（重复波替换规则）：数量抖动 ±15%、间隔交替收紧/放宽、
+      // 首组 +1 同类型精英——相邻追加波不再完全相同，也不提前引入新特性。
+      const countJitter = i % 2 === 0 ? 0.85 : 1.15;
+      const gapJitter = i % 2 === 0 ? 0.75 : 1.35;
       extras.push({
-        groups: src.groups.map(function (group) {
+        groups: src.groups.map(function (group, gi) {
           return {
             type: group.type,
-            count: Math.max(1, Math.round(group.count * EXTRA_WAVE_POPULATION_SCALE)),
-            gap: group.gap,
+            count: Math.max(1, Math.round(group.count * EXTRA_WAVE_POPULATION_SCALE * countJitter)) + (gi === 0 ? 1 : 0),
+            gap: Math.max(0.2, Math.round(group.gap * gapJitter * 100) / 100),
           };
         }),
         hpMul: 1.0 + i * 0.04,

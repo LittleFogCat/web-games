@@ -60,7 +60,7 @@ vector-td/
   dist/                     可直接部署的镜像目录
   docs/deployment.md        游戏专属部署、备份、回滚与线上验证文档
   docs/baseline/            开发基线与进度日志（每个基线一个文档）
-  docs/design/              策划总案、单位图鉴与扩容文档
+  docs/design/              策划总案、关卡/数值策划、单位图鉴与扩容文档
   docs/prd/                 UI/视觉评审文档
   docs/reference/           XiaoniuTech 运维文档快照
 ```
@@ -192,7 +192,11 @@ window.__VECTOR.debug.status()             // 当前局内摘要
 
 ## 文档维护
 
-- 策划总案：`docs/design/游戏策划文档.md`
+- 设计文档索引：`docs/design/README.md`
+- 策划总案（基准设定）：`docs/design/游戏策划文档.md`
+- 关卡策划：`docs/design/关卡策划.md`
+- 数值策划：`docs/design/数值策划.md`
 - 单位图鉴：`docs/design/单位图鉴.md`
 - 开发基线：`docs/baseline/baseline_log.md`
-- 修改塔 / 敌人 / 关卡数值后，必须同步这两份文档中的相关表格与“首次出现”信息。
+- 总案只写游戏基准设定，不写版本计划/变更历史；版本范围写基线文档，关卡/数值分别写对应文档。
+- 修改塔 / 敌人 / 关卡数值后，必须同步数值策划、单位图鉴与关卡策划中的相关表格与“首次出现”信息。

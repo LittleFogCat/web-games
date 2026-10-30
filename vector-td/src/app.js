@@ -2359,7 +2359,50 @@
   function togglePauseIntel() {
     if (!currentGame || !els.pauseBar || els.pauseBar.classList.contains('hidden')) return;
     if (els.waveIntel && els.waveIntel.classList.contains('show')) hideWaveIntel();
-    else showWaveIntel({ duration: 7000 });
+    else showWaveIntelAll();
+  }
+
+  // 敌情图标：展开本关全部波次的敌人构成（当前波高亮、已过波淡化）。
+  function showWaveIntelAll() {
+    if (!currentGame || !els.waveIntel || !els.waveIntelBody) return;
+    const current = currentGame.phase === 'wave'
+      ? Math.max(1, currentGame.currentWave)
+      : Math.min(currentGame.totalWaves, currentGame.waveCursor + 1);
+    const rows = [];
+    for (let number = 1; number <= currentGame.totalWaves; number++) {
+      const preview = currentGame.getWavePreview(number);
+      if (!preview || !preview.enemies.length) continue;
+      const state = number < current ? ' past' : number === current ? ' current' : '';
+      const traitNames = preview.threats.length
+        ? preview.threats.map(function (threat) { return threat.name; }).join(' / ')
+        : '';
+      rows.push(
+        '<div class="wave-intel-row' + state + '">' +
+          '<span class="wave-intel-no">' + pad2(number) + '</span>' +
+          '<div class="wave-intel-row-chips">' + enemyChipsHtml(preview) + '</div>' +
+          (traitNames ? '<span class="wave-intel-row-traits">' + traitNames + '</span>' : '') +
+        '</div>'
+      );
+    }
+    if (!rows.length) {
+      showWaveIntel({ duration: 7000 });
+      return;
+    }
+    window.clearTimeout(arenaToastTimer);
+    if (els.arenaToast) els.arenaToast.classList.remove('show');
+    if (els.waveIntelKicker) els.waveIntelKicker.textContent = 'WAVE INTEL · 全部 ' + pad2(currentGame.totalWaves) + ' 波';
+    els.waveIntelBody.innerHTML =
+      '<p class="wave-intel-summary">本关全部波次 · 当前 ' + pad2(current) + ' · 再次点击关闭</p>' +
+      '<div class="wave-intel-list">' + rows.join('') + '</div>';
+    els.waveIntel.classList.add('show');
+    setPauseIntelExpanded(true);
+    window.clearTimeout(waveIntelTimer);
+    waveIntelTimer = window.setTimeout(hideWaveIntel, 14000);
+    audio.play('ui');
+    const currentRow = els.waveIntelBody.querySelector('.wave-intel-row.current');
+    if (currentRow && currentRow.scrollIntoView) {
+      currentRow.scrollIntoView({ block: 'center' });
+    }
   }
 
   function renderIntel(info) {

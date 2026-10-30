@@ -2656,6 +2656,63 @@ body::before {
   line-height: 1.55;
 }
 
+/* 全波次敌情列表 */
+.wave-intel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.wave-intel-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 6px;
+  border: 1px solid rgba(111, 186, 209, 0.14);
+  background: rgba(8, 20, 31, 0.4);
+}
+
+.wave-intel-row.current {
+  border-color: color-mix(in srgb, var(--game-accent) 55%, transparent);
+  background: color-mix(in srgb, var(--game-accent) 10%, rgba(8, 20, 31, 0.55));
+}
+
+.wave-intel-row.past {
+  opacity: 0.42;
+}
+
+.wave-intel-no {
+  flex: 0 0 auto;
+  color: var(--game-accent);
+  font-family: var(--font-mono);
+  font-size: 9px;
+}
+
+.wave-intel-row.past .wave-intel-no {
+  color: var(--muted);
+}
+
+.wave-intel-row-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  min-width: 0;
+}
+
+.wave-intel-row-chips .enemy-chip {
+  padding: 2px 4px;
+  font-size: 7.5px;
+}
+
+.wave-intel-row-traits {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 7px;
+  line-height: 1.4;
+  text-align: right;
+}
+
 /* arena */
 .arena-wrap {
   display: flex;

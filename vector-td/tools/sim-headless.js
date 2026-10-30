@@ -399,7 +399,7 @@ class CorridorBot {
         guard++ < this.maxWallsPerPrep
       ) {
         const best = this.bestWall(game);
-        if (!best || best.gain < 2) break;
+        if (!best || best.gain < 1) break;
         if (!game.tryBuild(best.x, best.y, 'wall')) break;
         this.wallsBuiltTotal++;
       }
@@ -655,7 +655,9 @@ function runLevel(levelIndex, skills, opts) {
   });
   const origLeak = game._leakEnemy.bind(game);
   game._leakEnemy = function (enemy) {
-    (game.leakLog = game.leakLog || []).push(enemy.def ? enemy.def.id : enemy.type);
+    const type = enemy.def ? enemy.def.id : enemy.type;
+    (game.leakLog = game.leakLog || []).push(type);
+    (game.leakWaves = game.leakWaves || []).push(type + '@W' + game.currentWave);
     return origLeak(enemy);
   };
   game.paused = false;
@@ -718,6 +720,7 @@ function runLevel(levelIndex, skills, opts) {
     towers: hud.towerCount,
     simMinutes: Math.round(game.clock / 60),
     leakTypes: Object.entries(leakTypes).map(([t, n]) => `${t}x${n}`).join(','),
+    leakWaves: (game.leakWaves || []).join(','),
     waveReport,
     firstDamageWave,
     earned: game.crystalsEarned,

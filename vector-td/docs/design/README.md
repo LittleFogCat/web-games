@@ -1,6 +1,6 @@
 # VECTOR 设计文档索引
 
-> 基准版本：0.14.5-dev · 最后更新：2026-10-30  
+> 基准版本：0.14.5-dev · 最后更新：2026-10-31  
 > 本目录只放 VECTOR 的策划与设计文档；版本进度与开发范围见 [`../baseline/baseline_log.md`](../baseline/baseline_log.md)。
 
 ## 文档地图

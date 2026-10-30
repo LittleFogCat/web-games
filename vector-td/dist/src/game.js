@@ -63,6 +63,8 @@
       this.crystals = Math.max(0, Math.round(this.level.startCrystals + (this.mods.startCrystals || 0)));
       this.crystalsEarned = 0;
       this.startCrystals = this.crystals;
+      this.waveStartCrystals = this.crystals;
+      this.waveStartBaseHp = this.baseHp;
 
       this.phase = 'prep';
       this.waveCursor = 0;
@@ -605,6 +607,9 @@
       const preview = this.getNextWavePreview();
       this.currentWave = this.waveCursor + 1;
       this.waveCursor += 1;
+      // 波次起点快照：临时存档恢复时从本波开头重打，防止读档刷收入。
+      this.waveStartCrystals = this.crystals;
+      this.waveStartBaseHp = this.baseHp;
       this.phase = 'wave';
       this.waveElapsed = 0;
       this.prepRemaining = 0;
@@ -2078,6 +2083,83 @@
         godMode: !!this.mods.godMode,
         freeBuild: !!this.mods.freeBuild,
       };
+    }
+
+    /* ------------------------------------------------------------
+       对局临时存档：波次边界的可序列化快照（跨刷新续战）。
+       波内敌人 / 弹道不入档——恢复时从当前波的开头重打；
+       晶元与核心完整度同样取波次起点的值，避免读档刷资源。
+       ------------------------------------------------------------ */
+    exportSnapshot() {
+      if (this.phase === 'victory' || this.phase === 'defeat') return null;
+      const midWave = this.phase === 'wave' || (this.spawnQueue && this.spawnQueue.length > 0);
+      return {
+        v: 1,
+        levelId: this.level.id,
+        waveCursor: midWave ? Math.max(0, this.waveCursor - 1) : this.waveCursor,
+        crystals: Math.max(0, Math.round(midWave ? this.waveStartCrystals : this.crystals)),
+        baseHp: Math.max(1, Math.round(midWave ? this.waveStartBaseHp : this.baseHp)),
+        kills: this.kills,
+        leaked: this.leaked,
+        structures: this.structures.map(function (s) {
+          return { type: s.type, x: s.x, y: s.y, level: s.level };
+        }),
+      };
+    }
+
+    restoreSnapshot(data) {
+      data = data || {};
+      this.structures = [];
+      const self = this;
+      (data.structures || []).forEach(function (s) {
+        const def = s.type === 'wall' ? C.WALL : C.TOWERS[s.type];
+        if (!def) return;
+        self.structures.push({
+          uid: 's' + self.uid++,
+          kind: s.type === 'wall' ? 'wall' : 'tower',
+          type: s.type,
+          x: s.x,
+          y: s.y,
+          level: U.clamp(Math.round(s.level || 1), 1, self._towerMaxLevel(s.type)),
+          spent: 0,
+          cooldown: 0.15,
+          angle: -Math.PI / 2,
+          recoil: 0,
+          firing: 0,
+          laserCharge: 0,
+          laserIdle: 0,
+          laserTargetId: null,
+          beamFx: 0,
+          idleSeed: Math.random() * TAU,
+        });
+      });
+      this.field = this.grid.buildField(this.structures);
+      this.routes = this.grid.routes(this.field);
+      this.crystals = Math.max(0, Math.round(data.crystals || 0));
+      this.baseHp = U.clamp(Math.round(data.baseHp || this.baseMax), 1, this.baseMax);
+      this.waveCursor = U.clamp(Math.round(data.waveCursor || 0), 0, this.totalWaves);
+      this.currentWave = this.waveCursor;
+      this.kills = Math.max(0, Math.round(data.kills || 0));
+      this.leaked = Math.max(0, Math.round(data.leaked || 0));
+      this.killsThisWave = 0;
+      this.leaksThisWave = 0;
+      this.phase = 'prep';
+      this.waveElapsed = 0;
+      this.prepTotal = PREP_BETWEEN;
+      this.prepRemaining = PREP_BETWEEN;
+      this.prepWarningEmitted = false;
+      this._lastPrepSecond = Math.ceil(PREP_BETWEEN);
+      this.spawnQueue = [];
+      this.spawnPool = [];
+      this.waveStartCrystals = this.crystals;
+      this.waveStartBaseHp = this.baseHp;
+      this.projectiles.length = 0;
+      this.effects.length = 0;
+      this.particles.length = 0;
+      this.floatTexts.length = 0;
+      this.refreshUI();
+      this._emitStats();
+      this._emitPhase();
     }
 
     destroy() {

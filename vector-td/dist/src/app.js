@@ -12,6 +12,7 @@
   const DEBUG_KEY = 'vector_geotd_debug_v1';
   const DEBUG_GOLD_KEY = 'vector_geotd_debug_gold_v1';
   const DEBUG_GOLD_AMOUNT = 10000;
+  const RUN_SNAPSHOT_KEY = 'vector_geotd_run_v1';
 
   const BUILD_SHORT = {
     prism: '箭塔',
@@ -893,17 +894,30 @@
   }
 
   function suspendedRunInfo() {
-    if (!currentGame || activeScreen === 'game') return null;
+    if (activeScreen === 'game') return null;
     if (!els.resultOverlay || !els.resultOverlay.classList.contains('hidden')) return null;
-    if (currentGame.phase === 'victory' || currentGame.phase === 'defeat') return null;
-    const level = C.LEVELS[(currentLevelId || 1) - 1];
+    if (currentGame) {
+      if (currentGame.phase === 'victory' || currentGame.phase === 'defeat') return null;
+      const level = C.LEVELS[(currentLevelId || 1) - 1];
+      if (!level) return null;
+      const state = currentGame.getHudState();
+      return {
+        level: level,
+        wave: Math.max(1, state.wave || 1),
+        total: state.totalWaves,
+        running: state.phase === 'wave',
+      };
+    }
+    // 内存中没有对局：尝试从临时存档恢复（跨刷新续战）。
+    const snap = readRunSnapshot();
+    if (!snap) return null;
+    const level = C.LEVELS[(snap.levelId || 1) - 1];
     if (!level) return null;
-    const state = currentGame.getHudState();
     return {
       level: level,
-      wave: Math.max(1, state.wave || 1),
-      total: state.totalWaves,
-      running: state.phase === 'wave',
+      wave: Math.min(level.waves.length, (snap.waveCursor || 0) + 1),
+      total: level.waves.length,
+      running: false,
     };
   }
 
@@ -933,7 +947,57 @@
     hideWaveIntel();
     updatePauseButton(true);
     releaseWakeLock();
+    persistRunSnapshot();
     return true;
+  }
+
+  function readRunSnapshot() {
+    try {
+      const raw = window.localStorage.getItem(RUN_SNAPSHOT_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (!data || data.v !== 1 || !C.LEVELS[(data.levelId || 1) - 1]) return null;
+      return data;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function persistRunSnapshot() {
+    if (!currentGame || debug.enabled) return; // 调试战斗不写入临时存档
+    const snap = currentGame.exportSnapshot();
+    if (!snap) {
+      clearRunSnapshot();
+      return;
+    }
+    try {
+      window.localStorage.setItem(RUN_SNAPSHOT_KEY, JSON.stringify(snap));
+    } catch (error) {
+      // 隐私模式 / 配额受限：临时存档是尽力而为
+    }
+  }
+
+  function clearRunSnapshot() {
+    try {
+      window.localStorage.removeItem(RUN_SNAPSHOT_KEY);
+    } catch (error) {
+      // 忽略
+    }
+  }
+
+  function restoreSuspendedRun() {
+    const snap = readRunSnapshot();
+    if (!snap) {
+      openLevels();
+      return;
+    }
+    clearRunSnapshot();
+    startLevel(snap.levelId);
+    if (!currentGame) return;
+    currentGame.restoreSnapshot(snap);
+    currentGame.refreshUI();
+    updateHud(currentGame.getHudState());
+    updateBuildAffordability();
   }
 
   function resumeSuspendedRun() {
@@ -1683,6 +1747,7 @@
       return;
     }
     maybeAutoImmersive();
+    clearRunSnapshot(); // 新开一局：作废旧临时存档
     closeDebugPanel();
     destroyGame();
     closeHelp();
@@ -2625,6 +2690,7 @@
 
   function finishRun(success, summary) {
     if (!currentGame) return;
+    clearRunSnapshot(); // 对局已结束：临时存档作废
     const level = C.LEVELS[summary.levelId - 1];
     if (!level) return;
     let goldEarned = 0;
@@ -3001,8 +3067,19 @@
     });
     $('btn-pause-intel').addEventListener('click', togglePauseIntel);
     $('btn-trait-close').addEventListener('click', closeTraitBriefing);
-    $('btn-home-resume').addEventListener('click', resumeSuspendedRun);
-    $('btn-levels-resume').addEventListener('click', resumeSuspendedRun);
+    $('btn-home-resume').addEventListener('click', function () {
+      if (currentGame) resumeSuspendedRun();
+      else restoreSuspendedRun();
+    });
+    $('btn-levels-resume').addEventListener('click', function () {
+      if (currentGame) resumeSuspendedRun();
+      else restoreSuspendedRun();
+    });
+    // 临时存档：切后台 / 关闭页面时快照对局，跨刷新可续战。
+    window.addEventListener('pagehide', persistRunSnapshot);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') persistRunSnapshot();
+    });
 
     els.gameScreen.addEventListener('contextmenu', function (event) {
       if (!currentGame) return;
@@ -3306,6 +3383,7 @@
     refreshMeta();
     showScreen('home');
     updateDebugChrome();
+    updateResumeUI();
     if (debug.enabled) {
       console.info('[VECTOR] Debug mode enabled. Toggle with Ctrl+Shift+D or ?debug=1.');
     }

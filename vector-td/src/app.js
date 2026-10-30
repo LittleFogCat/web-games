@@ -2396,8 +2396,9 @@
       '<div class="wave-intel-list">' + rows.join('') + '</div>';
     els.waveIntel.classList.add('show');
     setPauseIntelExpanded(true);
+    // 全波次列表不自动关闭：由玩家再点图标 / × 按钮 / 恢复作战关闭。
+    // （清除预警弹窗遗留的定时器，防止它误关本列表。）
     window.clearTimeout(waveIntelTimer);
-    waveIntelTimer = window.setTimeout(hideWaveIntel, 14000);
     audio.play('ui');
     const currentRow = els.waveIntelBody.querySelector('.wave-intel-row.current');
     if (currentRow && currentRow.scrollIntoView) {
@@ -2714,6 +2715,7 @@
   function closePause(resume) {
     hidePauseBar();
     if (resume && currentGame) {
+      hideWaveIntel(); // 恢复作战时收起敌情浮层
       currentGame.setPaused(false);
       currentGame.refreshUI();
       maybeShowDeployPrompt();

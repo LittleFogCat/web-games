@@ -9,9 +9,10 @@
   const GFX = window.GEOTD_GFX;
   const GAME = window.GEOTD_GAME;
   const SAVE_KEY = 'vector_geotd_save_v1';
+  const DEBUG_SAVE_KEY = 'vector_geotd_debug_save_v1';
   const DEBUG_KEY = 'vector_geotd_debug_v1';
-  const DEBUG_GOLD_KEY = 'vector_geotd_debug_gold_v1';
   const DEBUG_GOLD_AMOUNT = 10000;
+  const FIRST_CLEAR_KEY = 'vector_geotd_first_clear_v1';
   const RUN_SNAPSHOT_KEY = 'vector_geotd_run_v1';
   const RECORDS_KEY = 'vector_geotd_records_v1';
   const RECORD_LIMIT = 100;
@@ -75,11 +76,11 @@
     };
   }
 
-  function loadSave() {
+  function loadSaveData(key) {
     const defaults = defaultSave();
     let raw = null;
     try {
-      raw = window.localStorage.getItem(SAVE_KEY);
+      raw = window.localStorage.getItem(key);
     } catch (error) {
       raw = null;
     }
@@ -120,7 +121,33 @@
     }
   }
 
-  const save = loadSave();
+  function ensureDebugSave() {
+    let raw = null;
+    try {
+      raw = window.localStorage.getItem(DEBUG_SAVE_KEY);
+    } catch (error) {
+      raw = null;
+    }
+    if (raw !== null) return loadSaveData(DEBUG_SAVE_KEY);
+    // 调试存档首次建立时自带一份启动金币；正式存档永远不会收到这笔金币。
+    const seeded = defaultSave();
+    seeded.gold = DEBUG_GOLD_AMOUNT;
+    seeded.tutorialSeen = true;
+    try {
+      window.localStorage.setItem(DEBUG_SAVE_KEY, JSON.stringify(seeded));
+    } catch (error) {
+      // 存储不可用时仍然在本局内使用种子值。
+    }
+    return seeded;
+  }
+
+  function loadProfileSave(key) {
+    return key === DEBUG_SAVE_KEY ? ensureDebugSave() : loadSaveData(key);
+  }
+
+  const initialDebugEnabled = detectDebugMode();
+  let saveKey = initialDebugEnabled ? DEBUG_SAVE_KEY : SAVE_KEY;
+  let save = loadProfileSave(saveKey);
   const audio = new window.NeoAudio(save.settings.sound);
 
   function loadRecords() {
@@ -172,10 +199,19 @@
       host === '';
   }
 
+  function loadFirstClearPref() {
+    try {
+      return window.localStorage.getItem(FIRST_CLEAR_KEY) === '1';
+    } catch (error) {
+      return false;
+    }
+  }
+
   const debug = {
-    enabled: detectDebugMode(),
+    enabled: initialDebugEnabled,
     godMode: false,
     freeBuild: false,
+    firstClear: loadFirstClearPref(),
     panelOpen: false,
   };
 
@@ -808,7 +844,7 @@
      ============================================================ */
   function persist() {
     try {
-      window.localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+      window.localStorage.setItem(saveKey, JSON.stringify(save));
     } catch (error) {
       // Storage is a convenience; the game remains playable without it.
     }
@@ -878,26 +914,6 @@
     });
     if (els.skillsGoldBig) els.skillsGoldBig.textContent = U.formatInt(save.gold);
     refreshSoundButtons();
-  }
-
-  function grantDebugGold() {
-    if (!debug.enabled) return 0;
-    let granted = false;
-    try {
-      granted = window.localStorage.getItem(DEBUG_GOLD_KEY) === '1';
-    } catch (error) {
-      granted = false;
-    }
-    if (granted) return 0;
-    try {
-      window.localStorage.setItem(DEBUG_GOLD_KEY, '1');
-    } catch (error) {
-      // The grant still applies for this session when storage is unavailable.
-    }
-    save.gold += DEBUG_GOLD_AMOUNT;
-    persist();
-    refreshMeta();
-    return DEBUG_GOLD_AMOUNT;
   }
 
   function refreshSoundButtons() {
@@ -998,9 +1014,13 @@
     return true;
   }
 
+  function runSnapshotKey() {
+    return debug.enabled ? RUN_SNAPSHOT_KEY + '_debug' : RUN_SNAPSHOT_KEY;
+  }
+
   function readRunSnapshot() {
     try {
-      const raw = window.localStorage.getItem(RUN_SNAPSHOT_KEY);
+      const raw = window.localStorage.getItem(runSnapshotKey());
       if (!raw) return null;
       const data = JSON.parse(raw);
       if (!data || data.v !== 1 || !C.LEVELS[(data.levelId || 1) - 1]) return null;
@@ -1018,7 +1038,7 @@
       return;
     }
     try {
-      window.localStorage.setItem(RUN_SNAPSHOT_KEY, JSON.stringify(snap));
+      window.localStorage.setItem(runSnapshotKey(), JSON.stringify(snap));
     } catch (error) {
       // 隐私模式 / 配额受限：临时存档是尽力而为
     }
@@ -1026,7 +1046,7 @@
 
   function clearRunSnapshot() {
     try {
-      window.localStorage.removeItem(RUN_SNAPSHOT_KEY);
+      window.localStorage.removeItem(runSnapshotKey());
     } catch (error) {
       // 忽略
     }
@@ -1156,9 +1176,38 @@
     if (debug.panelOpen) renderDebugPanel();
   }
 
+  function switchSaveProfile(enabled) {
+    const targetKey = enabled ? DEBUG_SAVE_KEY : SAVE_KEY;
+    if (targetKey === saveKey) return false;
+    const sound = save.settings.sound;
+    try {
+      window.localStorage.setItem(saveKey, JSON.stringify(save));
+    } catch (error) {
+      // 旧存档写不进去也不能阻断切换。
+    }
+    const next = loadProfileSave(targetKey);
+    next.settings.sound = sound;
+    saveKey = targetKey;
+    save = next;
+    persist();
+    runMeta = null;
+    if (currentGame) {
+      destroyGame();
+      if (activeScreen === 'game') showScreen('home');
+    }
+    audio.setEnabled(save.settings.sound);
+    refreshMeta();
+    renderLevelList();
+    renderSkills();
+    updateResumeUI();
+    updateDebugChrome();
+    return true;
+  }
+
   function setDebugMode(enabled) {
-    debug.enabled = !!enabled;
-    let granted = 0;
+    const next = !!enabled;
+    const changed = debug.enabled !== next;
+    debug.enabled = next;
     if (!debug.enabled) {
       debug.godMode = false;
       debug.freeBuild = false;
@@ -1167,9 +1216,8 @@
         currentGame.setFreeBuild(false);
       }
       closeDebugPanel();
-    } else {
-      granted = grantDebugGold();
     }
+    const switched = changed ? switchSaveProfile(debug.enabled) : false;
     try {
       window.localStorage.setItem(DEBUG_KEY, debug.enabled ? '1' : '0');
     } catch (error) {
@@ -1178,9 +1226,12 @@
     updateDebugChrome();
     renderLevelList();
     refreshMeta();
+    renderSkills();
     renderDebugPanel();
-    if (debug.enabled) {
-      showGlobalToast(granted ? '调试模式已开启 · 已赠送 ' + U.formatInt(granted) + ' 金币' : '调试模式已开启', 'success');
+    if (switched) {
+      showGlobalToast('已切换到' + (debug.enabled ? '调试' : '正式') + '存档', 'info');
+    } else if (debug.enabled) {
+      showGlobalToast('调试模式已开启', 'success');
     } else {
       showGlobalToast('调试模式已关闭', 'info');
     }
@@ -1273,7 +1324,7 @@
           '<button type="button" data-debug-action="max-skills">全技能 5 阶</button>' +
           '<button type="button" data-debug-action="reset-skills">技能清零</button>' +
         '</div>' +
-        '<p class="debug-note">调试模式初始赠送 10000 金币；技能升级按正常费用消耗，可在技能矩阵重置并全额返还。</p>' +
+        '<p class="debug-note">调试存档初始 10000 金币（写在独立的调试存档里，不影响正式存档）；技能升级按正常费用消耗，可在技能矩阵重置并全额返还。</p>' +
       '</section>' +
       '<section class="debug-section">' +
         '<h4>局内控制</h4>' +
@@ -1300,11 +1351,19 @@
         '<p class="debug-note">在局内点击生成 5 个测试单位；准备阶段点击会自动进入交战。</p>' +
       '</section>' +
       '<section class="debug-section">' +
-        '<h4>重置进度 <span>不可撤销</span></h4>' +
-        '<div class="debug-actions">' +
-          '<button type="button" class="danger wide" data-debug-action="reset-progress">清零金币 / 技能 / 闯关进度</button>' +
+        '<h4>首闯模拟 <span>调试</span></h4>' +
+        '<div class="debug-toggles">' +
+          '<button type="button" class="debug-toggle" data-debug-toggle="first-clear" aria-pressed="' + (debug.firstClear ? 'true' : 'false') + '">首闯金币预算</button>' +
         '</div>' +
-        '<p class="debug-note">金币归零、全部技能回到 0 阶、星区解锁回到 01、星级记录清空。特性简报、音效与调试设置保留；当前对局不受影响。</p>' +
+        '<p class="debug-note">开启后每次手动进关：金币 = 前序关卡首通基础金币之和 − 已投入技能；技能投入超出预算时阻止开局并提示调整。重复闯关不再累积金币。</p>' +
+      '</section>' +
+      '<section class="debug-section">' +
+        '<h4>存档重置 <span>正式 / 调试独立</span></h4>' +
+        '<div class="debug-actions">' +
+          '<button type="button" class="danger" data-debug-action="reset-formal">重置正式存档</button>' +
+          '<button type="button" class="danger" data-debug-action="reset-debug">重置调试存档</button>' +
+        '</div>' +
+        '<p class="debug-note">两套存档的金币、技能、星区解锁与星级分别保存；可单独清零。当前对局、闯关记录、特性简报与音效设置不受影响。</p>' +
       '</section>' +
       '<section class="debug-section">' +
         '<h4>实时状态</h4>' +
@@ -1399,10 +1458,11 @@
           '  win / lose           直接判定胜负',
           '  god [on|off]         无敌核心（缺省切换）',
           '  free [on|off]        免费建造（缺省切换）',
+          '  first [on|off]       首闯金币预算（缺省切换）',
           '  skill <id> <rank>    设置技能阶数（0-' + C.SKILL_MAX + '）',
           '  skills max|reset     全技能满阶 / 清零',
           '  unlock               解锁全部星区',
-          '  reset                重置进度（金币 / 技能 / 星区 / 星级）',
+          '  reset [formal|debug] 重置对应存档（缺省当前存档）',
           '  level <id>           直达星区（1-' + C.LEVELS.length + '）',
           '  speed <1|2|3>        战斗倍速',
           '  clear                清空本日志',
@@ -1487,6 +1547,10 @@
         renderDebugPanel();
         return '免费建造：' + (debug.freeBuild ? 'ON' : 'OFF');
       }
+      case 'first': {
+        setFirstClear(flag(0, debug.firstClear));
+        return '首闯金币预算：' + (debug.firstClear ? 'ON' : 'OFF');
+      }
       case 'skill': {
         const id = arg(0);
         if (!id || !save.skills.hasOwnProperty(id)) {
@@ -1521,6 +1585,11 @@
         return '已解锁全部 ' + C.LEVELS.length + ' 个星区。';
       }
       case 'reset': {
+        const which = arg(0);
+        if (which === 'formal' || which === 'debug') {
+          resetProfileSave(which);
+          return (which === 'debug' ? '调试' : '正式') + '存档已重置：金币 0 · 技能 0 阶 · 星区 01 · 星级 0。';
+        }
         const reset = resetProgress();
         return '进度已重置：金币 ' + reset.gold + ' · 技能 0 阶 · 星区 ' + pad2(reset.unlocked) + ' · 星级 ' + reset.stars + '。';
       }
@@ -1610,6 +1679,78 @@
     return { gold: save.gold, unlocked: save.unlocked, stars: totalStars() };
   }
 
+  function resetProfileSave(which) {
+    const key = which === 'debug' ? DEBUG_SAVE_KEY : SAVE_KEY;
+    const active = key === saveKey;
+    const target = active ? save : loadProfileSave(key);
+    target.gold = 0;
+    for (let i = 0; i < C.SKILLS.length; i++) {
+      target.skills[C.SKILLS[i].id] = 0;
+    }
+    target.unlocked = 1;
+    target.bestStars = {};
+    if (active) {
+      persist();
+      refreshMeta();
+      renderSkills();
+      renderLevelList();
+      updateResumeUI();
+      if (debug.panelOpen) renderDebugPanel();
+    } else {
+      try {
+        window.localStorage.setItem(key, JSON.stringify(target));
+      } catch (error) {
+        // 存储不可用时仅本次会话内保留。
+      }
+    }
+    return { active: active, which: which };
+  }
+
+  function firstClearBudget(levelId) {
+    let total = 0;
+    for (let i = 0; i < levelId - 1; i++) {
+      total += C.LEVELS[i].gold || 0;
+    }
+    return total;
+  }
+
+  // 调试“首闯模拟”：每次手动进关把金币压回首次到达本关的预算，
+  // 并校验当前技能投入是否超过预算；超出则阻止开局并引导去调技能。
+  function applyFirstClearBudget(levelId) {
+    if (!debug.enabled || !debug.firstClear) return true;
+    const budget = firstClearBudget(levelId);
+    const spent = skillRefundTotal();
+    if (spent > budget) {
+      const adjust = window.confirm(
+        '首闯模拟：当前技能投入 ' + U.formatInt(spent) + ' 金币，超出第 ' + levelId +
+        ' 关首闯预算 ' + U.formatInt(budget) + ' 金币。\n\n是否前往技能矩阵调整？'
+      );
+      if (adjust) {
+        closeDebugPanel();
+        openSkills('levels');
+        showGlobalToast('调整技能后再次选择关卡', 'info');
+      } else {
+        showGlobalToast('首闯模式：技能投入超出预算，已阻止开局', 'error');
+      }
+      return false;
+    }
+    save.gold = budget - spent;
+    persist();
+    refreshMeta();
+    return true;
+  }
+
+  function setFirstClear(value) {
+    debug.firstClear = !!value;
+    try {
+      window.localStorage.setItem(FIRST_CLEAR_KEY, debug.firstClear ? '1' : '0');
+    } catch (error) {
+      // 首选偏好写不进去也不影响当前会话。
+    }
+    if (debug.panelOpen) renderDebugPanel();
+    showGlobalToast(debug.firstClear ? '首闯模式已开启' : '首闯模式已关闭', 'info');
+  }
+
   function handleDebugAction(action, target) {
     if (!debug.enabled) return;
     if (action === 'unlock-all') {
@@ -1623,17 +1764,19 @@
       persist();
       refreshMeta();
       showGlobalToast('金币 +1000', 'success');
-    } else if (action === 'reset-progress') {
+    } else if (action === 'reset-formal' || action === 'reset-debug') {
+      const which = action === 'reset-debug' ? 'debug' : 'formal';
+      const label = which === 'debug' ? '调试' : '正式';
       const confirmed = window.confirm(
-        '重置进度？\n\n金币归零、全部技能回到 0 阶、星区解锁回到 01、所有星级记录清空。\n' +
-        '特性简报、音效与调试设置保留，当前对局不受影响。\n\n此操作不可撤销。'
+        '重置' + label + '存档？\n\n金币归零、全部技能回到 0 阶、星区解锁回到 01、所有星级记录清空。\n' +
+        '另一套存档、特性简报、音效设置与闯关记录不受影响。\n\n此操作不可撤销。'
       );
       if (!confirmed) {
         if (target) target.blur();
         return;
       }
-      const reset = resetProgress();
-      showGlobalToast('进度已重置 · 金币 ' + reset.gold + ' · 星区 ' + pad2(reset.unlocked), 'info');
+      resetProfileSave(which);
+      showGlobalToast(label + '存档已重置 · 金币 0 · 技能 0 阶 · 星区 01', 'info');
     } else if (action === 'max-skills') {
       debugSetAllSkills(C.SKILL_MAX);
       showGlobalToast('全部技能已提升至 5 阶', 'success');
@@ -1846,6 +1989,7 @@
       showGlobalToast('该星区尚未解锁', 'error');
       return;
     }
+    if (!applyFirstClearBudget(levelId)) return;
     maybeAutoImmersive();
     clearRunSnapshot(); // 新开一局：作废旧临时存档
     closeDebugPanel();
@@ -2935,27 +3079,37 @@
     let goldEarned = 0;
     let firstClear = false;
     let improved = false;
+    let goldSkipped = false;
     if (success) {
-      if (debug.enabled) {
-        resultAction = level.id < C.LEVELS.length ? 'next' : 'levels';
+      const previousStars = save.bestStars[level.id] || 0;
+      firstClear = previousStars === 0;
+      improved = summary.stars > previousStars;
+      const repeatInFirstClear = debug.enabled && debug.firstClear && !firstClear;
+      if (repeatInFirstClear) {
+        goldSkipped = true;
       } else {
-        const previousStars = save.bestStars[level.id] || 0;
-        firstClear = previousStars === 0;
-        improved = summary.stars > previousStars;
         const base = firstClear ? level.gold : Math.floor(level.gold * 0.3);
         const bonus = firstClear ? Math.max(0, summary.stars - 1) * 15 : Math.max(0, summary.stars - previousStars) * 10;
         goldEarned = Math.max(0, Math.round(base + bonus));
         save.gold += goldEarned;
-        save.bestStars[level.id] = Math.max(previousStars, summary.stars);
-        save.unlocked = Math.max(save.unlocked, Math.min(C.LEVELS.length, level.id + 1));
-        persist();
-        refreshMeta();
-        resultAction = level.id < C.LEVELS.length ? 'next' : 'levels';
       }
+      save.bestStars[level.id] = Math.max(previousStars, summary.stars);
+      save.unlocked = Math.max(save.unlocked, Math.min(C.LEVELS.length, level.id + 1));
+      persist();
+      refreshMeta();
+      resultAction = level.id < C.LEVELS.length ? 'next' : 'levels';
     } else {
       resultAction = 'retry';
     }
-    resultSummary = { level: level, summary: summary, gold: goldEarned, firstClear: firstClear, improved: improved, debug: debug.enabled };
+    resultSummary = {
+      level: level,
+      summary: summary,
+      gold: goldEarned,
+      goldSkipped: goldSkipped,
+      firstClear: firstClear,
+      improved: improved,
+      debug: debug.enabled,
+    };
     recordRun(summary, { goldEarned: goldEarned, firstClear: firstClear });
     currentGame.setPaused(true);
     hidePauseBar();
@@ -2973,7 +3127,7 @@
     const stars = summary.stars || 0;
     $('result-card').style.setProperty('--result-accent', success ? level.accent : '#ff5d7a');
     $('result-card').classList.toggle('debug-run', isDebug);
-    $('result-kicker').textContent = isDebug ? 'DEBUG RUN // NOT RECORDED' : success ? 'SECTOR SECURED' : 'CORE SIGNAL LOST';
+    $('result-kicker').textContent = isDebug ? 'DEBUG RUN // DEBUG SAVE' : success ? 'SECTOR SECURED' : 'CORE SIGNAL LOST';
     let title;
     if (!success) title = isDebug ? '调试失守' : '防线失守';
     else if (isDebug) title = '调试肃清';
@@ -2982,8 +3136,11 @@
     else title = '惨胜肃清';
     $('result-title').textContent = title;
     let copy;
-    if (isDebug) copy = '调试模式运行的战斗不会写入星图进度、星级或金币。可直接从调试面板跳转下一关。';
-    else if (!success) copy = '核心信号中断。重新调整防御阵列，再次尝试这条航道。';
+    if (isDebug) {
+      if (!success) copy = '调试存档运行：本次失守已写入调试存档与闯关记录，不影响正式存档。';
+      else if (result.goldSkipped) copy = '首闯模拟：重复闯关不再结算金币；进度与星级写入调试存档。';
+      else copy = '调试存档运行：进度、星级与金币写入调试存档，不影响正式存档；闯关记录标注 DEBUG。';
+    } else if (!success) copy = '核心信号中断。重新调整防御阵列，再次尝试这条航道。';
     else if (result.firstClear) copy = level.id === C.LEVELS.length ? '星图尽头，核心仍在燃烧。你守住了最后的矢界。' : '首次肃清，下一片星区航道已经解锁。';
     else copy = result.improved ? '再次肃清，并刷新了星芒评价。' : '再次肃清，获得部分回收金币。';
     $('result-copy').textContent = copy;
@@ -2999,9 +3156,23 @@
     const reward = $('reward-strip');
     reward.classList.toggle('debug', isDebug);
     if (isDebug) {
-      reward.classList.remove('defeat');
-      reward.querySelector('span').textContent = '调试运行 · 不计入进度与金币';
-      $('result-gold').textContent = '0';
+      if (success && result.gold > 0) {
+        reward.classList.remove('defeat');
+        reward.querySelector('span').textContent = '调试存档 · 本次金币';
+        $('result-gold').textContent = '+' + U.formatInt(result.gold);
+      } else if (success && result.goldSkipped) {
+        reward.classList.remove('defeat');
+        reward.querySelector('span').textContent = '首闯模拟 · 重复闯关不结算金币';
+        $('result-gold').textContent = '0';
+      } else if (success) {
+        reward.classList.remove('defeat');
+        reward.querySelector('span').textContent = '调试存档 · 本次无金币';
+        $('result-gold').textContent = '0';
+      } else {
+        reward.classList.add('defeat');
+        reward.querySelector('span').textContent = '核心完整度归零 · 本次无奖励';
+        $('result-gold').textContent = '0';
+      }
     } else if (success) {
       reward.classList.remove('defeat');
       reward.querySelector('span').textContent = result.firstClear ? '首次肃清奖励' : '重复肃清回收';
@@ -3407,6 +3578,9 @@
     } else if (flag === 'free') {
       debug.freeBuild = !debug.freeBuild;
       if (currentGame) currentGame.setFreeBuild(debug.freeBuild);
+    } else if (flag === 'first-clear') {
+      setFirstClear(!debug.firstClear);
+      return;
     }
     renderDebugPanel();
     refreshDebugStatus();
@@ -3923,7 +4097,6 @@
     ambient.resize();
     bindUI();
     syncImmersiveState();
-    grantDebugGold();
     refreshMeta();
     showScreen('home');
     updateDebugChrome();
@@ -3978,11 +4151,17 @@
       enable: function () { setDebugMode(true); },
       disable: function () { setDebugMode(false); },
       toggle: function () { setDebugMode(!debug.enabled); },
-      get state() { return { enabled: debug.enabled, godMode: debug.godMode, freeBuild: debug.freeBuild, panelOpen: debug.panelOpen }; },
+      get state() { return { enabled: debug.enabled, profile: debug.enabled ? 'debug' : 'formal', godMode: debug.godMode, freeBuild: debug.freeBuild, firstClear: debug.firstClear, panelOpen: debug.panelOpen }; },
       status: function () { return currentGame ? currentGame.debugStatus() : null; },
       maxSkills: function () { debugSetAllSkills(C.SKILL_MAX); },
       resetSkills: function () { debugSetAllSkills(0); },
       resetProgress: function () { return resetProgress(); },
+      resetProfile: function (which) { return resetProfileSave(which === 'debug' ? 'debug' : 'formal'); },
+      firstClear: function (value) {
+        if (value === undefined) return debug.firstClear;
+        setFirstClear(!!value);
+        return debug.firstClear;
+      },
       setSkill: function (id, rank) {
         if (!save.skills.hasOwnProperty(id)) return false;
         save.skills[id] = U.clamp(Math.floor(rank || 0), 0, C.SKILL_MAX);

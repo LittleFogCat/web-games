@@ -10,7 +10,7 @@
 - 线上地址：<https://xiaoniu.tech/games/vector-td/>
 - 集合页：<https://xiaoniu.tech/games/>
 - 服务器目录：`/usr/local/compose/www/games/vector-td`
-- 存档键：`vector_geotd_save_v1`（localStorage）；闯关记录键：`vector_geotd_records_v1`（localStorage，最多 100 条）
+- 存档键：`vector_geotd_save_v1`（正式）、`vector_geotd_debug_save_v1`（调试，首次建立自带 10000 金币）；首闯开关：`vector_geotd_first_clear_v1`；闯关记录键：`vector_geotd_records_v1`（localStorage，最多 100 条）
 
 游戏使用 HTML + CSS + 原生 JavaScript，无构建系统、无框架、无外部图片或字体资源；所有几何图形由 Canvas 2D 程序化绘制。
 
@@ -83,7 +83,7 @@ vector-td/
 - **波次人口与补偿必须成对调整**：提高 `WAVE_POPULATION_SCALE` / 追加波后，必须同步调整 `SWARM_HP_SCALE` 与 `SWARM_REWARD_SCALE`，使各关总有效 HP 与总晶元收入相对旧曲线只小幅增长（目标 ≤10%）；Boss 不参与人口补偿，最终波必须保留 Boss。
 - 第 10 关最终波必须保留 Boss。
 - 五级塔必须有肉眼可分辨的轮廓 / 光环 / 弹道差异，不能只靠星星数量。
-- 调试模式默认只在本地环境开启；调试模式初始赠送 **10000 金币**（每个浏览器档案一次），技能升级不再免费；调试战斗不得写入正式进度、星级或金币。
+- 调试模式默认只在本地环境开启；正式与调试使用**独立存档**，调试存档首次建立自带 **10000 金币**；调试战斗只写入调试存档，不得写入正式进度、星级或金币。
 
 ## 当前 UI 约定
 
@@ -105,7 +105,7 @@ vector-td/
 - HUD 语义色：友方/交互青色，资源金色，危险/核心告急红色，选中白色。
 - 路径是低亮度发光通道 + 低频流动粒子 + 每三格一个方向箭头；不要恢复高密度固定箭头。出生门为危险色；障碍物（小行星）必须是**清晰可辨的实心岩体**：实色填充 + 明确轮廓 + 裂纹纹理，亮度明显高于星空背景（目标对比 ≥4×），但**不得使用发光/阴影**，与青色发光的可交互元素明确区分。
 - 敌人特性必须有独立视觉：护盾泡/盾条、韧性角括号、隐匿虚线折射、特性徽章；敌人、核心受击与当前选中设施应保持高于路径的视觉优先级。
-- 调试面板只在调试模式显示；游戏内入口为 HUD 的 `DBG`，正式环境不显示，首页为顶部 `DEBUG`。
+- 调试面板只在调试模式显示；游戏内入口为 HUD 的 `DBG`，正式环境不显示，首页为顶部 `DEBUG`。面板提供正式 / 调试存档分别重置，以及「首闯金币预算」开关。
 - 移动端必须检查 320×568、390×667、390×844；不得出现横向溢出。
 - **移动端沉浸式全屏**：手机进入关卡时默认自动请求 Fullscreen；首页右上角与暂停时 HUD 中间的 `全屏` 图标可随时切换。`#app` 高度使用 `--app-height`（visualViewport）兜底，不能回退到会被 Safari 工具栏撑开的 `100vh`。全屏/独立应用模式下 `#app` 取消 560px 宽度上限（桌面全屏上限 720px），战场不得保留 1px 边缝。
 - Fullscreen 状态必须同步到 `body.is-immersive`、按钮 `aria-pressed` / `aria-label`；进入时尝试竖屏锁定与 Wake Lock，离开/暂停/切后台时释放。iPhone Safari 不支持网页 Fullscreen API，只能提示「分享 → 添加到主屏幕」，并以 `display: fullscreen` 的 PWA 清单提供全屏启动。
@@ -184,14 +184,23 @@ window.__VECTOR.debug.enabled       // 调试模式状态
 window.__VECTOR.debug.maxSkills()   // 全技能 5 阶
 window.__VECTOR.debug.setSkill('core', 5)  // 指定技能阶数
 window.__VECTOR.debug.resetProgress()      // 重置金币 / 技能 / 星区与星级
+window.__VECTOR.debug.resetProfile('debug') // 单独重置正式或调试存档
+window.__VECTOR.debug.firstClear(true)      // 首闯金币预算开关
 window.__VECTOR.debug.spawn('wraith', 5)   // 生成测试敌群
 window.__VECTOR.debug.win() / lose()       // 直接判定胜负
 window.__VECTOR.debug.status()             // 当前局内摘要
 ```
 
-调试面板底部有命令行（REPL），支持 ↑/↓ 历史回溯，命令：`help` / `status` / `gold` / `crystals` / `heal` / `spawn` / `towers` / `wave` / `kill` / `win` / `lose` / `god` / `free` / `skill` / `skills` / `unlock` / `reset` / `level` / `speed` / `clear`；面板打开后命令输入拥有键盘焦点保护（在输入框打字不会触发 `P`/`W`/数字键等战场快捷键，`Esc` 仍可关闭面板）。
+调试面板底部有命令行（REPL），支持 ↑/↓ 历史回溯，命令：`help` / `status` / `gold` / `crystals` / `heal` / `spawn` / `towers` / `wave` / `kill` / `win` / `lose` / `god` / `free` / `first` / `skill` / `skills` / `unlock` / `reset [formal|debug]` / `level` / `speed` / `clear`；面板打开后命令输入拥有键盘焦点保护（在输入框打字不会触发 `P`/`W`/数字键等战场快捷键，`Esc` 仍可关闭面板）。
 
-调试模式默认在 `localhost` / `127.0.0.1` / `file://` 开启；可用 `?debug=1` / `?debug=0` 或 `Ctrl + Shift + D` 强制切换。调试战斗不写入正式进度。
+调试模式默认在 `localhost` / `127.0.0.1` / `file://` 开启；可用 `?debug=1` / `?debug=0` 或 `Ctrl + Shift + D` 强制切换。调试战斗只写入调试存档。
+
+## 调试存档与首闯模拟
+
+- 正式存档 `vector_geotd_save_v1`；调试存档 `vector_geotd_debug_save_v1`（首次建立自带 10000 金币）；首闯开关 `vector_geotd_first_clear_v1`。
+- 切换调试模式会切换存档；为避免跨档结算，切换时销毁当前对局。调试结算只写调试存档，正式存档不受影响。
+- 首闯预算 = 前序关卡 `level.gold` 之和（不含星级奖励）；进入时金币 = 预算 − `skillRefundTotal()`；技能投入 > 预算时 confirm 提示并可跳转技能矩阵，不开始关卡。
+- 首闯开启时重复通关不结算金币；首次通关仍按正常规则结算。关闭后恢复普通金币结算。
 
 ## 闯关记录（关卡调优）
 

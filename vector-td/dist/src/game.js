@@ -757,7 +757,9 @@
       const clearedWave = this.currentWave;
       const hasNext = this.waveCursor < this.totalWaves;
       let repaired = 0;
-      if (this.mods.repair > 0) {
+      // 纳米修复只奖励“干净的一波”：本波漏怪则不触发，避免用漏怪换输出、
+      // 再用修复把核心血量刷回来的躺赢打法。
+      if (this.mods.repair > 0 && this.leaksThisWave === 0) {
         const before = this.baseHp;
         this.baseHp = Math.min(this.baseMax, this.baseHp + this.mods.repair);
         repaired = Math.round(this.baseHp - before);

@@ -2004,7 +2004,6 @@
     if (!applyFirstClearBudget(levelId)) return;
     maybeAutoImmersive();
     clearRunSnapshot(); // 新开一局：作废旧临时存档
-    closeDebugPanel();
     destroyGame();
     closeHelp();
     pendingTraitTraits = traitBriefingsForLevel(level.id);
@@ -3322,6 +3321,17 @@
     return els.helpModal && !els.helpModal.classList.contains('hidden');
   }
 
+  function debugModalNodes() {
+    return [els.onboarding, els.traitBriefing, els.resultOverlay, els.pauseOverlay, els.helpModal, els.waveIntel];
+  }
+
+  function syncDebugModalLayer() {
+    const open = debugModalNodes().some(function (node) {
+      return node && !node.classList.contains('hidden');
+    });
+    document.body.classList.toggle('debug-modal-open', open);
+  }
+
   /* ============================================================
      Battle records
      ============================================================ */
@@ -3486,6 +3496,13 @@
   }
 
   function bindUI() {
+    // Keep the debug panel inside #app so it shares a stacking context with
+    // the game screens; when a briefing/modal is open we can then park it
+    // below the modal scrim while leaving panelOpen = true.
+    const appRoot = $('app');
+    if (appRoot && els.debugPanel && els.debugPanel.parentElement !== appRoot) {
+      appRoot.appendChild(els.debugPanel);
+    }
     $('btn-deploy').addEventListener('click', openLevels);
     $('btn-skills-home').addEventListener('click', function () { openSkills('home'); });
     $('btn-help').addEventListener('click', openHelp);
@@ -3797,6 +3814,14 @@
     bindDebugCli();
     buildHelpManual();
     refreshMeta();
+
+    syncDebugModalLayer();
+    if (window.MutationObserver) {
+      const observer = new MutationObserver(syncDebugModalLayer);
+      debugModalNodes().forEach(function (node) {
+        if (node) observer.observe(node, { attributes: true, attributeFilter: ['class'] });
+      });
+    }
   }
 
   function isTextEntryTarget(target) {

@@ -6392,6 +6392,16 @@ body.help-open .debug-hud-button {
   width: 6px;
 }
 
+/* Keep the panel open while a briefing / result / manual modal is up,
+   but park it under the modal scrim so it cannot block modal buttons. */
+body.debug-modal-open .debug-panel {
+  z-index: 40;
+}
+
+body.debug-modal-open #screen-game {
+  z-index: 350;
+}
+
 .debug-panel::-webkit-scrollbar-thumb {
   background: rgba(255, 154, 98, 0.3);
 }

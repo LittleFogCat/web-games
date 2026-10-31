@@ -2544,7 +2544,7 @@
     if (type === 'prism') {
       chips.push('<span>齐射 <b>' + stats.shots + '</b></span>');
       if (stats.second) {
-        chips.push('<span>主箭 <b>' + stats.damage + '</b> / 副箭 <b>' + stats.second + '</b></span>');
+        chips.push('<span>主箭 <b>' + formatStat(stats.damage) + '</b> / 副箭 <b>' + formatStat(stats.second) + '</b></span>');
       }
     } else if (type === 'gatling' || type === 'cannon') {
       chips.push('<span>间隔 <b>' + stats.cooldown.toFixed(2) + 's</b></span>');

@@ -490,6 +490,7 @@
     hud: document.querySelector('.game-hud'),
     pauseButton: $('btn-game-pause'),
     traitBriefing: $('trait-briefing'),
+    traitBriefingKicker: $('trait-briefing-kicker'),
     traitBriefingTitle: $('trait-briefing-title'),
     traitBriefingLead: $('trait-briefing-lead'),
     traitBriefingList: $('trait-briefing-list'),
@@ -1034,40 +1035,52 @@
     });
   }
 
-  function maybeShowTraitBriefing() {
-    if (!pendingTraitTraits.length || !els.traitBriefing) return;
+  // Every sector entry opens this briefing: it carries the sector intel and
+  // the skills shortcut, plus any newly introduced traits.
+  function showLevelBriefing() {
+    if (!els.traitBriefing) return;
     if (!els.onboarding.classList.contains('hidden')) return;
     if (!els.resultOverlay.classList.contains('hidden')) return;
     const level = C.LEVELS[(currentLevelId || 1) - 1];
     const traits = pendingTraitTraits.slice();
+    const hasTraits = traits.length > 0;
+    if (els.traitBriefingKicker) {
+      els.traitBriefingKicker.textContent = hasTraits ? 'NEW THREAT SIGNAL' : 'SECTOR BRIEFING';
+    }
     if (els.traitBriefingTitle) {
-      els.traitBriefingTitle.textContent = traits.length > 1 ? '新特性 × ' + traits.length : '新特性 · ' + traits[0].name;
+      els.traitBriefingTitle.textContent = hasTraits
+        ? (traits.length > 1 ? '新特性 × ' + traits.length : '新特性 · ' + traits[0].name)
+        : (level ? level.code + ' · ' + level.name : '星区简报');
     }
     if (els.traitBriefingLead) {
       els.traitBriefingLead.textContent = level && level.intel
         ? level.intel
-        : '本星区出现新的敌人特性。先读简报，再调整防御阵列。';
+        : (hasTraits ? '本星区出现新的敌人特性。先读简报，再调整防御阵列。' : '检查本关情报，按需调整技能后开始部署。');
     }
     if (els.traitBriefingList) {
-      els.traitBriefingList.innerHTML = traits.map(function (trait) {
-        return (
-          '<div class="trait-brief-item" style="--trait-color:' + trait.color + '">' +
-            '<span class="trait-brief-badge" aria-hidden="true">' + trait.short + '</span>' +
-            '<div class="trait-brief-copy">' +
-              '<b>' + trait.name + '</b>' +
-              '<p>' + trait.desc + '</p>' +
-              '<span class="trait-brief-counter">克制：<b>' + trait.counter + '</b></span>' +
-            '</div>' +
-          '</div>'
-        );
-      }).join('');
+      els.traitBriefingList.innerHTML = hasTraits
+        ? traits.map(function (trait) {
+            return (
+              '<div class="trait-brief-item" style="--trait-color:' + trait.color + '">' +
+                '<span class="trait-brief-badge" aria-hidden="true">' + trait.short + '</span>' +
+                '<div class="trait-brief-copy">' +
+                  '<b>' + trait.name + '</b>' +
+                  '<p>' + trait.desc + '</p>' +
+                  '<span class="trait-brief-counter">克制：<b>' + trait.counter + '</b></span>' +
+                '</div>' +
+              '</div>'
+            );
+          }).join('')
+        : '<p class="trait-brief-note">' + (level
+            ? '本星区共 ' + level.waves.length + ' 波，没有新增敌人特性。可以先调整技能矩阵，再开始部署。'
+            : '本星区没有新增敌人特性。可以先调整技能矩阵，再开始部署。') + '</p>';
     }
     els.traitBriefing.classList.remove('hidden');
     if (currentGame) {
       currentGame.setPaused(true);
       showPauseBar();
     }
-    audio.play('warning');
+    audio.play(hasTraits ? 'warning' : 'ui');
   }
 
   function closeTraitBriefing() {
@@ -1866,7 +1879,7 @@
       els.onboarding.classList.remove('hidden');
     } else {
       showPauseBar();
-      maybeShowTraitBriefing();
+      showLevelBriefing();
     }
     audio.ensure();
   }
@@ -2921,7 +2934,7 @@
         currentGame.setPaused(true);
         currentGame.refreshUI();
         showPauseBar();
-        maybeShowTraitBriefing();
+        showLevelBriefing();
         showArenaToast('部署阶段 · 点击左上播放键开始作战', 'info');
       }
       onboardingPause = false;

@@ -8116,6 +8116,14 @@ body.is-immersive #app {
   gap: 8px;
 }
 
+.trait-brief-note {
+  margin: 0;
+  padding: 10px 2px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
 .trait-brief-item {
   display: flex;
   gap: 10px;

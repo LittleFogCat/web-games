@@ -56,7 +56,8 @@ vector-td/
   src/render.js             Canvas 背景、路径、五级塔体、特性敌人、弹道、特效、范围、选择框
   src/app.js                DOM 绑定、HUD、建造栏、暂停、关卡/技能界面、存档、调试面板
   screenshots/              README 用首页与实机截图
-  tools/                    开发工具：三档门禁、无头模拟、关卡/对比度检查、本地记录服务
+  tools/                    开发工具：三档门禁、无头模拟、关卡/对比度检查
+  docs/records/             从浏览器 Local Storage 离线提取闯关记录的方法
   release/                  静态部署包与 SHA-256
   dist/                     可直接部署的镜像目录
   docs/deployment.md        游戏专属部署、备份、回滚与线上验证文档
@@ -206,9 +207,8 @@ window.__VECTOR.debug.status()             // 当前局内摘要
 
 - 每局结算（胜利 / 失守，含调试战斗）写入 `localStorage` 的 `vector_geotd_records_v1`，最多保留 100 条，最新在前。
 - 字段固定为：完成时间、关卡 `E1Lx`、结果 / 星级 / 完整度 / 波次 / 用时、初始技能点（进入关卡简报调整后的快照）、逐波时间线（用时 / 击杀 / 漏怪 / 核心与晶元变化）、漏怪明细、逐塔伤害（伤害 / 占比 / 护盾伤害 / 击杀）、建造 / 升级 / 回收时间线（塔种 / 等级 / 坐标 / 波次 / 费用）。
-- **不在任何用户界面展示**；仅在调试面板提供「导出记录 JSON」「上传到本地服务」与「清空记录」（清空需二次确认）。
-- 调试模式自动上传到本地记录服务 `POST /__records`：页面加载 / 进入调试模式时同步已有记录，结算时上传新记录；`localhost` / `127.0.0.1` 页面（非 8787 端口）自动指向 `http://127.0.0.1:8787/__records`，其他来源可用 `?record=...` 指定。
-- 本地服务：`node vector-td/tools/record-server.js`（默认 `127.0.0.1:8787`，同时静态托管仓库）；数据写入 `tmp/records/records.json`，按 id 去重，最多 500 条；服务只用于本地调试，不部署。
+- **不在任何用户界面展示**；仅在调试面板提供「导出记录 JSON」与「清空记录」（清空需二次确认）。
+- 需要离线分析时，按 [docs/records/chrome-localstorage.md](docs/records/chrome-localstorage.md) 从 Chrome / Edge 的 Local Storage 提取记录，再合并到 `tmp/records/records.json`；不在游戏内提供自动上传或本地服务。
 - 调试战斗的记录带 `debug: true` 标记；记录写入不影响正式进度、星级或金币。
 - 修改记录字段时必须兼容旧记录（缺字段按空处理），并同步 README、游戏策划文档与当前基线。
 
@@ -219,6 +219,7 @@ window.__VECTOR.debug.status()             // 当前局内摘要
 - 关卡策划：`docs/design/关卡策划.md`
 - 数值策划：`docs/design/数值策划.md`
 - 单位图鉴：`docs/design/单位图鉴.md`
+- 闯关记录提取：`docs/records/chrome-localstorage.md`
 - 开发基线：`docs/baseline/baseline_log.md`
 - 总案只写游戏基准设定，不写版本计划/变更历史；版本范围写基线文档，关卡/数值分别写对应文档。
 - 修改塔 / 敌人 / 关卡数值后，必须同步数值策划、单位图鉴与关卡策划中的相关表格与“首次出现”信息。

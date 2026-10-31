@@ -1267,7 +1267,6 @@
     refreshMeta();
     renderSkills();
     renderDebugPanel();
-    if (debug.enabled) syncAllRecordsToLocalServer(false);
     if (debug.enabled) loadGameRevision();
     if (switched) {
       showGlobalToast('已切换到' + (debug.enabled ? '调试' : '正式') + '存档', 'info');
@@ -1410,10 +1409,9 @@
         '<h4>闯关记录 <span>' + records.length + ' 条</span></h4>' +
         '<div class="debug-actions">' +
           '<button type="button" data-debug-action="export-records">导出记录 JSON</button>' +
-          '<button type="button" data-debug-action="sync-records">上传到本地服务</button>' +
           '<button type="button" class="danger" data-debug-action="clear-records">清空记录</button>' +
         '</div>' +
-        '<p class="debug-note">启动 node vector-td/tools/record-server.js 后自动上传；也可手动上传。记录只写入本地 localStorage，不在游戏界面展示。</p>' +
+        '<p class="debug-note">记录只写入本地 localStorage，不在游戏界面展示；导出 JSON 用于离线分析。</p>' +
       '</section>' +
       '<section class="debug-section">' +
         '<h4>实时状态</h4>' +
@@ -1828,8 +1826,6 @@
       showGlobalToast(label + '存档已重置 · 金币 0 · 技能 0 阶 · 星区 01', 'info');
     } else if (action === 'export-records') {
       exportRecords();
-    } else if (action === 'sync-records') {
-      syncAllRecordsToLocalServer(true);
     } else if (action === 'clear-records') {
       clearRecordsData();
     } else if (action === 'max-skills') {
@@ -3122,7 +3118,6 @@
     records.unshift(record);
     if (records.length > RECORD_LIMIT) records.length = RECORD_LIMIT;
     persistRecords();
-    sendRecordToLocalServer(record);
     return record;
   }
 
@@ -3416,70 +3411,6 @@
     persistRecords();
     if (debug.panelOpen) renderDebugPanel();
     showGlobalToast('闯关记录已清空', 'info');
-  }
-
-  function localRecordEndpoint() {
-    try {
-      const override = new URLSearchParams(window.location.search).get('record');
-      if (override) return override;
-    } catch (error) {
-      // 忽略非法 URL。
-    }
-    if (window.location.protocol === 'file:') return null;
-    const host = window.location.hostname;
-    if (host === 'localhost' || host === '127.0.0.1' || host === '::1') {
-      // 页面由记录服务自己托管（8787）时走同源；其他本地端口默认指向 8787。
-      if (window.location.port === '8787') return '/__records';
-      return 'http://127.0.0.1:8787/__records';
-    }
-    return null;
-  }
-
-  function postRecordsToLocalServer(list, manual) {
-    const endpoint = localRecordEndpoint();
-    if (!endpoint) {
-      if (manual) showGlobalToast('未配置本地记录服务；用 ?record=http://127.0.0.1:8787/__records', 'error');
-      return Promise.resolve(false);
-    }
-    return window.fetch(endpoint, {
-      method: 'POST',
-      mode: 'cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ records: list }),
-    }).then(function (response) {
-      if (!response.ok) throw new Error('HTTP ' + response.status);
-      return response.json().catch(function () { return {}; });
-    }).then(function (data) {
-      if (manual) {
-        const added = data && data.added != null ? data.added : list.length;
-        showGlobalToast('已上传 ' + added + ' 条记录到本地服务', 'success');
-      }
-      return true;
-    }).catch(function (error) {
-      if (manual) {
-        showGlobalToast('本地记录服务未响应；先运行 node vector-td/tools/record-server.js', 'error');
-      }
-      console.info('[VECTOR] 本地记录服务连接失败:', error && error.message ? error.message : error);
-      return false;
-    });
-  }
-
-  function syncAllRecordsToLocalServer(manual) {
-    if (!debug.enabled) {
-      if (manual) showGlobalToast('仅调试模式可上传记录', 'error');
-      return Promise.resolve(false);
-    }
-    if (!records.length) {
-      if (manual) showGlobalToast('暂无记录可上传', 'error');
-      return Promise.resolve(false);
-    }
-    return postRecordsToLocalServer(records, manual);
-  }
-
-  function sendRecordToLocalServer(record) {
-    if (!debug.enabled || !record) return;
-    if (!localRecordEndpoint()) return;
-    postRecordsToLocalServer([record], false);
   }
 
   function gameInputBlocked() {
@@ -4030,7 +3961,6 @@
     updateResumeUI();
     if (debug.enabled) {
       console.info('[VECTOR] Debug mode enabled. Toggle with Ctrl+Shift+D or ?debug=1.');
-      syncAllRecordsToLocalServer(false);
       loadGameRevision();
     }
     requestAnimationFrame(loop);

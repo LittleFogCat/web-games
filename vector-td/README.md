@@ -184,28 +184,9 @@ python -m http.server 5180 --bind 127.0.0.1
 - 重复通关不再结算金币；首次通关仍按正常规则结算。
 - 关闭开关后，调试模式恢复普通金币结算与存档累积。
 
-### 本地闯关记录服务（调试）
+### 读取闯关记录（调试）
 
-闯关记录只保存在浏览器本地，不面向玩家展示。需要把记录交给开发分析时，在仓库根目录运行：
-
-```powershell
-node vector-td/tools/record-server.js
-```
-
-然后打开 `http://127.0.0.1:8787/vector-td/?debug=1`。调试模式会在以下时机自动上传到 `http://127.0.0.1:8787/__records`：
-
-- 页面加载或切换到调试模式：同步 `localStorage` 中已有记录；
-- 每局结算：立即上传新记录。
-
-服务按记录 id 合并去重，写入 `tmp/records/records.json`，同时提供 `GET /__records` 供读取；`tmp/` 不会提交到仓库。
-
-本地 HTTP 页面（`localhost` / `127.0.0.1`，非 8787 端口）会自动上传到 `http://127.0.0.1:8787/__records`，不需要加参数。只有记录服务改用其他端口、或页面是 HTTPS 时才需要 `record` 参数：
-
-```text
-...?debug=1&record=http://127.0.0.1:8787/__records
-```
-
-HTTPS 页面连接 `http://127.0.0.1` 可能被浏览器的混合内容 / 私有网络策略拦截；被拦截时改用 `http://127.0.0.1:8787/vector-td/?debug=1`。
+闯关记录只保存在浏览器本地，不面向玩家展示。需要离线分析时，按 [从 Chrome Local Storage 提取记录](docs/records/chrome-localstorage.md) 操作；调试面板仍可导出 JSON 或清空。
 
 ## 项目结构
 

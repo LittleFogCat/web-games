@@ -1241,6 +1241,13 @@
         '<p class="debug-note">在局内点击生成 5 个测试单位；准备阶段点击会自动进入交战。</p>' +
       '</section>' +
       '<section class="debug-section">' +
+        '<h4>重置进度 <span>不可撤销</span></h4>' +
+        '<div class="debug-actions">' +
+          '<button type="button" class="danger wide" data-debug-action="reset-progress">清零金币 / 技能 / 闯关进度</button>' +
+        '</div>' +
+        '<p class="debug-note">金币归零、全部技能回到 0 阶、星区解锁回到 01、星级记录清空。特性简报、音效与调试设置保留；当前对局不受影响。</p>' +
+      '</section>' +
+      '<section class="debug-section">' +
         '<h4>实时状态</h4>' +
         '<div class="debug-status" id="debug-status">' + statusHtml + '</div>' +
         '<p class="debug-note">快捷键：Ctrl + Shift + D 开关调试模式；?debug=1 强制开启。</p>' +
@@ -1336,6 +1343,7 @@
           '  skill <id> <rank>    设置技能阶数（0-' + C.SKILL_MAX + '）',
           '  skills max|reset     全技能满阶 / 清零',
           '  unlock               解锁全部星区',
+          '  reset                重置进度（金币 / 技能 / 星区 / 星级）',
           '  level <id>           直达星区（1-' + C.LEVELS.length + '）',
           '  speed <1|2|3>        战斗倍速',
           '  clear                清空本日志',
@@ -1453,6 +1461,10 @@
         showGlobalToast('已解锁全部星区', 'success');
         return '已解锁全部 ' + C.LEVELS.length + ' 个星区。';
       }
+      case 'reset': {
+        const reset = resetProgress();
+        return '进度已重置：金币 ' + reset.gold + ' · 技能 0 阶 · 星区 ' + pad2(reset.unlocked) + ' · 星级 ' + reset.stars + '。';
+      }
       case 'level': {
         const levelId = Math.floor(num(0, 0));
         if (!C.LEVELS[levelId - 1]) return '星区编号需为 1-' + C.LEVELS.length + '。';
@@ -1521,6 +1533,24 @@
     renderSkills();
   }
 
+  // Reset the meta save only: gold, skills, sector unlocks and star records.
+  // Settings, trait briefings and the in-flight battle are intentionally kept.
+  function resetProgress() {
+    save.gold = 0;
+    for (let i = 0; i < C.SKILLS.length; i++) {
+      save.skills[C.SKILLS[i].id] = 0;
+    }
+    save.unlocked = 1;
+    save.bestStars = {};
+    persist();
+    refreshMeta();
+    renderSkills();
+    renderLevelList();
+    updateResumeUI();
+    if (debug.panelOpen) renderDebugPanel();
+    return { gold: save.gold, unlocked: save.unlocked, stars: totalStars() };
+  }
+
   function handleDebugAction(action, target) {
     if (!debug.enabled) return;
     if (action === 'unlock-all') {
@@ -1534,6 +1564,17 @@
       persist();
       refreshMeta();
       showGlobalToast('金币 +1000', 'success');
+    } else if (action === 'reset-progress') {
+      const confirmed = window.confirm(
+        '重置进度？\n\n金币归零、全部技能回到 0 阶、星区解锁回到 01、所有星级记录清空。\n' +
+        '特性简报、音效与调试设置保留，当前对局不受影响。\n\n此操作不可撤销。'
+      );
+      if (!confirmed) {
+        if (target) target.blur();
+        return;
+      }
+      const reset = resetProgress();
+      showGlobalToast('进度已重置 · 金币 ' + reset.gold + ' · 星区 ' + pad2(reset.unlocked), 'info');
     } else if (action === 'max-skills') {
       debugSetAllSkills(C.SKILL_MAX);
       showGlobalToast('全部技能已提升至 5 阶', 'success');
@@ -3483,6 +3524,7 @@
       status: function () { return currentGame ? currentGame.debugStatus() : null; },
       maxSkills: function () { debugSetAllSkills(C.SKILL_MAX); },
       resetSkills: function () { debugSetAllSkills(0); },
+      resetProgress: function () { return resetProgress(); },
       setSkill: function (id, rank) {
         if (!save.skills.hasOwnProperty(id)) return false;
         save.skills[id] = U.clamp(Math.floor(rank || 0), 0, C.SKILL_MAX);

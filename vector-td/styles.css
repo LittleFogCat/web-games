@@ -2571,77 +2571,44 @@ body::before {
   filter: brightness(1.08);
 }
 
-/* transient wave intel card, summoned by tapping the wave block mid-combat */
-.wave-intel {
-  position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 82px);
-  right: 8px;
-  z-index: 26;
-  display: none;
-  width: min(272px, calc(100% - 16px));
-  max-height: 46vh;
-  overflow: auto;
-  padding: 8px 10px 9px;
-  border: 1px solid color-mix(in srgb, var(--game-accent) 34%, transparent);
-  background:
-    linear-gradient(180deg, rgba(7, 19, 31, 0.97), rgba(4, 12, 21, 0.98)),
-    radial-gradient(ellipse at 12% 0, color-mix(in srgb, var(--game-accent) 9%, transparent), transparent 68%);
-  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.46);
-  clip-path: polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 9px 100%, 0 calc(100% - 9px));
-}
-
-.wave-intel.show {
-  display: block;
-  animation: wave-intel-in 160ms ease;
-}
-
-.screen-game.pause-active .wave-intel {
-  top: calc(env(safe-area-inset-top, 0px) + 96px);
-}
-
-@keyframes wave-intel-in {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+/* wave intel dialog, opened from the pause menu */
+.wave-intel-card {
+  width: min(560px, 100%);
+  padding: 18px 20px 20px;
 }
 
 .wave-intel-head {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding-bottom: 5px;
-  border-bottom: 1px solid rgba(111, 186, 209, 0.14);
+  gap: 9px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(111, 186, 209, 0.18);
 }
 
 .wave-intel-kicker {
   color: var(--game-accent);
   font-family: var(--font-mono);
-  font-size: 7px;
-  letter-spacing: 0.1em;
+  font-size: 10px;
+  letter-spacing: 0.12em;
 }
 
 .wave-intel-head b {
-  color: var(--text-soft);
+  color: var(--text);
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 19px;
   font-weight: 500;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 
 .wave-intel-close {
-  width: 18px;
-  height: 18px;
+  width: 28px;
+  height: 28px;
   margin-left: auto;
   padding: 0;
-  border: 1px solid rgba(120, 200, 226, 0.18);
+  border: 1px solid rgba(120, 200, 226, 0.24);
   color: var(--muted);
   background: transparent;
-  font-size: 12px;
+  font-size: 18px;
   line-height: 1;
   cursor: pointer;
 }
@@ -2651,51 +2618,66 @@ body::before {
   color: var(--text);
 }
 
-.wave-intel-summary {
-  margin: 6px 0 5px;
-  color: var(--text-soft);
-  font-size: 9px;
-  line-height: 1.5;
+.wave-intel-body {
+  max-height: min(58vh, 520px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(94, 242, 255, 0.2) transparent;
 }
 
-.wave-intel .next-wave-preview {
+.wave-intel-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+.wave-intel-body::-webkit-scrollbar-thumb {
+  background: rgba(94, 242, 255, 0.2);
+}
+
+.wave-intel-summary {
+  margin: 12px 0 9px;
+  color: var(--text-soft);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.wave-intel-body .next-wave-preview {
   display: flex;
   max-width: none;
   justify-content: flex-start;
 }
 
-.wave-intel .enemy-chip {
-  padding: 3px 5px;
-  font-size: 8px;
+.wave-intel-body .enemy-chip {
+  padding: 4px 7px;
+  font-size: 11px;
 }
 
-.wave-intel .next-wave-threats {
+.wave-intel-body .next-wave-threats {
   justify-content: flex-start;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .wave-intel-traits {
-  margin: 6px 0 0;
+  margin: 10px 0 0;
   color: var(--muted);
-  font-size: 8px;
-  line-height: 1.55;
+  font-size: 11.5px;
+  line-height: 1.6;
 }
 
 /* 全波次敌情列表 */
 .wave-intel-list {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  margin-top: 6px;
+  gap: 8px;
+  margin-top: 4px;
 }
 
 .wave-intel-row {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 4px 6px;
-  border: 1px solid rgba(111, 186, 209, 0.14);
-  background: rgba(8, 20, 31, 0.4);
+  gap: 10px;
+  padding: 9px 11px;
+  border: 1px solid rgba(111, 186, 209, 0.16);
+  background: rgba(8, 20, 31, 0.45);
 }
 
 .wave-intel-row.current {
@@ -2704,14 +2686,15 @@ body::before {
 }
 
 .wave-intel-row.past {
-  opacity: 0.42;
+  opacity: 0.45;
 }
 
 .wave-intel-no {
   flex: 0 0 auto;
+  min-width: 24px;
   color: var(--game-accent);
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 14px;
 }
 
 .wave-intel-row.past .wave-intel-no {
@@ -2721,20 +2704,20 @@ body::before {
 .wave-intel-row-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 3px;
+  gap: 5px;
   min-width: 0;
 }
 
 .wave-intel-row-chips .enemy-chip {
-  padding: 2px 4px;
-  font-size: 7.5px;
+  padding: 3px 7px;
+  font-size: 11px;
 }
 
 .wave-intel-row-traits {
   margin-left: auto;
   color: var(--muted);
-  font-size: 7px;
-  line-height: 1.4;
+  font-size: 11px;
+  line-height: 1.45;
   text-align: right;
 }
 

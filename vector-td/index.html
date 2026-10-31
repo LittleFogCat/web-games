@@ -306,13 +306,16 @@
         <span class="core-alert-copy"><b id="core-alert-title">核心受击</b><small id="core-alert-sub">−8</small></span>
       </div>
 
-      <div id="wave-intel" class="wave-intel" role="status" aria-live="polite" aria-label="本波次敌人情报">
-        <div class="wave-intel-head">
-          <span class="wave-intel-kicker" id="wave-intel-kicker">WAVE 01</span>
-          <b>本波次敌情</b>
-          <button id="wave-intel-close" class="wave-intel-close" type="button" aria-label="关闭敌情">×</button>
+      <div id="wave-intel" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="wave-intel-title" aria-hidden="true">
+        <div id="wave-intel-scrim" class="overlay-scrim"></div>
+        <div class="modal-card wave-intel-card">
+          <div class="wave-intel-head">
+            <span class="wave-intel-kicker" id="wave-intel-kicker">WAVE INTEL</span>
+            <b id="wave-intel-title">敌情列表</b>
+            <button id="wave-intel-close" class="wave-intel-close" type="button" aria-label="关闭敌情">×</button>
+          </div>
+          <div id="wave-intel-body" class="wave-intel-body"></div>
         </div>
-        <div id="wave-intel-body" class="wave-intel-body"></div>
       </div>
 
       <div id="arena-wrap" class="arena-wrap">

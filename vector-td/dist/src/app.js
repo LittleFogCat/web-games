@@ -521,8 +521,10 @@
     waveStatusValue: $('wave-status-value'),
     waveStatusProgress: $('wave-status-progress'),
     waveIntel: $('wave-intel'),
+    waveIntelScrim: $('wave-intel-scrim'),
     waveIntelBody: $('wave-intel-body'),
     waveIntelKicker: $('wave-intel-kicker'),
+    waveIntelTitle: $('wave-intel-title'),
     waveIntelClose: $('wave-intel-close'),
     speedLabel: $('speed-label'),
     gameScreen: $('screen-game'),
@@ -2377,11 +2379,17 @@
     if (button) button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
   }
 
+  function setWaveIntelOpen(open) {
+    if (!els.waveIntel) return;
+    els.waveIntel.classList.toggle('hidden', !open);
+    els.waveIntel.setAttribute('aria-hidden', open ? 'false' : 'true');
+    setPauseIntelExpanded(open);
+  }
+
   function hideWaveIntel() {
     window.clearTimeout(waveIntelTimer);
     waveIntelTimer = 0;
-    if (els.waveIntel) els.waveIntel.classList.remove('show');
-    setPauseIntelExpanded(false);
+    setWaveIntelOpen(false);
   }
 
   function showWaveIntel(options) {
@@ -2399,13 +2407,13 @@
       : '无特殊特性';
     window.clearTimeout(arenaToastTimer);
     if (els.arenaToast) els.arenaToast.classList.remove('show');
+    if (els.waveIntelTitle) els.waveIntelTitle.textContent = '本波次敌情';
     if (els.waveIntelKicker) els.waveIntelKicker.textContent = 'WAVE ' + pad2(preview.number);
     els.waveIntelBody.innerHTML =
       '<p class="wave-intel-summary">' + summary.names + '</p>' +
       '<div class="next-wave-preview wave-intel-chips"><span class="next-wave-label">COUNT</span>' + enemyChipsHtml(preview) + '</div>' +
       '<p class="wave-intel-traits">特性：' + traitNames + '</p>';
-    els.waveIntel.classList.add('show');
-    setPauseIntelExpanded(true);
+    setWaveIntelOpen(true);
     window.clearTimeout(waveIntelTimer);
     waveIntelTimer = window.setTimeout(hideWaveIntel, duration);
     audio.play('ui');
@@ -2413,7 +2421,7 @@
 
   function togglePauseIntel() {
     if (!currentGame || !els.pauseBar || els.pauseBar.classList.contains('hidden')) return;
-    if (els.waveIntel && els.waveIntel.classList.contains('show')) hideWaveIntel();
+    if (els.waveIntel && !els.waveIntel.classList.contains('hidden')) hideWaveIntel();
     else showWaveIntelAll();
   }
 
@@ -2445,20 +2453,23 @@
     }
     window.clearTimeout(arenaToastTimer);
     if (els.arenaToast) els.arenaToast.classList.remove('show');
+    if (els.waveIntelTitle) els.waveIntelTitle.textContent = '敌情列表';
     if (els.waveIntelKicker) els.waveIntelKicker.textContent = 'WAVE INTEL · 全部 ' + pad2(currentGame.totalWaves) + ' 波';
     els.waveIntelBody.innerHTML =
-      '<p class="wave-intel-summary">本关全部波次 · 当前 ' + pad2(current) + ' · 再次点击关闭</p>' +
+      '<p class="wave-intel-summary">本关全部波次 · 当前 ' + pad2(current) + ' · 点击外部关闭</p>' +
       '<div class="wave-intel-list">' + rows.join('') + '</div>';
-    els.waveIntel.classList.add('show');
-    setPauseIntelExpanded(true);
-    // 全波次列表不自动关闭：由玩家再点图标 / × 按钮 / 恢复作战关闭。
+    setWaveIntelOpen(true);
+    // 全波次列表不自动关闭：由玩家点击外部 / × / Esc / 恢复作战关闭。
     // （清除预警弹窗遗留的定时器，防止它误关本列表。）
     window.clearTimeout(waveIntelTimer);
     audio.play('ui');
     const currentRow = els.waveIntelBody.querySelector('.wave-intel-row.current');
-    if (currentRow && currentRow.scrollIntoView) {
-      currentRow.scrollIntoView({ block: 'center' });
+    if (currentRow) {
+      const offset = currentRow.offsetTop - els.waveIntelBody.clientHeight / 2 + currentRow.offsetHeight / 2;
+      els.waveIntelBody.scrollTop = Math.max(0, offset);
     }
+    const trigger = $('btn-pause-intel');
+    if (trigger) trigger.blur();
   }
 
   function renderIntel(info) {
@@ -3040,7 +3051,8 @@
       || !els.pauseOverlay.classList.contains('hidden')
       || !els.resultOverlay.classList.contains('hidden')
       || !els.onboarding.classList.contains('hidden')
-      || !els.traitBriefing.classList.contains('hidden');
+      || !els.traitBriefing.classList.contains('hidden')
+      || !!(els.waveIntel && !els.waveIntel.classList.contains('hidden'));
   }
 
   /* ============================================================
@@ -3192,6 +3204,20 @@
 
     if (els.waveIntelClose) {
       els.waveIntelClose.addEventListener('click', function () {
+        hideWaveIntel();
+        audio.play('ui');
+      });
+    }
+    if (els.waveIntelScrim) {
+      // 左键点击对话框外部关闭。
+      els.waveIntelScrim.addEventListener('click', function () {
+        hideWaveIntel();
+        audio.play('ui');
+      });
+      // 右键点击外部同样关闭，并阻止战场右键取消选择。
+      els.waveIntelScrim.addEventListener('contextmenu', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
         hideWaveIntel();
         audio.play('ui');
       });
@@ -3403,6 +3429,15 @@
       setDebugMode(!debug.enabled);
       return;
     }
+    // 敌情对话框打开时，拦截暂停 / 恢复相关快捷键，避免焦点按钮被 Space 再次触发。
+    if (
+      els.waveIntel &&
+      !els.waveIntel.classList.contains('hidden') &&
+      (event.key === ' ' || event.key === 'Spacebar' || event.key === 'p' || event.key === 'P')
+    ) {
+      event.preventDefault();
+      return;
+    }
     if (
       (event.key === ' ' || event.key === 'Spacebar') &&
       !event.repeat &&
@@ -3414,6 +3449,7 @@
       els.traitBriefing.classList.contains('hidden') &&
       els.resultOverlay.classList.contains('hidden') &&
       els.pauseOverlay.classList.contains('hidden') &&
+      (!els.waveIntel || els.waveIntel.classList.contains('hidden')) &&
       !isTextEntryTarget(event.target)
     ) {
       // Space is reserved for pause/resume on the battlefield; stop it from
@@ -3430,6 +3466,11 @@
       }
       if (helpOpen()) {
         closeHelp();
+        event.preventDefault();
+        return;
+      }
+      if (els.waveIntel && !els.waveIntel.classList.contains('hidden')) {
+        hideWaveIntel();
         event.preventDefault();
         return;
       }
@@ -3471,7 +3512,8 @@
       !isTextEntryTarget(event.target) &&
       els.onboarding.classList.contains('hidden') &&
       els.traitBriefing.classList.contains('hidden') &&
-      els.resultOverlay.classList.contains('hidden')
+      els.resultOverlay.classList.contains('hidden') &&
+      (!els.waveIntel || els.waveIntel.classList.contains('hidden'))
     ) {
       togglePause();
       event.preventDefault();

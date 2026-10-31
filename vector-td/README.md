@@ -199,7 +199,7 @@ node vector-td/tools/record-server.js
 
 服务按记录 id 合并去重，写入 `tmp/records/records.json`，同时提供 `GET /__records` 供读取；`tmp/` 不会提交到仓库。
 
-如果继续使用原来的页面地址（例如 `https://xiaoniu.tech/games/vector-td/` 或 `http://127.0.0.1:5180/vector-td/`），可加 `record` 参数指向本地服务：
+本地 HTTP 页面（`localhost` / `127.0.0.1`，非 8787 端口）会自动上传到 `http://127.0.0.1:8787/__records`，不需要加参数。只有记录服务改用其他端口、或页面是 HTTPS 时才需要 `record` 参数：
 
 ```text
 ...?debug=1&record=http://127.0.0.1:8787/__records

@@ -3427,7 +3427,11 @@
     }
     if (window.location.protocol === 'file:') return null;
     const host = window.location.hostname;
-    if (host === 'localhost' || host === '127.0.0.1' || host === '::1') return '/__records';
+    if (host === 'localhost' || host === '127.0.0.1' || host === '::1') {
+      // 页面由记录服务自己托管（8787）时走同源；其他本地端口默认指向 8787。
+      if (window.location.port === '8787') return '/__records';
+      return 'http://127.0.0.1:8787/__records';
+    }
     return null;
   }
 

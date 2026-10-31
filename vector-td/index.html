@@ -226,7 +226,7 @@
         </div>
         <div class="skill-footnote">
           <span class="footnote-mark">i</span>
-          技能等级永久保留。所有节点最高 5 阶，效果会在下次作战中生效。
+          技能等级永久保留。所有节点最高 5 阶，单个节点可随时降阶并全额返还该阶金币；效果会在下次作战中生效。
         </div>
         <div id="skills-debug-note" class="debug-inline-note hidden">DEBUG · 调试模式初始赠送 10000 金币；技能升级按正常费用消耗，可随时重置并全额返还。</div>
         <div class="scroll-spacer"></div>
@@ -435,7 +435,10 @@
           <h2 class="modal-title" id="trait-briefing-title">新特性</h2>
           <p class="trait-briefing-lead" id="trait-briefing-lead"></p>
           <div id="trait-briefing-list" class="trait-briefing-list"></div>
-          <button id="btn-trait-close" class="primary-button compact" type="button"><span class="button-copy"><b>收到简报</b><small>UNDERSTOOD</small></span></button>
+          <div class="trait-briefing-actions">
+            <button id="btn-trait-skills" class="secondary-button compact" type="button"><span><b>技能调整</b><small>SKILL MATRIX</small></span></button>
+            <button id="btn-trait-close" class="primary-button compact" type="button"><span class="button-copy"><b>收到简报</b><small>UNDERSTOOD</small></span></button>
+          </div>
         </div>
       </div>
     </section>

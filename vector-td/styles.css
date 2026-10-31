@@ -1720,6 +1720,31 @@ body::before {
   font-size: 8px;
 }
 
+.skill-downgrade {
+  display: grid;
+  min-width: 28px;
+  height: 22px;
+  margin-left: auto;
+  place-items: center;
+  border: 1px solid rgba(255, 211, 92, 0.26);
+  color: rgba(255, 211, 92, 0.82);
+  background: rgba(9, 19, 30, 0.72);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1;
+  transition: border-color 160ms ease, color 160ms ease, background 160ms ease, transform 140ms ease;
+}
+
+.skill-downgrade:hover {
+  border-color: rgba(255, 211, 92, 0.62);
+  color: #ffe3a1;
+  background: rgba(40, 32, 10, 0.65);
+}
+
+.skill-downgrade:active {
+  transform: scale(0.94);
+}
+
 .skill-upgrade {
   display: flex;
   min-width: 65px;
@@ -8083,6 +8108,12 @@ body.is-immersive #app {
   gap: 7px;
   overflow: auto;
   margin-bottom: 14px;
+}
+
+.trait-briefing-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
 }
 
 .trait-brief-item {

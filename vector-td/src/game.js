@@ -1942,6 +1942,32 @@
       this._emitStats();
     }
 
+    /* Skill changes made from the entry briefing must reach the run that is
+       about to start: damage / cost / speed / repair are read live from mods,
+       while core capacity and starting crystals need explicit adjustment. */
+    applyMods(mods) {
+      const prev = this.mods;
+      const next = Object.assign({}, prev, mods || {});
+      const prevMax = this.baseMax > 0 ? this.baseMax : 1;
+      const ratio = U.clamp(this.baseHp / prevMax, 0, 1);
+      const nextMax = Math.round(100 + (next.baseHp || 0));
+      this.baseMax = nextMax;
+      this.baseHp = Math.max(1, Math.min(nextMax, Math.round(nextMax * ratio)));
+      this.waveStartBaseHp = Math.max(1, Math.min(nextMax, Math.round(this.waveStartBaseHp * (nextMax / prevMax))));
+      const prevStart = Math.round(prev.startCrystals || 0);
+      const nextStart = Math.round(next.startCrystals || 0);
+      if (prevStart !== nextStart) {
+        this.crystals = Math.max(0, this.crystals + (nextStart - prevStart));
+        if (this.waveStartCrystals !== undefined) {
+          this.waveStartCrystals = Math.max(0, this.waveStartCrystals + (nextStart - prevStart));
+        }
+      }
+      this.mods = next;
+      this._emitSelection();
+      this._emitStats();
+      return this.mods;
+    }
+
     debugAddCrystals(amount) {
       const delta = Math.max(0, Math.round(amount || 0));
       this.crystals += delta;

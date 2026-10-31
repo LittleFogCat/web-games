@@ -493,6 +493,7 @@
     traitBriefingTitle: $('trait-briefing-title'),
     traitBriefingLead: $('trait-briefing-lead'),
     traitBriefingList: $('trait-briefing-list'),
+    traitBriefingSkills: $('btn-trait-skills'),
     traitBriefingClose: $('btn-trait-close'),
     resultOverlay: $('result-overlay'),
     onboarding: $('onboarding'),
@@ -2574,6 +2575,12 @@
       }
       const effect = skillEffectText(skill, rank);
       const nextEffect = maxed ? '' : '<span class="rank-next">下一阶 → ' + skillEffectText(skill, rank + 1) + '</span>';
+      const refund = rank > 0 ? (skill.costs[rank - 1] || 0) : 0;
+      const downgrade = rank > 0
+        ? '<button class="skill-downgrade" type="button" data-skill-refund="' + skill.id + '"' +
+            ' aria-label="' + skill.name + ' 降低 1 阶，返还 ' + refund + ' 金币"' +
+            ' title="降 1 阶 · 返还 ' + U.formatInt(refund) + ' 金币">−1</button>'
+        : '';
       let button;
       if (maxed) {
         button = '<button class="skill-upgrade maxed" type="button" disabled><span class="skill-cost">MAX</span><small>满阶</small></button>';
@@ -2590,7 +2597,7 @@
             '<div class="skill-titleline"><h3>' + skill.name + '</h3><span>' + skill.en + '</span></div>' +
             '<p>' + skill.desc + '</p>' +
             '<div class="skill-current"><span>' + effect + '</span>' + nextEffect + '</div>' +
-            '<div class="skill-rank-row"><div class="rank-pips">' + pips + '</div><span class="rank-value">' + rank + ' / ' + C.SKILL_MAX + '</span></div>' +
+            '<div class="skill-rank-row"><div class="rank-pips">' + pips + '</div><span class="rank-value">' + rank + ' / ' + C.SKILL_MAX + '</span>' + downgrade + '</div>' +
           '</div>' +
           button +
         '</article>'
@@ -2660,6 +2667,21 @@
   }
 
   function goBackFromSkills() {
+    if (skillsReturn === 'briefing' && currentGame) {
+      // 从进入简报打开技能页：返回后把新加点直接应用到本局开局。
+      showScreen('game');
+      requestAnimationFrame(function () {
+        fitArena();
+        if (!currentGame) return;
+        currentGame.applyMods(computeMods());
+        currentGame.resize();
+        currentGame.refreshUI();
+        updateHud(currentGame.getHudState());
+        updateBuildAffordability();
+        if (currentGame.paused) showPauseBar();
+      });
+      return;
+    }
     if (skillsReturn === 'result' && currentGame && resultSummary) {
       showScreen('game');
       requestAnimationFrame(fitArena);
@@ -2699,6 +2721,22 @@
     renderSkills(skill.id);
     refreshMeta();
     showGlobalToast(skill.name + ' 已提升至 ' + (rank + 1) + ' 阶', 'success');
+  }
+
+  function refundSkill(skillId) {
+    const skill = C.SKILLS.find(function (s) { return s.id === skillId; });
+    if (!skill) return 0;
+    const rank = save.skills[skill.id] || 0;
+    if (rank <= 0) return 0;
+    const refund = skill.costs[rank - 1] || 0;
+    save.skills[skill.id] = rank - 1;
+    save.gold += refund;
+    persist();
+    audio.play('sell');
+    renderSkills(skill.id);
+    refreshMeta();
+    showGlobalToast(skill.name + ' 降至 ' + (rank - 1) + ' 阶 · 返还 ' + U.formatInt(refund) + ' 金币', 'info');
+    return refund;
   }
 
   /* ============================================================
@@ -3076,6 +3114,11 @@
     });
 
     els.skillList.addEventListener('click', function (event) {
+      const refundButton = event.target.closest('[data-skill-refund]');
+      if (refundButton) {
+        refundSkill(refundButton.getAttribute('data-skill-refund'));
+        return;
+      }
       const button = event.target.closest('[data-skill]');
       if (!button) return;
       buySkill(button.getAttribute('data-skill'));
@@ -3152,6 +3195,13 @@
       openLevels();
     });
     $('btn-pause-intel').addEventListener('click', togglePauseIntel);
+    if (els.traitBriefingSkills) {
+      els.traitBriefingSkills.addEventListener('click', function () {
+        if (!currentGame || activeScreen !== 'game') return;
+        audio.play('ui');
+        openSkills('briefing');
+      });
+    }
     $('btn-trait-close').addEventListener('click', closeTraitBriefing);
     $('btn-home-resume').addEventListener('click', function () {
       if (currentGame) resumeSuspendedRun();

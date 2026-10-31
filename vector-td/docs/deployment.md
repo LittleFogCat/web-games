@@ -193,6 +193,7 @@ chmod -R u+rwX,go+rX "$TARGET"
 
 ### 0.14.5-dev（当前）
 
+- 技能调整与独立降阶重部署：2026-10-31 19:42 —— 新特性简报新增「技能调整」入口，可直接打开技能矩阵，返回后保留简报与暂停状态并把加点立即应用到本局；技能卡新增每项独立降阶（`−1`，全额返还该阶金币），整体重置保留。运行时 `index.html` / `styles.css` / `src/app.js` / `src/game.js` / `README.md` 变更，无版本号变更。备份 `vector-td-20261031-194255.tar.gz`；发布包 SHA-256 `0d938237dbad1282c4d66bc9be5354deb36fd0ec63874d48a91bd1f7ff308c20`；staging 16 文件 SHA-256 与本地 `dist/` 全部一致、`btn-trait-skills` / `data-skill-refund` / `applyMods` 标记存在 → 原子替换；部署后服务器 Host 头 page/css/app/game/manifest 全 200 且 MIME 正确，线上 `src/app.js`（`d98f2cfb…`）、`src/game.js`（`4626f976…`）与 `styles.css`（`cde0f936…`）SHA-256 与本地一致，页脚 `BUILD 0.14.5-dev`。
 - 调试面板重置进度重部署：2026-10-31 19:30 —— 调试面板新增「重置进度」：金币归零、全部技能回到 0 阶、星区解锁回到 01、星级记录清空；同步 CLI `reset` 与 `__VECTOR.debug.resetProgress()`，保留特性简报 / 音效设置 / 当前对局。仅运行时 `src/app.js` / `styles.css` / `README.md` 变更，无版本号变更。备份 `vector-td-20261031-193010.tar.gz`；发布包 SHA-256 `250ccf36c6a428bb1a5a5ba7de2dbb8bd40038ea567b1af0db547caa5c9647e4`；staging 16 文件 SHA-256 与本地 `dist/` 全部一致、`reset-progress` 标记存在、无 U+FFFD → 原子替换；部署后服务器 Host 头 page/css/app/manifest 全 200 且 MIME 正确，线上 `src/app.js`（`6a3ba75b…`）与 `styles.css`（`f9da0534…`）SHA-256 与本地一致，页脚 `BUILD 0.14.5-dev`。
 - 部署时间：2026-10-29 16:26（控制机制重做：霸体 → 韧性 + 震荡击退；0.14.5 基线第一轴）
 - 版本：**0.14.5-dev**

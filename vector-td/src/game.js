@@ -82,6 +82,11 @@
       this.leaked = 0;
       this.killsThisWave = 0;
       this.leaksThisWave = 0;
+      this.actionLog = [];
+      this.leakLog = [];
+      this.retiredTowers = [];
+      this.waveStats = [];
+      this.waveRecord = null;
       this.combatTime = 0;
       this.clock = 0;
 
@@ -516,6 +521,9 @@
         y: y,
         level: 1,
         spent: cost,
+        damage: 0,
+        shieldDamage: 0,
+        towerKills: 0,
         cooldown: 0.15,
         angle: -Math.PI / 2,
         recoil: 0,
@@ -537,6 +545,18 @@
       if (this.selectedStructure === structure) this.selectedStructure = null;
       // One deployment per pick: keep the next tap from placing another copy.
       this.selectedBuild = null;
+      this.actionLog.push({
+        t: Math.round(this.combatTime * 10) / 10,
+        action: 'build',
+        wave: this._actionWave(),
+        kind: structure.kind,
+        type: buildType,
+        name: def.name,
+        level: 1,
+        x: x,
+        y: y,
+        cost: cost,
+      });
       this._emitSelection();
       this._emitStats();
       return true;
@@ -571,6 +591,18 @@
       this._burst(s.x + 0.5, s.y + 0.5, C.TOWERS[s.type].color, 12, 0.5, 2.1, 0.03, true);
       this._float(s.x + 0.5, s.y + 0.2, 'LV.' + s.level, C.TOWERS[s.type].accent, true);
       this._play('upgrade');
+      this.actionLog.push({
+        t: Math.round(this.combatTime * 10) / 10,
+        action: 'upgrade',
+        wave: this._actionWave(),
+        kind: 'tower',
+        type: s.type,
+        name: C.TOWERS[s.type].name,
+        level: s.level,
+        x: s.x,
+        y: s.y,
+        cost: cost,
+      });
       this._emitSelection();
       this._emitStats();
     }
@@ -580,6 +612,27 @@
       if (!s) return;
       const undo = this.canUndoSale(s);
       const refund = this.getSellValue(s);
+      const def = s.kind === 'wall' ? C.WALL : C.TOWERS[s.type];
+      if (s.kind === 'tower') {
+        s.sold = true;
+        this.retiredTowers.push(s);
+      }
+      this.actionLog.push({
+        t: Math.round(this.combatTime * 10) / 10,
+        action: 'sell',
+        wave: this._actionWave(),
+        kind: s.kind,
+        type: s.type,
+        name: def.name,
+        level: s.level,
+        x: s.x,
+        y: s.y,
+        refund: refund,
+        undo: undo,
+        damage: s.damage || 0,
+        shieldDamage: s.shieldDamage || 0,
+        kills: s.towerKills || 0,
+      });
       this.structures = this.structures.filter(function (item) {
         return item !== s;
       });
@@ -610,6 +663,13 @@
       // 波次起点快照：临时存档恢复时从本波开头重打，防止读档刷收入。
       this.waveStartCrystals = this.crystals;
       this.waveStartBaseHp = this.baseHp;
+      this.waveRecord = {
+        wave: this.currentWave,
+        startCoreHp: Math.round(this.baseHp),
+        startCrystals: Math.round(this.crystals),
+        startCrystalsEarned: this.crystalsEarned,
+        startTime: this.combatTime,
+      };
       this.phase = 'wave';
       this.waveElapsed = 0;
       this.prepRemaining = 0;
@@ -752,10 +812,34 @@
       });
     }
 
+    _actionWave() {
+      return this.phase === 'prep'
+        ? Math.min(this.totalWaves, this.currentWave + 1)
+        : this.currentWave;
+    }
+
+    _waveRecordNow(partial) {
+      if (!this.waveRecord) return null;
+      const start = this.waveRecord;
+      return {
+        wave: start.wave,
+        duration: Math.round((this.combatTime - start.startTime) * 10) / 10,
+        kills: this.killsThisWave,
+        leaks: this.leaksThisWave,
+        startCoreHp: start.startCoreHp,
+        endCoreHp: Math.max(0, Math.round(this.baseHp)),
+        startCrystals: start.startCrystals,
+        endCrystals: Math.round(this.crystals),
+        crystalsEarned: Math.max(0, this.crystalsEarned - start.startCrystalsEarned),
+        partial: !!partial,
+      };
+    }
+
     _completeWave() {
       if (this.phase !== 'wave') return;
       const clearedWave = this.currentWave;
       const hasNext = this.waveCursor < this.totalWaves;
+      const endCoreHp = Math.max(0, Math.round(this.baseHp));
       let repaired = 0;
       // 纳米修复只奖励“干净的一波”：本波漏怪则不触发，避免用漏怪换输出、
       // 再用修复把核心血量刷回来的躺赢打法。
@@ -763,6 +847,13 @@
         const before = this.baseHp;
         this.baseHp = Math.min(this.baseMax, this.baseHp + this.mods.repair);
         repaired = Math.round(this.baseHp - before);
+      }
+      const waveStat = this._waveRecordNow(false);
+      if (waveStat) {
+        waveStat.endCoreHp = endCoreHp;
+        waveStat.repaired = repaired;
+        this.waveStats.push(waveStat);
+        this.waveRecord = null;
       }
       this._burst(
         this.grid.base.x + 0.5,
@@ -818,11 +909,54 @@
       this._emitStats();
     }
 
+    _towerRecordList() {
+      const rows = [];
+      for (let i = 0; i < this.structures.length; i++) {
+        const s = this.structures[i];
+        if (s.kind !== 'tower') continue;
+        rows.push({
+          uid: s.uid,
+          type: s.type,
+          name: C.TOWERS[s.type].name,
+          level: s.level,
+          x: s.x,
+          y: s.y,
+          damage: Math.round((s.damage || 0) * 10) / 10,
+          shieldDamage: Math.round((s.shieldDamage || 0) * 10) / 10,
+          kills: s.towerKills || 0,
+          spent: s.spent,
+          sold: false,
+        });
+      }
+      for (let j = 0; j < this.retiredTowers.length; j++) {
+        const r = this.retiredTowers[j];
+        rows.push({
+          uid: r.uid,
+          type: r.type,
+          name: C.TOWERS[r.type].name,
+          level: r.level,
+          x: r.x,
+          y: r.y,
+          damage: Math.round((r.damage || 0) * 10) / 10,
+          shieldDamage: Math.round((r.shieldDamage || 0) * 10) / 10,
+          kills: r.towerKills || 0,
+          spent: r.spent,
+          sold: true,
+        });
+      }
+      return rows;
+    }
+
     _buildSummary(success) {
       const ratio = U.clamp(this.baseHp / this.baseMax, 0, 1);
       let stars = 0;
       if (success) {
         stars = ratio >= 0.8 ? 3 : ratio >= 0.4 ? 2 : 1;
+      }
+      const waves = this.waveStats.slice();
+      if (!success) {
+        const partial = this._waveRecordNow(true);
+        if (partial) waves.push(partial);
       }
       return {
         success: success,
@@ -837,8 +971,14 @@
         kills: this.kills,
         leaked: this.leaked,
         crystalsEarned: this.crystalsEarned,
+        crystals: Math.floor(this.crystals),
         time: this.combatTime,
         startCrystals: this.startCrystals,
+        towerCount: this._towerCount(),
+        buildLog: this.actionLog.slice(),
+        towers: this._towerRecordList(),
+        leaks: this.leakLog.slice(),
+        waves: waves,
       };
     }
 
@@ -1047,6 +1187,16 @@
         this.baseHp = Math.max(0, this.baseHp - damage);
         this.baseFlash = Math.max(this.baseFlash, enemy.def.boss ? 1.25 : 1);
       }
+      this.leakLog.push({
+        t: Math.round(this.combatTime * 10) / 10,
+        wave: this.currentWave,
+        type: enemy.type,
+        name: enemy.def.name,
+        damage: damage,
+        boss: !!enemy.def.boss,
+        coreHp: Math.max(0, Math.round(this.baseHp)),
+      });
+      if (this.leakLog.length > 600) this.leakLog.shift();
       this.shake = Math.max(this.shake, enemy.def.boss ? 13 : 4.5);
       this._addRing(
         this.grid.base.x + 0.5,
@@ -1665,6 +1815,7 @@
         const shieldDamage = incoming * shieldMult;
         const absorbed = Math.min(enemy.shield, shieldDamage);
         enemy.shield = Math.max(0, enemy.shield - absorbed);
+        if (tower) tower.shieldDamage = (tower.shieldDamage || 0) + absorbed;
         enemy.shieldFlash = Math.max(enemy.shieldFlash || 0, continuous ? 0.04 : 0.16);
         const overflow = Math.max(0, shieldDamage - absorbed);
         hpDamage = (overflow / shieldMult) * resistMult;
@@ -1679,6 +1830,7 @@
       }
 
       enemy.hp -= hpDamage;
+      if (tower) tower.damage = (tower.damage || 0) + hpDamage;
       enemy.hitFlash = Math.max(enemy.hitFlash, continuous ? 0.02 : 0.08);
       if (!continuous && Math.random() < 0.28) {
         this._burst(enemy.x, enemy.y, enemy.def.color, 1, 0.2, 0.9, 0.018, false);
@@ -1720,8 +1872,8 @@
       if (def.split) {
         this._splitEnemy(enemy, def.split);
       }
+      if (sourceTower) sourceTower.towerKills = (sourceTower.towerKills || 0) + 1;
       this._emitStats();
-      void sourceTower;
     }
 
     _splitEnemy(enemy, split) {

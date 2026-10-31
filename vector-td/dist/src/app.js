@@ -13,6 +13,8 @@
   const DEBUG_GOLD_KEY = 'vector_geotd_debug_gold_v1';
   const DEBUG_GOLD_AMOUNT = 10000;
   const RUN_SNAPSHOT_KEY = 'vector_geotd_run_v1';
+  const RECORDS_KEY = 'vector_geotd_records_v1';
+  const RECORD_LIMIT = 100;
 
   const BUILD_SHORT = {
     prism: '箭塔',
@@ -120,6 +122,35 @@
 
   const save = loadSave();
   const audio = new window.NeoAudio(save.settings.sound);
+
+  function loadRecords() {
+    let raw = null;
+    try {
+      raw = window.localStorage.getItem(RECORDS_KEY);
+    } catch (error) {
+      raw = null;
+    }
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter(function (record) {
+        return record && typeof record === 'object' && record.v === 1 && record.levelId;
+      }).slice(0, RECORD_LIMIT);
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function persistRecords() {
+    try {
+      window.localStorage.setItem(RECORDS_KEY, JSON.stringify(records.slice(0, RECORD_LIMIT)));
+    } catch (error) {
+      // 记录是本地诊断数据，容量不足时静默丢弃新记录。
+    }
+  }
+
+  const records = loadRecords();
 
   function detectDebugMode() {
     try {
@@ -464,6 +495,7 @@
   let globalToastTimer = 0;
   let onboardingPause = false;
   let pendingTraitTraits = [];
+  let runMeta = null;
 
   const els = {
     screens: {},
@@ -499,6 +531,9 @@
     resultOverlay: $('result-overlay'),
     onboarding: $('onboarding'),
     helpModal: $('help-modal'),
+    recordsModal: $('records-modal'),
+    recordsList: $('records-list'),
+    recordsCount: $('records-count'),
     intelPanel: $('intel-panel'),
     intelContent: $('intel-content'),
     arenaToast: $('arena-toast'),
@@ -807,6 +842,14 @@
       godMode: debug.enabled && debug.godMode,
       freeBuild: debug.enabled && debug.freeBuild,
     };
+  }
+
+  function snapshotSkillRanks() {
+    const snapshot = {};
+    for (let i = 0; i < C.SKILLS.length; i++) {
+      snapshot[C.SKILLS[i].id] = save.skills[C.SKILLS[i].id] || 0;
+    }
+    return snapshot;
   }
 
   function skillEffectText(skill, rank) {
@@ -1813,11 +1856,13 @@
     els.resultOverlay.classList.add('hidden');
     els.onboarding.classList.add('hidden');
     currentLevelId = levelId;
+    runMeta = { startedAt: Date.now(), initialSkills: snapshotSkillRanks() };
     gameSpeed = 1;
     deploymentPromptShown = false;
     els.gameScreen.style.setProperty('--game-accent', level.accent);
     els.gameScreen.style.setProperty('--accent', level.accent);
     $('hud-level-code').textContent = level.code;
+    $('hud-level-index').textContent = 'E1L' + level.id;
     $('hud-level-name').textContent = level.name;
     $('hud-level-en').textContent = level.en;
     els.speedLabel.textContent = '×1';
@@ -1906,6 +1951,7 @@
     if (els.placementLegend) els.placementLegend.classList.remove('show');
     hideWaveIntel();
     resultSummary = null;
+    runMeta = null;
     onboardingPause = false;
     pendingTraitTraits = [];
     if (els.traitBriefing) els.traitBriefing.classList.add('hidden');
@@ -2698,6 +2744,7 @@
         fitArena();
         if (!currentGame) return;
         currentGame.applyMods(computeMods());
+        if (runMeta) runMeta.initialSkills = snapshotSkillRanks();
         currentGame.resize();
         currentGame.refreshUI();
         updateHud(currentGame.getHudState());
@@ -2836,6 +2883,50 @@
     }
   }
 
+  function recordRun(summary, extra) {
+    const level = C.LEVELS[summary.levelId - 1];
+    if (!level) return null;
+    const finishedAt = Date.now();
+    const initialSkills = runMeta && runMeta.initialSkills
+      ? Object.assign({}, runMeta.initialSkills)
+      : snapshotSkillRanks();
+    const record = {
+      v: 1,
+      id: 'r' + finishedAt + '-' + summary.levelId,
+      finishedAt: finishedAt,
+      startedAt: runMeta ? runMeta.startedAt : finishedAt,
+      levelId: level.id,
+      levelCode: level.code,
+      levelName: level.name,
+      result: summary.success ? 'victory' : 'defeat',
+      stars: summary.stars || 0,
+      integrity: summary.integrity,
+      coreHp: summary.baseHp,
+      coreMax: summary.baseMax,
+      totalWaves: summary.totalWaves,
+      wavesCleared: summary.success ? summary.totalWaves : Math.max(0, summary.currentWave - 1),
+      currentWave: summary.currentWave,
+      kills: summary.kills,
+      leaked: summary.leaked,
+      duration: summary.time,
+      startCrystals: summary.startCrystals,
+      crystalsEarned: summary.crystalsEarned,
+      crystalsLeft: summary.crystals,
+      goldEarned: extra && extra.goldEarned ? extra.goldEarned : 0,
+      firstClear: !!(extra && extra.firstClear),
+      debug: debug.enabled,
+      initialSkills: initialSkills,
+      buildLog: summary.buildLog || [],
+      towers: summary.towers || [],
+      leaks: summary.leaks || [],
+      waves: summary.waves || [],
+    };
+    records.unshift(record);
+    if (records.length > RECORD_LIMIT) records.length = RECORD_LIMIT;
+    persistRecords();
+    return record;
+  }
+
   function finishRun(success, summary) {
     if (!currentGame) return;
     clearRunSnapshot(); // 对局已结束：临时存档作废
@@ -2865,6 +2956,7 @@
       resultAction = 'retry';
     }
     resultSummary = { level: level, summary: summary, gold: goldEarned, firstClear: firstClear, improved: improved, debug: debug.enabled };
+    recordRun(summary, { goldEarned: goldEarned, firstClear: firstClear });
     currentGame.setPaused(true);
     hidePauseBar();
     if (els.pauseOverlay) els.pauseOverlay.classList.add('hidden');
@@ -3046,8 +3138,257 @@
     return els.helpModal && !els.helpModal.classList.contains('hidden');
   }
 
+  /* ============================================================
+     Battle records
+     ============================================================ */
+  function recordsOpen() {
+    return els.recordsModal && !els.recordsModal.classList.contains('hidden');
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+    });
+  }
+
+  function formatRecordDate(ms) {
+    const d = new Date(ms || Date.now());
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) +
+      ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+
+  function recordStars(stars) {
+    let out = '';
+    for (let i = 0; i < 3; i++) out += i < stars ? '★' : '☆';
+    return out;
+  }
+
+  function recordSkillChips(record) {
+    const ranks = record.initialSkills || {};
+    let total = 0;
+    const chips = [];
+    for (let i = 0; i < C.SKILLS.length; i++) {
+      const skill = C.SKILLS[i];
+      const rank = Math.max(0, Math.floor(Number(ranks[skill.id]) || 0));
+      total += rank;
+      if (rank > 0) {
+        chips.push('<span class="record-chip"><b>' + escapeHtml(skill.name) + '</b> ' + rank + ' 阶</span>');
+      }
+    }
+    if (!chips.length) chips.push('<span class="record-chip empty">全 0 阶 · 无技能</span>');
+    return '<div class="record-section"><h4>初始技能点 <span>合计 ' + total + ' 阶</span></h4>' +
+      '<div class="record-chips">' + chips.join('') + '</div></div>';
+  }
+
+  function recordBuildRows(record) {
+    const log = record.buildLog || [];
+    if (!log.length) return '<p class="record-empty-line">本局没有建造记录。</p>';
+    const shown = log.slice(0, 40);
+    const rows = shown.map(function (entry) {
+      let action = '建造';
+      let value = entry.cost ? '-' + U.formatInt(entry.cost) + '◇' : '';
+      if (entry.action === 'upgrade') {
+        action = '升级';
+      } else if (entry.action === 'sell') {
+        action = '回收';
+        value = '+' + U.formatInt(entry.refund || 0) + '◇';
+      }
+      const level = entry.action === 'build' ? 1 : (entry.level || 1);
+      const waveTag = entry.wave ? 'W' + pad2(entry.wave) : U.formatTime(entry.t || 0);
+      return '<div class="record-row">' +
+        '<span class="t" title="用时 ' + U.formatTime(entry.t || 0) + '">' + waveTag + '</span>' +
+        '<span class="what"><b>' + action + '</b> ' + escapeHtml(entry.name || entry.type) +
+          ' Lv.' + level + ' @' + entry.x + ',' + entry.y + '</span>' +
+        '<span class="val">' + value + '</span>' +
+        '</div>';
+    }).join('');
+    const more = log.length > shown.length
+      ? '<p class="record-more">另有 ' + (log.length - shown.length) + ' 条较早记录未显示。</p>'
+      : '';
+    return '<div class="record-section"><h4>建造 / 升级 <span>' + log.length + ' 条</span></h4>' +
+      '<div class="record-rows">' + rows + '</div>' + more + '</div>';
+  }
+
+  function recordWaveRows(record) {
+    const waves = record.waves || [];
+    if (!waves.length) {
+      return '<div class="record-section"><h4>波次时间线 <span>0 波</span></h4>' +
+        '<p class="record-empty-line">本局尚未完成任何波次。</p></div>';
+    }
+    const rows = waves.map(function (wave) {
+      const coreDown = (wave.endCoreHp || 0) < (wave.startCoreHp || 0);
+      return '<div class="record-wave">' +
+        '<span class="w">W' + pad2(wave.wave || 0) + '</span>' +
+        '<span class="time">' + U.formatTime(wave.duration || 0) + '</span>' +
+        '<span>击杀 ' + U.formatInt(wave.kills || 0) + ' · 漏 ' + U.formatInt(wave.leaks || 0) + '</span>' +
+        '<span class="' + (coreDown ? 'down' : '') + '">核心 ' + U.formatInt(wave.startCoreHp || 0) +
+          ' → ' + U.formatInt(wave.endCoreHp || 0) + '</span>' +
+        '<span>◇ ' + U.formatInt(wave.startCrystals || 0) + ' → ' + U.formatInt(wave.endCrystals || 0) + '</span>' +
+        (wave.partial ? '<span class="partial">失守波</span>' : '') +
+        '</div>';
+    }).join('');
+    return '<div class="record-section"><h4>波次时间线 <span>' + waves.length + ' 波</span></h4>' +
+      '<div class="record-waves">' + rows + '</div></div>';
+  }
+
+  function recordLeakRows(record) {
+    const leaks = record.leaks || [];
+    if (!leaks.length) return '<div class="record-section"><h4>漏怪 <span>0</span></h4><p class="record-empty-line">本局无漏怪。</p></div>';
+    const shown = leaks.slice(0, 30);
+    const rows = shown.map(function (leak) {
+      return '<div class="record-row leak">' +
+        '<span class="t">' + U.formatTime(leak.t || 0) + '</span>' +
+        '<span class="what"><b>W' + pad2(leak.wave || 0) + '</b> ' + escapeHtml(leak.name || leak.type) + '</span>' +
+        '<span class="val">-' + U.formatInt(leak.damage || 0) + ' · 核心 ' + U.formatInt(leak.coreHp || 0) + '</span>' +
+        '</div>';
+    }).join('');
+    const more = leaks.length > shown.length
+      ? '<p class="record-more">另有 ' + (leaks.length - shown.length) + ' 次漏怪未显示。</p>'
+      : '';
+    return '<div class="record-section"><h4>漏怪 <span>' + leaks.length + ' 次</span></h4>' +
+      '<div class="record-rows">' + rows + '</div>' + more + '</div>';
+  }
+
+  function recordTowerRows(record) {
+    const towers = (record.towers || []).slice().sort(function (a, b) {
+      return (b.damage || 0) - (a.damage || 0);
+    });
+    if (!towers.length) return '<div class="record-section"><h4>塔伤害 <span>0</span></h4><p class="record-empty-line">本局没有建造攻击塔。</p></div>';
+    let totalDamage = 0;
+    let totalShield = 0;
+    for (let i = 0; i < towers.length; i++) {
+      totalDamage += towers[i].damage || 0;
+      totalShield += towers[i].shieldDamage || 0;
+    }
+    const rows = towers.map(function (tower) {
+      const share = totalDamage > 0 ? Math.round((tower.damage || 0) / totalDamage * 100) : 0;
+      let note = share + '%';
+      if (tower.shieldDamage > 0) note += ' · 盾 ' + U.formatInt(tower.shieldDamage);
+      if (tower.kills > 0) note += ' · ' + tower.kills + ' 杀';
+      return '<div class="record-row">' +
+        '<span class="t">Lv.' + (tower.level || 1) + '</span>' +
+        '<span class="what"><b>' + escapeHtml(tower.name || tower.type) + '</b> @' + tower.x + ',' + tower.y +
+          (tower.sold ? ' · 已回收' : '') + '</span>' +
+        '<span class="val">' + U.formatInt(tower.damage || 0) + ' 伤害<small>' + note + '</small></span>' +
+        '</div>';
+    }).join('');
+    const shieldNote = totalShield > 0 ? ' · 护盾 ' + U.formatInt(totalShield) : '';
+    return '<div class="record-section"><h4>塔伤害 <span>合计 ' + U.formatInt(totalDamage) + shieldNote + '</span></h4>' +
+      '<div class="record-rows">' + rows + '</div></div>';
+  }
+
+  function recordEntryHtml(record) {
+    const levelId = Number(record.levelId) || 1;
+    const victory = record.result === 'victory';
+    const integrity = Math.round((Number(record.integrity) || 0) * 100);
+    const stars = Math.max(0, Math.min(3, Math.floor(Number(record.stars) || 0)));
+    const towers = record.towers || [];
+    const buildLog = record.buildLog || [];
+    let spent = 0;
+    let refunded = 0;
+    for (let i = 0; i < buildLog.length; i++) {
+      if (buildLog[i].action === 'sell') refunded += buildLog[i].refund || 0;
+      else spent += buildLog[i].cost || 0;
+    }
+    const stats = [
+      ['完整度', integrity + '%'],
+      ['波次', (record.wavesCleared || 0) + ' / ' + (record.totalWaves || 0)],
+      ['击杀', U.formatInt(record.kills || 0)],
+      ['漏怪', U.formatInt(record.leaked || 0)],
+      ['用时', U.formatTime(record.duration || 0)],
+      ['塔数', towers.length],
+      ['建造 / 升级', buildLog.filter(function (entry) { return entry.action !== 'sell'; }).length],
+      ['晶元收入', '+' + U.formatInt(record.crystalsEarned || 0)],
+      ['净晶元消耗', U.formatInt(Math.max(0, spent - refunded))],
+      ['金币', victory ? '+' + U.formatInt(record.goldEarned || 0) : '0'],
+    ].map(function (pair) {
+      return '<div class="record-stat"><span>' + pair[0] + '</span><b>' + pair[1] + '</b></div>';
+    }).join('');
+    return '<details class="record-entry ' + (victory ? 'victory' : 'defeat') + (record.debug ? ' debug' : '') + '">' +
+      '<summary>' +
+        '<span class="record-badge">' + (victory ? '胜利' : '失败') + '</span>' +
+        (record.debug ? '<span class="record-badge debug">DEBUG</span>' : '') +
+        '<span class="record-level">E1L' + levelId + ' · ' + escapeHtml(record.levelName || '') + '</span>' +
+        '<span class="record-stars">' + (victory ? recordStars(stars) : '') + '</span>' +
+        '<span class="record-duration">' + U.formatTime(record.duration || 0) + '</span>' +
+        '<span class="record-date">' + formatRecordDate(record.finishedAt) + '</span>' +
+      '</summary>' +
+      '<div class="record-detail">' +
+        '<div class="record-stats">' + stats + '</div>' +
+        recordSkillChips(record) +
+        recordWaveRows(record) +
+        recordLeakRows(record) +
+        recordTowerRows(record) +
+        recordBuildRows(record) +
+      '</div>' +
+      '</details>';
+  }
+
+  function renderRecords() {
+    if (!els.recordsList) return;
+    if (els.recordsCount) {
+      els.recordsCount.textContent = records.length
+        ? '共 ' + records.length + ' 条' + (records.length > 50 ? ' · 仅显示最近 50 条' : '')
+        : '暂无记录';
+    }
+    if (!records.length) {
+      els.recordsList.innerHTML =
+        '<p class="records-empty">还没有闯关记录。<br>完成或失守一局后，这里会记录初始技能、建造 / 升级、逐塔伤害与漏怪明细。</p>';
+      return;
+    }
+    els.recordsList.innerHTML = records.slice(0, 50).map(recordEntryHtml).join('');
+  }
+
+  function openRecords() {
+    renderRecords();
+    els.recordsModal.classList.remove('hidden');
+    const close = $('records-close');
+    if (close) close.focus();
+    audio.play('ui');
+  }
+
+  function closeRecords() {
+    if (!recordsOpen()) return;
+    els.recordsModal.classList.add('hidden');
+  }
+
+  function clearRecords() {
+    if (!records.length) return;
+    if (!window.confirm('清空全部闯关记录？此操作不可撤销。')) return;
+    records.length = 0;
+    persistRecords();
+    renderRecords();
+    showGlobalToast('闯关记录已清空', 'info');
+  }
+
+  function exportRecords() {
+    if (!records.length) {
+      showGlobalToast('暂无记录可导出', 'error');
+      return;
+    }
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      count: records.length,
+      records: records,
+    };
+    const stamp = formatRecordDate(Date.now()).replace(/[: ]/g, '-');
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'vector-td-records-' + stamp + '.json';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(function () {
+      URL.revokeObjectURL(url);
+    }, 1200);
+    showGlobalToast('已导出 ' + records.length + ' 条闯关记录', 'success');
+  }
+
   function gameInputBlocked() {
     return helpOpen()
+      || recordsOpen()
       || !els.pauseOverlay.classList.contains('hidden')
       || !els.resultOverlay.classList.contains('hidden')
       || !els.onboarding.classList.contains('hidden')
@@ -3107,6 +3448,13 @@
     $('btn-deploy').addEventListener('click', openLevels);
     $('btn-skills-home').addEventListener('click', function () { openSkills('home'); });
     $('btn-help').addEventListener('click', openHelp);
+    $('btn-home-records').addEventListener('click', openRecords);
+    $('records-close').addEventListener('click', closeRecords);
+    $('records-clear').addEventListener('click', clearRecords);
+    $('records-export').addEventListener('click', exportRecords);
+    if (els.recordsModal) {
+      els.recordsModal.querySelector('.overlay-scrim').addEventListener('click', closeRecords);
+    }
     if (els.debugFab) els.debugFab.addEventListener('click', toggleDebugPanel);
     if (els.debugHud) els.debugHud.addEventListener('click', toggleDebugPanel);
     if (els.debugClose) els.debugClose.addEventListener('click', closeDebugPanel);
@@ -3466,6 +3814,11 @@
       }
       if (helpOpen()) {
         closeHelp();
+        event.preventDefault();
+        return;
+      }
+      if (recordsOpen()) {
+        closeRecords();
         event.preventDefault();
         return;
       }

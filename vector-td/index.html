@@ -123,6 +123,10 @@
               <span class="btn-glyph" aria-hidden="true">⌁</span>
               <span><b>作战手册</b><small>FIELD MANUAL</small></span>
             </button>
+            <button id="btn-home-records" class="secondary-button records-button" type="button">
+              <span class="btn-glyph" aria-hidden="true">▤</span>
+              <span><b>闯关记录</b><small>BATTLE LOG</small></span>
+            </button>
           </div>
         </div>
       </div>
@@ -244,6 +248,7 @@
           </button>
           <div class="hud-mission">
             <div class="hud-mission-name">
+              <span id="hud-level-index" class="hud-level-index">E1L1</span>
               <b id="hud-level-name">初次接触</b>
               <span class="hud-mission-code" id="hud-level-code">SECTOR 01</span>
               <span class="hud-mission-en" id="hud-level-en">FIRST CONTACT</span>
@@ -495,21 +500,50 @@
         <div class="help-section">
           <h3><span>07</span> 波次节奏</h3>
           <p>关卡开始时有 25 秒初始部署时间，之后清空一波会获得 12 秒整备时间。每关进入时默认暂停，点击左上播放键或按 <kbd>P</kbd> / <kbd>Esc</kbd> / <kbd>Space</kbd> 才开始倒计时。顶部会显示自动发兵倒计时；剩余 3 秒时发出警报，倒计时归零后敌群直接进入航道。也可以点击顶部倒计时卡，立即发起下一波。</p>
-          <p>交战中点击同一张波次卡不再弹出敌情；HUD 不常驻关卡标题，暂停时中间显示「敌情」图标，点击后在 HUD 下方展开浮层，显示本波次的敌人构成、特性徽章与克制关系。浮层不会让战场缩放或位移，可随时关闭。</p>
+          <p>交战中点击同一张波次卡不再弹出敌情；HUD 不常驻关卡标题，暂停时中间显示「敌情」图标，点击后打开本关全部波次的敌情对话框，显示敌人构成、特性徽章与克制关系；点击对话框外部、× 或 <kbd>Esc</kbd> 关闭。对话框不会让战场缩放或位移。</p>
           <p>每个星区内，越靠后的波次会获得额外生命与速度增幅。第 3 星区开始出现能抗，第 4 星区出现护盾，第 5 星区出现隐匿，第 6 星区出现魔免，第 7 星区出现韧性。越往后，单一塔种越容易被克制。</p>
           <p>每个星区共有 14–20 波；第 7 星区起波次密度略有下调，但单位质量与特性组合显著提高。</p>
         </div>
         <div class="help-section">
           <h3><span>08</span> 快捷操作</h3>
-          <p>数字键 <kbd>1</kbd>–<kbd>8</kbd> 选择防御单元，<kbd>W</kbd> 选择壁垒，<kbd>P</kbd> / <kbd>Esc</kbd> / <kbd>Space</kbd> 暂停或继续。鼠标<b>右键</b>取消当前选择，<b>左键</b>建造或选中设施。战场全屏显示，顶部 HUD 与下方常驻建造栏都浮在战场上方。HUD 不常驻关卡标题：暂停键与晶元居左，波次倒计时、倍速与音量居右；暂停时中间显示「重开 / 星图 / 敌情 / 全屏」四个图标，左右两组不移动，战场尺寸保持不变。暂停只会冻结战场，不会弹窗遮挡画面。<b>暂停期间仍可部署、升级和回收设施，刚部署的未升级设施（塔或壁垒）可按原价撤销</b>。波次会自动开始：每波准备阶段结束时先发出 3 秒警报，随后直接发兵；点击顶部倒计时卡可立即提前发兵，<b>暂停时点击该卡会同时恢复作战并立即发兵</b>。点击中间区域的敌情图标查看本波次敌情。触屏设备可直接点按所有目标。顶部 HUD 只保留晶元、波次倒计时、倍速、音量和紧急核心状态，其余信息在受击或需要时短暂浮现，避免遮挡战场。</p>
+          <p>数字键 <kbd>1</kbd>–<kbd>8</kbd> 选择防御单元，<kbd>W</kbd> 选择壁垒，<kbd>P</kbd> / <kbd>Esc</kbd> / <kbd>Space</kbd> 暂停或继续。鼠标<b>右键</b>取消当前选择，<b>左键</b>建造或选中设施。战场全屏显示，顶部 HUD 与下方常驻建造栏都浮在战场上方。HUD 左侧显示当前关卡编号 <b>E1L1–E1L10</b>；暂停键与晶元居左，波次倒计时、倍速与音量居右；暂停时中间显示「重开 / 星图 / 敌情 / 全屏」四个图标，左右两组不移动，战场尺寸保持不变。暂停只会冻结战场，不会弹窗遮挡画面。<b>暂停期间仍可部署、升级和回收设施，刚部署的未升级设施（塔或壁垒）可按原价撤销</b>。波次会自动开始：每波准备阶段结束时先发出 3 秒警报，随后直接发兵；点击顶部倒计时卡可立即提前发兵，<b>暂停时点击该卡会同时恢复作战并立即发兵</b>。点击中间区域的敌情图标打开本关全部波次的情报对话框。触屏设备可直接点按所有目标。顶部 HUD 只保留关卡编号、晶元、波次倒计时、倍速、音量和紧急核心状态，其余信息在受击或需要时短暂浮现，避免遮挡战场。</p>
           <p><b>全屏沉浸</b>：手机进入关卡时默认自动进入全屏；首页右上角的展开图标、暂停时 HUD 中间的「全屏」图标都可以随时切换。iPhone / iPad 的 Safari 不支持网页全屏 API，可以用「分享 → 添加到主屏幕」安装，之后会以独立全屏应用启动。</p>
         </div>
+        <div class="help-section">
+          <h3><span>09</span> 闯关记录</h3>
+          <p>每局结算（胜利或失守）都会写入本地闯关记录，用于关卡设计调优。记录包含：时间、关卡、结果、星级、完整度、逐波时间线（用时 / 击杀 / 漏怪 / 核心与晶元变化）、漏怪明细、逐塔伤害与占比、建造 / 升级 / 回收时间线（塔种、等级、坐标、所在波次）以及进入关卡时的初始技能点。</p>
+          <p>首页「闯关记录」可展开单局详情、导出 JSON 或清空；数据只保存在本机，最多保留最近 100 条。调试战斗同样会记录并标注 <b>DEBUG</b>，但不会写入星图进度、星级或金币。</p>
+        </div>
         <div id="help-debug-section" class="help-section hidden">
-          <h3><span>09</span> 调试模式</h3>
+          <h3><span>10</span> 调试模式</h3>
           <p>当前是调试构建：右下角 <b>DEBUG</b> 按钮可打开调试面板，直达任意关卡、修改晶元/核心、生成测试敌群或直接判定胜负。调试模式创建档案时会<b>赠送 10000 金币</b>，技能升级按正常费用消耗；技能矩阵底部可重置全部技能并全额返还金币。快捷键 <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>D</kbd> 开关调试模式；URL 加 <code>?debug=1</code> 可强制开启，<code>?debug=0</code> 可强制关闭。</p>
           <p>调试模式下的战斗不会写入星图进度、星级或金币，避免污染正式存档。</p>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ============================ RECORDS MODAL ============================ -->
+  <div id="records-modal" class="modal-shell hidden" role="dialog" aria-modal="true" aria-labelledby="records-title">
+    <div class="overlay-scrim"></div>
+    <div class="modal-card records-card">
+      <header class="records-header">
+        <div>
+          <div class="modal-kicker">BATTLE LOG</div>
+          <h2 class="modal-title" id="records-title">闯关记录</h2>
+        </div>
+        <button id="records-close" class="icon-button" type="button" aria-label="关闭闯关记录">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+      </header>
+      <div class="records-toolbar">
+        <span id="records-count">共 0 条</span>
+        <div class="records-tools">
+          <button id="records-export" class="ghost-button compact" type="button">导出 JSON</button>
+          <button id="records-clear" class="ghost-button compact" type="button">清空记录</button>
+        </div>
+      </div>
+      <div id="records-list" class="records-body"></div>
     </div>
   </div>
 

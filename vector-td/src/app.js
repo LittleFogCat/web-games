@@ -567,9 +567,6 @@
     resultOverlay: $('result-overlay'),
     onboarding: $('onboarding'),
     helpModal: $('help-modal'),
-    recordsModal: $('records-modal'),
-    recordsList: $('records-list'),
-    recordsCount: $('records-count'),
     intelPanel: $('intel-panel'),
     intelContent: $('intel-content'),
     arenaToast: $('arena-toast'),
@@ -1366,6 +1363,14 @@
         '<p class="debug-note">两套存档的金币、技能、星区解锁与星级分别保存；可单独清零。当前对局、闯关记录、特性简报与音效设置不受影响。</p>' +
       '</section>' +
       '<section class="debug-section">' +
+        '<h4>闯关记录 <span>' + records.length + ' 条</span></h4>' +
+        '<div class="debug-actions">' +
+          '<button type="button" data-debug-action="export-records">导出记录 JSON</button>' +
+          '<button type="button" class="danger" data-debug-action="clear-records">清空记录</button>' +
+        '</div>' +
+        '<p class="debug-note">记录只写入本地 localStorage，不在游戏界面展示；导出 JSON 用于关卡设计调优。</p>' +
+      '</section>' +
+      '<section class="debug-section">' +
         '<h4>实时状态</h4>' +
         '<div class="debug-status" id="debug-status">' + statusHtml + '</div>' +
         '<p class="debug-note">快捷键：Ctrl + Shift + D 开关调试模式；?debug=1 强制开启。</p>' +
@@ -1764,8 +1769,7 @@
       persist();
       refreshMeta();
       showGlobalToast('金币 +1000', 'success');
-    } else if (action === 'reset-formal' || action === 'reset-debug') {
-      const which = action === 'reset-debug' ? 'debug' : 'formal';
+    } else if (action === 'reset-formal' || action === 'reset-debug') {      const which = action === 'reset-debug' ? 'debug' : 'formal';
       const label = which === 'debug' ? '调试' : '正式';
       const confirmed = window.confirm(
         '重置' + label + '存档？\n\n金币归零、全部技能回到 0 阶、星区解锁回到 01、所有星级记录清空。\n' +
@@ -1777,6 +1781,10 @@
       }
       resetProfileSave(which);
       showGlobalToast(label + '存档已重置 · 金币 0 · 技能 0 阶 · 星区 01', 'info');
+    } else if (action === 'export-records') {
+      exportRecords();
+    } else if (action === 'clear-records') {
+      clearRecordsData();
     } else if (action === 'max-skills') {
       debugSetAllSkills(C.SKILL_MAX);
       showGlobalToast('全部技能已提升至 5 阶', 'success');
@@ -3312,224 +3320,10 @@
   /* ============================================================
      Battle records
      ============================================================ */
-  function recordsOpen() {
-    return els.recordsModal && !els.recordsModal.classList.contains('hidden');
-  }
-
-  function escapeHtml(value) {
-    return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
-    });
-  }
-
   function formatRecordDate(ms) {
     const d = new Date(ms || Date.now());
     return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) +
       ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
-  }
-
-  function recordStars(stars) {
-    let out = '';
-    for (let i = 0; i < 3; i++) out += i < stars ? '★' : '☆';
-    return out;
-  }
-
-  function recordSkillChips(record) {
-    const ranks = record.initialSkills || {};
-    let total = 0;
-    const chips = [];
-    for (let i = 0; i < C.SKILLS.length; i++) {
-      const skill = C.SKILLS[i];
-      const rank = Math.max(0, Math.floor(Number(ranks[skill.id]) || 0));
-      total += rank;
-      if (rank > 0) {
-        chips.push('<span class="record-chip"><b>' + escapeHtml(skill.name) + '</b> ' + rank + ' 阶</span>');
-      }
-    }
-    if (!chips.length) chips.push('<span class="record-chip empty">全 0 阶 · 无技能</span>');
-    return '<div class="record-section"><h4>初始技能点 <span>合计 ' + total + ' 阶</span></h4>' +
-      '<div class="record-chips">' + chips.join('') + '</div></div>';
-  }
-
-  function recordBuildRows(record) {
-    const log = record.buildLog || [];
-    if (!log.length) return '<p class="record-empty-line">本局没有建造记录。</p>';
-    const shown = log.slice(0, 40);
-    const rows = shown.map(function (entry) {
-      let action = '建造';
-      let value = entry.cost ? '-' + U.formatInt(entry.cost) + '◇' : '';
-      if (entry.action === 'upgrade') {
-        action = '升级';
-      } else if (entry.action === 'sell') {
-        action = '回收';
-        value = '+' + U.formatInt(entry.refund || 0) + '◇';
-      }
-      const level = entry.action === 'build' ? 1 : (entry.level || 1);
-      const waveTag = entry.wave ? 'W' + pad2(entry.wave) : U.formatTime(entry.t || 0);
-      return '<div class="record-row">' +
-        '<span class="t" title="用时 ' + U.formatTime(entry.t || 0) + '">' + waveTag + '</span>' +
-        '<span class="what"><b>' + action + '</b> ' + escapeHtml(entry.name || entry.type) +
-          ' Lv.' + level + ' @' + entry.x + ',' + entry.y + '</span>' +
-        '<span class="val">' + value + '</span>' +
-        '</div>';
-    }).join('');
-    const more = log.length > shown.length
-      ? '<p class="record-more">另有 ' + (log.length - shown.length) + ' 条较早记录未显示。</p>'
-      : '';
-    return '<div class="record-section"><h4>建造 / 升级 <span>' + log.length + ' 条</span></h4>' +
-      '<div class="record-rows">' + rows + '</div>' + more + '</div>';
-  }
-
-  function recordWaveRows(record) {
-    const waves = record.waves || [];
-    if (!waves.length) {
-      return '<div class="record-section"><h4>波次时间线 <span>0 波</span></h4>' +
-        '<p class="record-empty-line">本局尚未完成任何波次。</p></div>';
-    }
-    const rows = waves.map(function (wave) {
-      const coreDown = (wave.endCoreHp || 0) < (wave.startCoreHp || 0);
-      return '<div class="record-wave">' +
-        '<span class="w">W' + pad2(wave.wave || 0) + '</span>' +
-        '<span class="time">' + U.formatTime(wave.duration || 0) + '</span>' +
-        '<span>击杀 ' + U.formatInt(wave.kills || 0) + ' · 漏 ' + U.formatInt(wave.leaks || 0) + '</span>' +
-        '<span class="' + (coreDown ? 'down' : '') + '">核心 ' + U.formatInt(wave.startCoreHp || 0) +
-          ' → ' + U.formatInt(wave.endCoreHp || 0) + '</span>' +
-        '<span>◇ ' + U.formatInt(wave.startCrystals || 0) + ' → ' + U.formatInt(wave.endCrystals || 0) + '</span>' +
-        (wave.partial ? '<span class="partial">失守波</span>' : '') +
-        '</div>';
-    }).join('');
-    return '<div class="record-section"><h4>波次时间线 <span>' + waves.length + ' 波</span></h4>' +
-      '<div class="record-waves">' + rows + '</div></div>';
-  }
-
-  function recordLeakRows(record) {
-    const leaks = record.leaks || [];
-    if (!leaks.length) return '<div class="record-section"><h4>漏怪 <span>0</span></h4><p class="record-empty-line">本局无漏怪。</p></div>';
-    const shown = leaks.slice(0, 30);
-    const rows = shown.map(function (leak) {
-      return '<div class="record-row leak">' +
-        '<span class="t">' + U.formatTime(leak.t || 0) + '</span>' +
-        '<span class="what"><b>W' + pad2(leak.wave || 0) + '</b> ' + escapeHtml(leak.name || leak.type) + '</span>' +
-        '<span class="val">-' + U.formatInt(leak.damage || 0) + ' · 核心 ' + U.formatInt(leak.coreHp || 0) + '</span>' +
-        '</div>';
-    }).join('');
-    const more = leaks.length > shown.length
-      ? '<p class="record-more">另有 ' + (leaks.length - shown.length) + ' 次漏怪未显示。</p>'
-      : '';
-    return '<div class="record-section"><h4>漏怪 <span>' + leaks.length + ' 次</span></h4>' +
-      '<div class="record-rows">' + rows + '</div>' + more + '</div>';
-  }
-
-  function recordTowerRows(record) {
-    const towers = (record.towers || []).slice().sort(function (a, b) {
-      return (b.damage || 0) - (a.damage || 0);
-    });
-    if (!towers.length) return '<div class="record-section"><h4>塔伤害 <span>0</span></h4><p class="record-empty-line">本局没有建造攻击塔。</p></div>';
-    let totalDamage = 0;
-    let totalShield = 0;
-    for (let i = 0; i < towers.length; i++) {
-      totalDamage += towers[i].damage || 0;
-      totalShield += towers[i].shieldDamage || 0;
-    }
-    const rows = towers.map(function (tower) {
-      const share = totalDamage > 0 ? Math.round((tower.damage || 0) / totalDamage * 100) : 0;
-      let note = share + '%';
-      if (tower.shieldDamage > 0) note += ' · 盾 ' + U.formatInt(tower.shieldDamage);
-      if (tower.kills > 0) note += ' · ' + tower.kills + ' 杀';
-      return '<div class="record-row">' +
-        '<span class="t">Lv.' + (tower.level || 1) + '</span>' +
-        '<span class="what"><b>' + escapeHtml(tower.name || tower.type) + '</b> @' + tower.x + ',' + tower.y +
-          (tower.sold ? ' · 已回收' : '') + '</span>' +
-        '<span class="val">' + U.formatInt(tower.damage || 0) + ' 伤害<small>' + note + '</small></span>' +
-        '</div>';
-    }).join('');
-    const shieldNote = totalShield > 0 ? ' · 护盾 ' + U.formatInt(totalShield) : '';
-    return '<div class="record-section"><h4>塔伤害 <span>合计 ' + U.formatInt(totalDamage) + shieldNote + '</span></h4>' +
-      '<div class="record-rows">' + rows + '</div></div>';
-  }
-
-  function recordEntryHtml(record) {
-    const levelId = Number(record.levelId) || 1;
-    const victory = record.result === 'victory';
-    const integrity = Math.round((Number(record.integrity) || 0) * 100);
-    const stars = Math.max(0, Math.min(3, Math.floor(Number(record.stars) || 0)));
-    const towers = record.towers || [];
-    const buildLog = record.buildLog || [];
-    let spent = 0;
-    let refunded = 0;
-    for (let i = 0; i < buildLog.length; i++) {
-      if (buildLog[i].action === 'sell') refunded += buildLog[i].refund || 0;
-      else spent += buildLog[i].cost || 0;
-    }
-    const stats = [
-      ['完整度', integrity + '%'],
-      ['波次', (record.wavesCleared || 0) + ' / ' + (record.totalWaves || 0)],
-      ['击杀', U.formatInt(record.kills || 0)],
-      ['漏怪', U.formatInt(record.leaked || 0)],
-      ['用时', U.formatTime(record.duration || 0)],
-      ['塔数', towers.length],
-      ['建造 / 升级', buildLog.filter(function (entry) { return entry.action !== 'sell'; }).length],
-      ['晶元收入', '+' + U.formatInt(record.crystalsEarned || 0)],
-      ['净晶元消耗', U.formatInt(Math.max(0, spent - refunded))],
-      ['金币', victory ? '+' + U.formatInt(record.goldEarned || 0) : '0'],
-    ].map(function (pair) {
-      return '<div class="record-stat"><span>' + pair[0] + '</span><b>' + pair[1] + '</b></div>';
-    }).join('');
-    return '<details class="record-entry ' + (victory ? 'victory' : 'defeat') + (record.debug ? ' debug' : '') + '">' +
-      '<summary>' +
-        '<span class="record-badge">' + (victory ? '胜利' : '失败') + '</span>' +
-        (record.debug ? '<span class="record-badge debug">DEBUG</span>' : '') +
-        '<span class="record-level">E1L' + levelId + ' · ' + escapeHtml(record.levelName || '') + '</span>' +
-        '<span class="record-stars">' + (victory ? recordStars(stars) : '') + '</span>' +
-        '<span class="record-duration">' + U.formatTime(record.duration || 0) + '</span>' +
-        '<span class="record-date">' + formatRecordDate(record.finishedAt) + '</span>' +
-      '</summary>' +
-      '<div class="record-detail">' +
-        '<div class="record-stats">' + stats + '</div>' +
-        recordSkillChips(record) +
-        recordWaveRows(record) +
-        recordLeakRows(record) +
-        recordTowerRows(record) +
-        recordBuildRows(record) +
-      '</div>' +
-      '</details>';
-  }
-
-  function renderRecords() {
-    if (!els.recordsList) return;
-    if (els.recordsCount) {
-      els.recordsCount.textContent = records.length
-        ? '共 ' + records.length + ' 条' + (records.length > 50 ? ' · 仅显示最近 50 条' : '')
-        : '暂无记录';
-    }
-    if (!records.length) {
-      els.recordsList.innerHTML =
-        '<p class="records-empty">还没有闯关记录。<br>完成或失守一局后，这里会记录初始技能、建造 / 升级、逐塔伤害与漏怪明细。</p>';
-      return;
-    }
-    els.recordsList.innerHTML = records.slice(0, 50).map(recordEntryHtml).join('');
-  }
-
-  function openRecords() {
-    renderRecords();
-    els.recordsModal.classList.remove('hidden');
-    const close = $('records-close');
-    if (close) close.focus();
-    audio.play('ui');
-  }
-
-  function closeRecords() {
-    if (!recordsOpen()) return;
-    els.recordsModal.classList.add('hidden');
-  }
-
-  function clearRecords() {
-    if (!records.length) return;
-    if (!window.confirm('清空全部闯关记录？此操作不可撤销。')) return;
-    records.length = 0;
-    persistRecords();
-    renderRecords();
-    showGlobalToast('闯关记录已清空', 'info');
   }
 
   function exportRecords() {
@@ -3557,9 +3351,17 @@
     showGlobalToast('已导出 ' + records.length + ' 条闯关记录', 'success');
   }
 
+  function clearRecordsData() {
+    if (!records.length) return;
+    if (!window.confirm('清空全部闯关记录？此操作不可撤销。')) return;
+    records.length = 0;
+    persistRecords();
+    if (debug.panelOpen) renderDebugPanel();
+    showGlobalToast('闯关记录已清空', 'info');
+  }
+
   function gameInputBlocked() {
     return helpOpen()
-      || recordsOpen()
       || !els.pauseOverlay.classList.contains('hidden')
       || !els.resultOverlay.classList.contains('hidden')
       || !els.onboarding.classList.contains('hidden')
@@ -3622,13 +3424,6 @@
     $('btn-deploy').addEventListener('click', openLevels);
     $('btn-skills-home').addEventListener('click', function () { openSkills('home'); });
     $('btn-help').addEventListener('click', openHelp);
-    $('btn-home-records').addEventListener('click', openRecords);
-    $('records-close').addEventListener('click', closeRecords);
-    $('records-clear').addEventListener('click', clearRecords);
-    $('records-export').addEventListener('click', exportRecords);
-    if (els.recordsModal) {
-      els.recordsModal.querySelector('.overlay-scrim').addEventListener('click', closeRecords);
-    }
     if (els.debugFab) els.debugFab.addEventListener('click', toggleDebugPanel);
     if (els.debugHud) els.debugHud.addEventListener('click', toggleDebugPanel);
     if (els.debugClose) els.debugClose.addEventListener('click', closeDebugPanel);
@@ -3988,11 +3783,6 @@
       }
       if (helpOpen()) {
         closeHelp();
-        event.preventDefault();
-        return;
-      }
-      if (recordsOpen()) {
-        closeRecords();
         event.preventDefault();
         return;
       }

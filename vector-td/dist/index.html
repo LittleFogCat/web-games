@@ -123,10 +123,6 @@
               <span class="btn-glyph" aria-hidden="true">⌁</span>
               <span><b>作战手册</b><small>FIELD MANUAL</small></span>
             </button>
-            <button id="btn-home-records" class="secondary-button records-button" type="button">
-              <span class="btn-glyph" aria-hidden="true">▤</span>
-              <span><b>闯关记录</b><small>BATTLE LOG</small></span>
-            </button>
           </div>
         </div>
       </div>
@@ -509,42 +505,13 @@
           <p>数字键 <kbd>1</kbd>–<kbd>8</kbd> 选择防御单元，<kbd>W</kbd> 选择壁垒，<kbd>P</kbd> / <kbd>Esc</kbd> / <kbd>Space</kbd> 暂停或继续。鼠标<b>右键</b>取消当前选择，<b>左键</b>建造或选中设施。战场全屏显示，顶部 HUD 与下方常驻建造栏都浮在战场上方。HUD 左侧显示当前关卡编号 <b>E1L1–E1L10</b>；暂停键与晶元居左，波次倒计时、倍速与音量居右；暂停时中间显示「重开 / 星图 / 敌情 / 全屏」四个图标，左右两组不移动，战场尺寸保持不变。暂停只会冻结战场，不会弹窗遮挡画面。<b>暂停期间仍可部署、升级和回收设施，刚部署的未升级设施（塔或壁垒）可按原价撤销</b>。波次会自动开始：每波准备阶段结束时先发出 3 秒警报，随后直接发兵；点击顶部倒计时卡可立即提前发兵，<b>暂停时点击该卡会同时恢复作战并立即发兵</b>。点击中间区域的敌情图标打开本关全部波次的情报对话框。触屏设备可直接点按所有目标。顶部 HUD 只保留关卡编号、晶元、波次倒计时、倍速、音量和紧急核心状态，其余信息在受击或需要时短暂浮现，避免遮挡战场。</p>
           <p><b>全屏沉浸</b>：手机进入关卡时默认自动进入全屏；首页右上角的展开图标、暂停时 HUD 中间的「全屏」图标都可以随时切换。iPhone / iPad 的 Safari 不支持网页全屏 API，可以用「分享 → 添加到主屏幕」安装，之后会以独立全屏应用启动。</p>
         </div>
-        <div class="help-section">
-          <h3><span>09</span> 闯关记录</h3>
-          <p>每局结算（胜利或失守）都会写入本地闯关记录，用于关卡设计调优。记录包含：时间、关卡、结果、星级、完整度、逐波时间线（用时 / 击杀 / 漏怪 / 核心与晶元变化）、漏怪明细、逐塔伤害与占比、建造 / 升级 / 回收时间线（塔种、等级、坐标、所在波次）以及进入关卡时的初始技能点。</p>
-          <p>首页「闯关记录」可展开单局详情、导出 JSON 或清空；数据只保存在本机，最多保留最近 100 条。调试战斗同样会记录并标注 <b>DEBUG</b>，但不会写入星图进度、星级或金币。</p>
-        </div>
         <div id="help-debug-section" class="help-section hidden">
-          <h3><span>10</span> 调试模式</h3>
+          <h3><span>09</span> 调试模式</h3>
           <p>当前是调试构建：右下角 <b>DEBUG</b> 按钮可打开调试面板，直达任意关卡、修改晶元/核心、生成测试敌群或直接判定胜负。快捷键 <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>D</kbd> 开关调试模式；URL 加 <code>?debug=1</code> 可强制开启，<code>?debug=0</code> 可强制关闭。</p>
           <p><b>独立存档</b>：正式与调试模式使用两套存档，金币、技能、星区解锁与星级分别保存；调试存档首次建立自带 <b>10000 金币</b>。调试面板底部可分别重置「正式存档」与「调试存档」。</p>
-          <p><b>首闯金币预算</b>：开启后每次手动进关，金币设为「前序关卡首通基础金币之和 − 已投入技能」；若技能投入超出该预算，会提示调整技能并阻止开局；重复闯关不再结算金币。调试战斗的进度、星级与金币只写入调试存档，不会污染正式存档；闯关记录仍会标注 <b>DEBUG</b>。</p>
+          <p><b>首闯金币预算</b>：开启后每次手动进关，金币设为「前序关卡首通基础金币之和 − 已投入技能」；若技能投入超出该预算，会提示调整技能并阻止开局；重复闯关不再结算金币。调试战斗的进度、星级与金币只写入调试存档，不会污染正式存档；闯关记录仍写入本地日志，可在调试面板导出。</p>
         </div>
       </div>
-    </div>
-  </div>
-
-  <!-- ============================ RECORDS MODAL ============================ -->
-  <div id="records-modal" class="modal-shell hidden" role="dialog" aria-modal="true" aria-labelledby="records-title">
-    <div class="overlay-scrim"></div>
-    <div class="modal-card records-card">
-      <header class="records-header">
-        <div>
-          <div class="modal-kicker">BATTLE LOG</div>
-          <h2 class="modal-title" id="records-title">闯关记录</h2>
-        </div>
-        <button id="records-close" class="icon-button" type="button" aria-label="关闭闯关记录">
-          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
-        </button>
-      </header>
-      <div class="records-toolbar">
-        <span id="records-count">共 0 条</span>
-        <div class="records-tools">
-          <button id="records-export" class="ghost-button compact" type="button">导出 JSON</button>
-          <button id="records-clear" class="ghost-button compact" type="button">清空记录</button>
-        </div>
-      </div>
-      <div id="records-list" class="records-body"></div>
     </div>
   </div>
 

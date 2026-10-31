@@ -157,6 +157,7 @@ python -m http.server 5180 --bind 127.0.0.1
 - URL 加 `?debug=1` 强制开启，`?debug=0` 强制关闭；
 - 快捷键 `Ctrl + Shift + D` 开关；
 - 首页顶部 `DEBUG` 按钮，或游戏内 HUD 的 `DBG` 按钮打开面板。
+- 面板顶部显示当前版本与修订号（`src/app.js` 的 SHA-256 前 8 位），便于确认测试的是哪个构建。
 
 调试面板支持：
 

@@ -8,6 +8,7 @@
   const U = window.GEOTD_UTIL;
   const GFX = window.GEOTD_GFX;
   const GAME = window.GEOTD_GAME;
+  const APP_SCRIPT = document.currentScript || null;
   const SAVE_KEY = 'vector_geotd_save_v1';
   const DEBUG_SAVE_KEY = 'vector_geotd_debug_save_v1';
   const DEBUG_KEY = 'vector_geotd_debug_v1';
@@ -606,6 +607,7 @@
     helpTraitList: $('help-trait-list'),
     debugPanel: $('debug-panel'),
     debugBody: $('debug-body'),
+    debugVersion: $('debug-version'),
     debugFab: $('debug-fab'),
     debugHud: $('btn-game-debug'),
     debugBadge: $('hud-debug-badge'),
@@ -1160,6 +1162,46 @@
   /* ============================================================
      Debug mode
      ============================================================ */
+  let debugRevisionHash = '';
+
+  function gameVersionText() {
+    const footer = document.querySelector('.home-foot > span');
+    const match = footer && footer.textContent.match(/BUILD\s+([0-9A-Za-z.\-+]+)/);
+    return match ? match[1] : 'dev';
+  }
+
+  function renderDebugVersion(state) {
+    if (!els.debugVersion) return;
+    const revision = debugRevisionHash || state || '…';
+    els.debugVersion.textContent = 'VECTOR ' + gameVersionText() + ' · 修订 ' + revision;
+  }
+
+  function loadGameRevision() {
+    renderDebugVersion('…');
+    if (debugRevisionHash) {
+      renderDebugVersion();
+      return;
+    }
+    const src = APP_SCRIPT && APP_SCRIPT.src;
+    if (!src || !window.fetch || !window.crypto || !window.crypto.subtle) {
+      renderDebugVersion('dev');
+      return;
+    }
+    window.fetch(src, { cache: 'no-cache' })
+      .then(function (response) { return response.arrayBuffer(); })
+      .then(function (buffer) { return window.crypto.subtle.digest('SHA-256', buffer); })
+      .then(function (hash) {
+        const bytes = new Uint8Array(hash);
+        let hex = '';
+        for (let i = 0; i < 4; i++) hex += bytes[i].toString(16).padStart(2, '0');
+        debugRevisionHash = hex;
+        renderDebugVersion();
+      })
+      .catch(function () {
+        renderDebugVersion('dev');
+      });
+  }
+
   function updateDebugChrome() {
     document.body.classList.toggle('debug-enabled', debug.enabled);
     if (els.debugBadge) els.debugBadge.classList.toggle('hidden', !debug.enabled);
@@ -1226,6 +1268,7 @@
     renderSkills();
     renderDebugPanel();
     if (debug.enabled) syncAllRecordsToLocalServer(false);
+    if (debug.enabled) loadGameRevision();
     if (switched) {
       showGlobalToast('已切换到' + (debug.enabled ? '调试' : '正式') + '存档', 'info');
     } else if (debug.enabled) {
@@ -3984,12 +4027,14 @@
     if (debug.enabled) {
       console.info('[VECTOR] Debug mode enabled. Toggle with Ctrl+Shift+D or ?debug=1.');
       syncAllRecordsToLocalServer(false);
+      loadGameRevision();
     }
     requestAnimationFrame(loop);
   }
 
   // Small debug/testing surface. Does not affect normal play.
   window.__VECTOR = {
+    get version() { return { number: gameVersionText(), revision: debugRevisionHash || null }; },
     get save() { return save; },
     get game() { return currentGame; },
     get immersive() {

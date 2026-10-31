@@ -29,6 +29,7 @@
       <div>
         <span class="debug-kicker">DEVELOPER MODE</span>
         <b>调试面板</b>
+        <p id="debug-version" class="debug-version">VECTOR</p>
       </div>
       <button id="debug-close" class="debug-close" type="button" aria-label="关闭调试面板">×</button>
     </header>
@@ -508,6 +509,7 @@
         <div id="help-debug-section" class="help-section hidden">
           <h3><span>09</span> 调试模式</h3>
           <p>当前是调试构建：右下角 <b>DEBUG</b> 按钮可打开调试面板，直达任意关卡、修改晶元/核心、生成测试敌群或直接判定胜负。快捷键 <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>D</kbd> 开关调试模式；URL 加 <code>?debug=1</code> 可强制开启，<code>?debug=0</code> 可强制关闭。</p>
+          <p>面板顶部显示当前版本与修订号（例如 <b>VECTOR 0.14.5-dev · 修订 cebefe2a</b>）；修订号取自当前加载的 <code>src/app.js</code> 内容哈希，便于确认测试的是哪个构建。</p>
           <p><b>独立存档</b>：正式与调试模式使用两套存档，金币、技能、星区解锁与星级分别保存；调试存档首次建立自带 <b>10000 金币</b>。调试面板底部可分别重置「正式存档」与「调试存档」。</p>
           <p><b>首闯金币预算</b>：开启后每次手动进关，金币设为「前序关卡首通基础金币之和 − 已投入技能」；若技能投入超出该预算，会提示调整技能并阻止开局；重复闯关不再结算金币。调试战斗的进度、星级与金币只写入调试存档，不会污染正式存档；闯关记录仍写入本地日志，可在调试面板导出。</p>
         </div>

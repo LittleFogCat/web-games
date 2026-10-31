@@ -6429,6 +6429,15 @@ body.debug-modal-open #screen-game {
   letter-spacing: 0.04em;
 }
 
+.debug-version {
+  margin-top: 3px;
+  color: rgba(255, 178, 125, 0.55);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
 .debug-kicker {
   display: block;
   color: #ff9a62;

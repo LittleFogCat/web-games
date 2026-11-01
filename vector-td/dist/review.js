@@ -534,51 +534,21 @@
   }
 
   function enemiesAt(time) {
-    const f0 = frameAt(time);
-    if (!f0 || !Array.isArray(f0.e)) return [];
-    const f1 = nextFrame(time);
-    if (!f1 || !Array.isArray(f1.e) || f1 === f0) return mapFrameEnemies(f0.e);
-    const span = Math.max(1e-6, f1.t - f0.t);
-    const alpha = clamp((time - f0.t) / span, 0, 1);
-    const used = new Set();
-    const matched = [];
-    for (const e of f1.e) {
-      let match = -1;
-      if (e[8] != null) {
-        for (let i = 0; i < f0.e.length; i++) {
-          if (!used.has(i) && f0.e[i][8] === e[8]) { match = i; break; }
-        }
-      }
-      if (match < 0) {
-        let best = Infinity;
-        for (let i = 0; i < f0.e.length; i++) {
-          if (used.has(i) || f0.e[i][0] !== e[0]) continue;
-          const d = Math.hypot((f0.e[i][1] || 0) - (e[1] || 0), (f0.e[i][2] || 0) - (e[2] || 0));
-          if (d < best) { best = d; match = i; }
-        }
-        if (best > 2.5) match = -1;
-      }
-      // 新敌人这一刻还没有实际位置：等到下一帧出现后再画。
-      // 旧敌人这一帧之后消失：也不再画。两端都不做淡入 / 淡出 / 缩放。
-      if (match < 0) continue;
-      used.add(match);
-      const a = f0.e[match];
-      matched.push([
-        e[0],
-        a[1] + (e[1] - a[1]) * alpha,
-        a[2] + (e[2] - a[2]) * alpha,
-        e[3], e[4], e[5], e[6], e[7], e[8],
-      ]);
-    }
-    // 这一帧之后消失的敌人保留到下一帧，不做淡出 / 缩小。
-    for (let i = 0; i < f0.e.length; i++) {
-      if (!used.has(i)) matched.push(f0.e[i]);
-    }
-    const out = mapFrameEnemies(matched);
+    // 回放只展示采样帧里的真实位置：不做插值、不做裂口补位、不做淡入淡出。
+    // 敌人死亡后在下一帧直接消失，不会留下“尸体”或产生任何位移动画。
+    const frame = frameAt(time);
+    if (!frame || !Array.isArray(frame.e)) return [];
+    const out = mapFrameEnemies(frame.e);
     for (const enemy of out) {
       if (enemy.id == null) continue;
-      const a = f0.e.find(function (e) { return e[8] === enemy.id; });
-      const b = f1.e.find(function (e) { return e[8] === enemy.id; });
+      const prev = previousFrame(frame.t);
+      const next = nextFrame(frame.t);
+      const a = prev && Array.isArray(prev.e)
+        ? prev.e.find(function (e) { return e[8] === enemy.id; }) || null
+        : null;
+      const b = next && Array.isArray(next.e)
+        ? next.e.find(function (e) { return e[8] === enemy.id; }) || null
+        : null;
       if (a && b) {
         const dx = b[1] - a[1];
         const dy = b[2] - a[2];
@@ -783,8 +753,8 @@
       : (function () {
         const run = state.runs.find(function (r) { return r.id === state.selectedId; });
         return run && run.replay && run.replay.resimulated
-          ? '重模拟回放（近似）'
-          : (state.frames.length + ' 帧逐秒回放');
+          ? '重模拟回放（逐帧，无插值）'
+          : (state.frames.length + ' 帧逐帧回放（无插值）');
       })();
     drawArena();
     drawChart();

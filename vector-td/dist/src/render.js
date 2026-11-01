@@ -2051,11 +2051,12 @@
       else if (def.shape === 'kite') rot = angle + Math.PI / 2;
       else if (def.shape === 'heptagon') rot = angle * 0.35 - time * 0.2;
       else if (def.shape === 'octagon') rot = angle * 0.15 + time * 0.05;
-      const bodyAlpha = (0.25 + spawn * 0.75) * (stealth && !revealed ? 0.5 : 1);
+      const renderAlpha = enemy.renderAlpha == null ? 1 : U.clamp(enemy.renderAlpha, 0, 1);
+      const bodyAlpha = (0.25 + spawn * 0.75) * (stealth && !revealed ? 0.5 : 1) * renderAlpha;
 
       ctx.save();
       ctx.translate(cx, cy);
-      ctx.globalAlpha = 0.25 + spawn * 0.75;
+      ctx.globalAlpha = (0.25 + spawn * 0.75) * renderAlpha;
 
       // Cheap team-colour aura. Gradients are reserved for bosses and highlights.
       if (def.boss) {

@@ -518,6 +518,7 @@
         shield: Number(entry[5]) || 0,
         maxShield: maxShield,
         spawnAnim: 1,
+        renderAlpha: 1,
         hitFlash: 0,
         slowTimer: 0,
         slowFactor: 0,
@@ -640,9 +641,12 @@
         const inF0 = f0.e.some(function (e) { return e[8] === enemy.id; });
         const inF1 = f1.e.some(function (e) { return e[8] === enemy.id; });
         if (!inF0 && inF1) {
-          enemy.spawnAnim = Math.max(0.12, alpha);
+          // 只做透明度渐入，不缩放；缩放会被看成“往回缩”。
+          enemy.spawnAnim = 1;
+          enemy.renderAlpha = alpha;
         } else if (inF0 && !inF1) {
-          enemy.spawnAnim = Math.max(0.12, 1 - alpha);
+          enemy.spawnAnim = 1;
+          enemy.renderAlpha = 1 - alpha;
         }
       }
     }
@@ -722,7 +726,7 @@
         '<b>' + escapeHtml(run.levelCode) + '</b> · W' + (frame.w || '-') +
         ' · 核心 ' + Math.round(game.baseHp) + '/' + Math.round(game.baseMax) +
         ' · 晶元 ' + Math.round(game.crystals) +
-        ' · 敌 ' + game.enemies.filter(function (enemy) { return !enemy.dead; }).length;
+        ' · 敌 ' + game.enemies.filter(function (enemy) { return !enemy.dead && (enemy.renderAlpha == null || enemy.renderAlpha > 0.05); }).length;
     }
   }
 

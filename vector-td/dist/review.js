@@ -318,6 +318,84 @@
     return frames;
   }
 
+  function modsFromRanks(skills) {
+    const ranks = skills || {};
+    if (ranks.crystalMult != null || ranks.damageMult != null) {
+      return Object.assign({}, ranks);
+    }
+    return {
+      baseHp: (ranks.core || 0) * 20,
+      crystalMult: 1 + (ranks.crystal || 0) * 0.1,
+      damageMult: 1 + (ranks.overclock || 0) * 0.08,
+      costMult: 1 - (ranks.build || 0) * 0.05,
+      enemySpeedMult: 1 - (ranks.stasis || 0) * 0.04,
+      repair: (ranks.repair || 0) * 6,
+      startCrystals: (ranks.start || 0) * 25,
+    };
+  }
+
+  function applyRecordEntry(game, entry) {
+    if (entry.action === 'build') return !!game.tryBuild(entry.x, entry.y, entry.type);
+    if (entry.action === 'upgrade') {
+      const structure = game._structureAt(entry.x, entry.y);
+      if (!structure) return false;
+      if (structure.level >= entry.level) return true;
+      game.selectedStructure = structure;
+      game.upgradeSelected();
+      return structure.level >= entry.level;
+    }
+    if (entry.action === 'sell') {
+      const structure = game._structureAt(entry.x, entry.y);
+      if (!structure) return false;
+      game.selectedStructure = structure;
+      game.sellSelected();
+      return true;
+    }
+    return true;
+  }
+
+  function resimulateRun(run) {
+    if (!window.GEOTD_GAME || !window.GEOTD_GAME.Game) return false;
+    const level = levelOf(run);
+    if (!level || !Array.isArray(run.buildLog) || !run.buildLog.length) return false;
+    const canvas = document.createElement('canvas');
+    let game;
+    try {
+      game = new window.GEOTD_GAME.Game({
+        level: level,
+        mods: modsFromRanks(run.initialSkills || {}),
+        canvas: canvas,
+        captureReplay: true,
+      });
+    } catch (error) {
+      return false;
+    }
+    game.paused = false;
+    const entries = run.buildLog.slice().sort(function (a, b) { return (a.t || 0) - (b.t || 0); });
+    let cursor = 0;
+    const pending = [];
+    let guard = 0;
+    while (guard++ < 4_000_000) {
+      while (cursor < entries.length && game.combatTime >= (entries[cursor].t || 0) - 1e-6) {
+        pending.push(entries[cursor++]);
+      }
+      for (let i = 0; i < pending.length;) {
+        const entry = pending[i];
+        entry.retries = (entry.retries || 0) + 1;
+        if (applyRecordEntry(game, entry)) pending.splice(i, 1);
+        else if (entry.retries > 30 * 120) pending.splice(i, 1);
+        else i++;
+      }
+      game.update(1 / 30);
+      if (game.phase === 'victory' || game.phase === 'defeat') break;
+      if (game.clock > 7200) break;
+    }
+    const frames = game.replayFrames || [];
+    if (!frames.length) return false;
+    run.replay = { v: 1, interval: 1, frames: frames, resimulated: true };
+    return true;
+  }
+
   function prepareFrames(run) {
     const replay = run.replay;
     if (replay && Array.isArray(replay.frames) && replay.frames.length) {
@@ -329,6 +407,15 @@
     }
     state.maxTime = Math.max(1, state.frames[state.frames.length - 1].t || run.duration || 1);
     state.time = 0;
+    if (el.arenaWarning) {
+      el.arenaWarning.classList.toggle('hidden', !state.synthetic);
+      if (state.synthetic && el.warningText) {
+        el.warningText.textContent = '该局没有逐帧敌人数据（记录早于回放采样，或页面仍在跑旧缓存）。可以按建造记录重新模拟一局，或打一局新记录。';
+      }
+      if (el.resim) {
+        el.resim.classList.toggle('hidden', !(state.synthetic && window.GEOTD_GAME && (run.buildLog || []).length));
+      }
+    }
   }
 
   function frameAt(time) {
@@ -545,7 +632,8 @@
       el.arenaHud.innerHTML =
         '<b>' + escapeHtml(run.levelCode) + '</b> · W' + (frame.w || '-') +
         ' · 核心 ' + Math.round(game.baseHp) + '/' + Math.round(game.baseMax) +
-        ' · 晶元 ' + Math.round(game.crystals);
+        ' · 晶元 ' + Math.round(game.crystals) +
+        ' · 敌 ' + game.enemies.length;
     }
   }
 
@@ -659,7 +747,14 @@
     el.time.textContent = fmtTime(state.time) + ' / ' + fmtTime(state.maxTime);
     el.play.textContent = state.playing ? '❚❚ 暂停' : '▶ 播放';
     el.speed.textContent = state.speed + '×';
-    el.arenaNote.textContent = state.synthetic ? '旧记录：仅波次 / 建造时间线' : (state.frames.length + ' 帧逐秒回放');
+    el.arenaNote.textContent = state.synthetic
+      ? '旧记录：无逐帧敌人数据（仅波次 / 建造时间线）'
+      : (function () {
+        const run = state.runs.find(function (r) { return r.id === state.selectedId; });
+        return run && run.replay && run.replay.resimulated
+          ? '重模拟回放（近似）'
+          : (state.frames.length + ' 帧逐秒回放');
+      })();
     drawArena();
     drawChart();
   }
@@ -735,7 +830,7 @@
     if (!added.length) return 0;
     state.runs = mergeRuns(loadLocal(), added);
     renderList();
-    if (!state.selectedId && added.length) selectRun(added[0].id);
+    if (added.length) selectRun(added[0].id);
     return added.length;
   }
 
@@ -767,6 +862,9 @@
     el.summary = $('rv-summary');
     el.canvas = $('rv-canvas');
     el.arenaHud = $('rv-arena-hud');
+    el.arenaWarning = $('rv-arena-warning');
+    el.warningText = $('rv-warning-text');
+    el.resim = $('rv-resim');
     el.chart = $('rv-chart');
     el.damage = $('rv-damage');
     el.build = $('rv-build');
@@ -808,6 +906,26 @@
         el.empty.classList.remove('hidden');
       }
     });
+    if (el.resim) {
+      el.resim.addEventListener('click', function () {
+        const run = state.runs.find(function (r) { return r.id === state.selectedId; });
+        if (!run) return;
+        el.resim.disabled = true;
+        el.resim.textContent = '模拟中…';
+        if (el.warningText) el.warningText.textContent = '正在按建造记录重新模拟，请稍候…';
+        setTimeout(function () {
+          const ok = resimulateRun(run);
+          el.resim.disabled = false;
+          el.resim.textContent = '重新模拟';
+          if (ok) {
+            renderList();
+            selectRun(run.id);
+          } else if (el.warningText) {
+            el.warningText.textContent = '重新模拟失败：记录缺少建造时间线，或模拟没有产生有效帧。';
+          }
+        }, 40);
+      });
+    }
     el.file.addEventListener('change', function () {
       readFiles(el.file.files);
       el.file.value = '';
@@ -829,6 +947,14 @@
       return;
     }
     bind();
+    window.__REVIEW = {
+      state: state,
+      frameAt: frameAt,
+      enemiesAt: enemiesAt,
+      buildRenderGame: buildRenderGame,
+      drawArena: drawArena,
+      selectRun: selectRun,
+    };
     state.runs = loadLocal();
     renderList();
     if (state.runs.length) {

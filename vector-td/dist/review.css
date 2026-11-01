@@ -226,7 +226,7 @@ code { font-family: var(--rv-mono); color: var(--rv-gold); }
 .rv-canvas-wrap {
   position: relative;
   width: 100%;
-  max-width: 400px;
+  max-width: 480px;
   margin: 0 auto;
   aspect-ratio: 9 / 16;
   border: 1px solid var(--rv-line);
@@ -255,6 +255,28 @@ code { font-family: var(--rv-mono); color: var(--rv-gold); }
   text-overflow: ellipsis;
 }
 .rv-arena-hud b { color: var(--rv-cyan); font-weight: 600; }
+.rv-arena-warning {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  padding: 6px 8px;
+  border: 1px solid rgba(255, 207, 110, 0.45);
+  border-radius: 6px;
+  background: rgba(20, 14, 4, 0.88);
+  color: #ffd98a;
+  font-size: 11px;
+  line-height: 1.45;
+  pointer-events: none;
+}
+.rv-resim {
+  margin-left: 6px;
+  padding: 3px 8px;
+  border-color: rgba(255, 207, 110, 0.6);
+  color: #ffe6b0;
+  font-size: 11px;
+  pointer-events: auto;
+}
 .rv-playback {
   display: flex;
   align-items: center;
@@ -300,7 +322,7 @@ code { font-family: var(--rv-mono); color: var(--rv-gold); }
 @media (max-width: 1080px) {
   .rv-layout { grid-template-columns: 250px minmax(0, 1fr); }
   .rv-row { grid-template-columns: minmax(0, 1fr); }
-  .rv-card-arena .rv-canvas-wrap { max-width: 360px; }
+  .rv-card-arena .rv-canvas-wrap { max-width: 420px; }
 }
 @media (max-width: 760px) {
   .rv-header { position: static; flex-direction: column; align-items: flex-start; padding: 10px 14px; }

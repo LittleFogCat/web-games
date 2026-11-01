@@ -235,6 +235,26 @@ code { font-family: var(--rv-mono); color: var(--rv-gold); }
   overflow: hidden;
 }
 #rv-canvas { display: block; width: 100%; height: 100%; }
+.rv-arena-hud {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  max-width: calc(100% - 16px);
+  padding: 5px 7px;
+  border: 1px solid rgba(94, 242, 255, 0.16);
+  border-radius: 6px;
+  background: rgba(3, 7, 13, 0.72);
+  color: var(--rv-text);
+  font-family: var(--rv-mono);
+  font-size: 10px;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rv-arena-hud b { color: var(--rv-cyan); font-weight: 600; }
 .rv-playback {
   display: flex;
   align-items: center;

@@ -28,6 +28,7 @@
     frames: [],
     synthetic: false,
     grid: null,
+    renderer: null,
     raf: 0,
     lastTs: 0,
   };
@@ -382,171 +383,170 @@
     return { ctx: ctx, width: width, height: height };
   }
 
+  function nextFrame(time) {
+    const frames = state.frames;
+    if (!frames.length) return null;
+    let lo = 0;
+    let hi = frames.length - 1;
+    let best = null;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      if (frames[mid].t > time + 1e-6) {
+        best = frames[mid];
+        hi = mid - 1;
+      } else {
+        lo = mid + 1;
+      }
+    }
+    return best;
+  }
+
+  function mapFrameEnemies(list) {
+    const out = [];
+    for (const entry of list) {
+      const id = C.ENEMY_ORDER[entry[0]];
+      const def = id ? C.ENEMIES[id] : null;
+      if (!def) continue;
+      const maxHp = Number(entry[4]) || 1;
+      const maxShield = def.shield ? Math.max(1, Math.round(maxHp * def.shield)) : 0;
+      out.push({
+        def: def,
+        type: def.id,
+        x: Number(entry[1]) || 0,
+        y: Number(entry[2]) || 0,
+        hp: Number(entry[3]) || 0,
+        maxHp: maxHp,
+        shield: Number(entry[5]) || 0,
+        maxShield: maxShield,
+        spawnAnim: 1,
+        hitFlash: 0,
+        slowTimer: 0,
+        slowFactor: 0,
+        slowBlocked: 0,
+        angle: Math.PI / 2,
+        revealed: entry[7] !== 0,
+        shieldFlash: 0,
+        dead: false,
+      });
+    }
+    return out;
+  }
+
+  function enemiesAt(time) {
+    const f0 = frameAt(time);
+    if (!f0 || !Array.isArray(f0.e)) return [];
+    const f1 = nextFrame(time);
+    if (!f1 || !Array.isArray(f1.e) || f1 === f0) return mapFrameEnemies(f0.e);
+    const span = Math.max(1e-6, f1.t - f0.t);
+    const alpha = clamp((time - f0.t) / span, 0, 1);
+    const used = new Set();
+    const interpolated = [];
+    for (const e of f1.e) {
+      let match = -1;
+      if (e[8] != null) {
+        for (let i = 0; i < f0.e.length; i++) {
+          if (!used.has(i) && f0.e[i][8] === e[8]) { match = i; break; }
+        }
+      }
+      if (match < 0) {
+        let best = Infinity;
+        for (let i = 0; i < f0.e.length; i++) {
+          if (used.has(i) || f0.e[i][0] !== e[0]) continue;
+          const d = Math.hypot((f0.e[i][1] || 0) - (e[1] || 0), (f0.e[i][2] || 0) - (e[2] || 0));
+          if (d < best) { best = d; match = i; }
+        }
+        if (best > 2.5) match = -1;
+      }
+      if (match >= 0) {
+        used.add(match);
+        const a = f0.e[match];
+        interpolated.push([
+          e[0],
+          a[1] + (e[1] - a[1]) * alpha,
+          a[2] + (e[2] - a[2]) * alpha,
+          e[3], e[4], e[5], e[6], e[7],
+        ]);
+      } else {
+        interpolated.push(e);
+      }
+    }
+    return mapFrameEnemies(interpolated);
+  }
+
+  function buildRenderGame(run, level, time) {
+    const structures = structuresAt(run, time).map(function (s) {
+      if (s.kind === 'wall' || s.type === 'wall') {
+        return { kind: 'wall', type: 'wall', level: 1, x: s.x, y: s.y };
+      }
+      return {
+        kind: 'tower',
+        type: s.type,
+        level: s.level || 1,
+        x: s.x,
+        y: s.y,
+        angle: Math.PI / 2,
+        recoil: 0,
+        idleSeed: ((s.x * 7 + s.y * 13) % 17) / 17,
+        firing: false,
+        laserCharge: 0,
+      };
+    });
+    const field = state.grid.buildField(structures.map(function (s) { return { x: s.x, y: s.y }; }));
+    const routes = state.grid.routes(field);
+    const frame = frameAt(time) || {};
+    const enemies = enemiesAt(time);
+    return {
+      level: level,
+      grid: state.grid,
+      field: field,
+      routes: routes,
+      structures: structures,
+      enemies: enemies,
+      projectiles: [],
+      effects: [],
+      particles: [],
+      floatTexts: [],
+      baseHp: frame.hp != null ? frame.hp : (run.coreMax || 100),
+      baseMax: run.coreMax || 100,
+      crystals: frame.cr != null ? frame.cr : (run.startCrystals || 0),
+      selectedStructure: null,
+      selectedBuild: null,
+      hoverCell: null,
+      placementError: null,
+      baseFlash: 0,
+      shake: 0,
+      phase: 'wave',
+      _enemyRevealed: function (enemy) { return enemy.revealed !== false; },
+      getUpgradeCost: function () { return Infinity; },
+    };
+  }
+
   function drawArena() {
     if (!el.canvas || !state.selectedId) return;
     const run = state.runs.find(function (r) { return r.id === state.selectedId; });
     const level = run && levelOf(run);
-    if (!run || !level) return;
-    const surface = resizeCanvas(el.canvas);
-    const ctx = surface.ctx;
-    const w = surface.width;
-    const h = surface.height;
-    ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = '#03070d';
-    ctx.fillRect(0, 0, w, h);
-
-    const cell = Math.min(w / 9, h / 16);
-    const ox = (w - cell * 9) / 2;
-    const oy = (h - cell * 16) / 2;
-    if (!state.grid || state.grid.level !== level) state.grid = new P.BattleGrid(level);
-    const grid = state.grid;
-    const parsed = C.parseLevel(level);
-    const rocks = new Set(parsed.rocks.map(function (r) { return r.x + ',' + r.y; }));
-    const gates = new Set(parsed.gates.map(function (g) { return g.x + ',' + g.y; }));
-    const base = parsed.base;
-    const structures = structuresAt(run, state.time);
-
-    let pathCells = new Set();
-    try {
-      const field = grid.buildField(structures.map(function (s) { return { x: s.x, y: s.y }; }));
-      const routes = grid.routes(field);
-      routes.forEach(function (route) {
-        route.path.forEach(function (c) { pathCells.add(c.x + ',' + c.y); });
-      });
-    } catch (error) { /* old/invalid layout: draw without a path */ }
-
-    for (let y = 0; y < 16; y++) {
-      for (let x = 0; x < 9; x++) {
-        const px = ox + x * cell;
-        const py = oy + y * cell;
-        const key = x + ',' + y;
-        ctx.fillStyle = 'rgba(12, 22, 38, 0.55)';
-        ctx.fillRect(px + 0.5, py + 0.5, cell - 1, cell - 1);
-        if (pathCells.has(key)) {
-          ctx.fillStyle = 'rgba(94, 242, 255, 0.10)';
-          ctx.fillRect(px + 1, py + 1, cell - 2, cell - 2);
-          ctx.strokeStyle = 'rgba(94, 242, 255, 0.22)';
-          ctx.lineWidth = 1;
-          ctx.strokeRect(px + 1.5, py + 1.5, cell - 3, cell - 3);
-        }
-        if (rocks.has(key)) {
-          ctx.fillStyle = '#1b2638';
-          ctx.strokeStyle = 'rgba(150, 180, 215, 0.35)';
-          ctx.beginPath();
-          ctx.moveTo(px + cell * 0.2, py + cell * 0.7);
-          ctx.lineTo(px + cell * 0.42, py + cell * 0.2);
-          ctx.lineTo(px + cell * 0.8, py + cell * 0.28);
-          ctx.lineTo(px + cell * 0.88, py + cell * 0.74);
-          ctx.lineTo(px + cell * 0.5, py + cell * 0.88);
-          ctx.closePath();
-          ctx.fill();
-          ctx.stroke();
-        }
-      }
+    if (!run || !level || !window.GEOTD_GFX || !window.GEOTD_GFX.GameRenderer) return;
+    const rect = el.canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    if (!state.renderer) {
+      state.renderer = new window.GEOTD_GFX.GameRenderer(el.canvas);
     }
-
-    gates.forEach(function (key) {
-      const parts = key.split(',').map(Number);
-      const px = ox + parts[0] * cell;
-      const py = oy + parts[1] * cell;
-      ctx.fillStyle = 'rgba(255, 93, 122, 0.85)';
-      ctx.fillRect(px + cell * 0.22, py + cell * 0.22, cell * 0.56, cell * 0.56);
-    });
-    if (base) {
-      const px = ox + base.x * cell;
-      const py = oy + base.y * cell;
-      ctx.fillStyle = 'rgba(94, 242, 255, 0.9)';
-      ctx.beginPath();
-      ctx.moveTo(px + cell * 0.5, py + cell * 0.18);
-      ctx.lineTo(px + cell * 0.82, py + cell * 0.5);
-      ctx.lineTo(px + cell * 0.5, py + cell * 0.82);
-      ctx.lineTo(px + cell * 0.18, py + cell * 0.5);
-      ctx.closePath();
-      ctx.fill();
+    state.renderer.resize(rect.width, rect.height, { top: 0, bottom: 0 });
+    if (!state.grid || state.grid.level !== level) {
+      state.grid = new P.BattleGrid(level);
     }
-
-    structures.forEach(function (structure) {
-      const px = ox + structure.x * cell;
-      const py = oy + structure.y * cell;
-      if (structure.kind === 'wall' || structure.type === 'wall') {
-        ctx.fillStyle = 'rgba(138, 166, 200, 0.55)';
-        ctx.fillRect(px + cell * 0.12, py + cell * 0.12, cell * 0.76, cell * 0.76);
-        ctx.strokeStyle = 'rgba(223, 239, 255, 0.5)';
-        ctx.strokeRect(px + cell * 0.12, py + cell * 0.12, cell * 0.76, cell * 0.76);
-        return;
-      }
-      const def = towerDef(structure.type);
-      const color = colorOf(structure.type);
-      ctx.fillStyle = color;
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.65)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.arc(px + cell * 0.5, py + cell * 0.5, cell * 0.24, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-      if (structure.type === 'beacon') {
-        ctx.strokeStyle = 'rgba(94, 242, 255, 0.3)';
-        ctx.beginPath();
-        ctx.arc(px + cell * 0.5, py + cell * 0.5, cell * 0.45, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-      const lv = clamp(structure.level || 1, 1, 5);
-      ctx.fillStyle = '#03070d';
-      ctx.font = 'bold ' + Math.max(7, Math.round(cell * 0.28)) + 'px ' + getComputedStyle(document.body).fontFamily;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(String(lv), px + cell * 0.5, py + cell * 0.52);
-    });
-
-    const frame = frameAt(state.time);
-    if (frame && !state.synthetic) {
-      (frame.e || []).forEach(function (entry) {
-        const def = enemyDef(entry[0]);
-        if (!def) return;
-        const ex = ox + entry[1] * cell;
-        const ey = oy + entry[2] * cell;
-        const hp = entry[4] ? clamp(entry[3] / entry[4], 0, 1) : 1;
-        const radius = Math.max(2, (def.radius || 0.22) * cell);
-        ctx.globalAlpha = entry[6] && !entry[7] ? 0.45 : 1;
-        ctx.fillStyle = def.color || '#ffffff';
-        ctx.beginPath();
-        ctx.arc(ex, ey, radius, 0, Math.PI * 2);
-        ctx.fill();
-        if (entry[6] && !entry[7]) {
-          ctx.setLineDash([2, 3]);
-          ctx.strokeStyle = def.color || '#ffffff';
-          ctx.stroke();
-          ctx.setLineDash([]);
-        }
-        if (entry[5] > 0) {
-          ctx.strokeStyle = 'rgba(111, 231, 255, 0.8)';
-          ctx.beginPath();
-          ctx.arc(ex, ey, radius + 2, 0, Math.PI * 2);
-          ctx.stroke();
-        }
-        ctx.globalAlpha = 1;
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
-        ctx.fillRect(ex - radius, ey - radius - 4, radius * 2, 2.5);
-        ctx.fillStyle = hp > 0.5 ? '#7df4c6' : hp > 0.2 ? '#ffcf6e' : '#ff5d7a';
-        ctx.fillRect(ex - radius, ey - radius - 4, radius * 2 * hp, 2.5);
-      });
+    if (state.renderer.level !== level) {
+      state.renderer.setScene(level, state.grid);
     }
-
-    const hudFrame = frame || { w: 0, hp: run.coreMax, cr: run.startCrystals };
-    ctx.fillStyle = 'rgba(5, 10, 18, 0.78)';
-    ctx.fillRect(ox + 4, oy + 4, cell * 4.2, cell * 1.45);
-    ctx.fillStyle = '#d8e8f7';
-    ctx.font = '600 ' + Math.max(9, Math.round(cell * 0.3)) + 'px ' + getComputedStyle(document.body).fontFamily;
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    ctx.fillText(run.levelCode, ox + 8, oy + 7);
-    ctx.fillStyle = '#7d93ab';
-    ctx.font = Math.max(8, Math.round(cell * 0.24)) + 'px ' + getComputedStyle(document.body).fontFamily;
-    ctx.fillText('W' + (hudFrame.w || '-') + ' · ' + fmtTime(state.time), ox + 8, oy + cell * 0.55);
-    ctx.fillStyle = '#5ef2ff';
-    ctx.fillText('核心 ' + Math.round(hudFrame.hp) + '/' + Math.round(run.coreMax), ox + 8, oy + cell * 0.95);
-    ctx.fillStyle = '#ffcf6e';
-    ctx.fillText('晶元 ' + Math.round(hudFrame.cr || 0), ox + cell * 2.15, oy + cell * 0.95);
+    const game = buildRenderGame(run, level, state.time);
+    state.renderer.draw(game, state.time);
+    if (el.arenaHud) {
+      const frame = frameAt(state.time) || {};
+      el.arenaHud.innerHTML =
+        '<b>' + escapeHtml(run.levelCode) + '</b> · W' + (frame.w || '-') +
+        ' · 核心 ' + Math.round(game.baseHp) + '/' + Math.round(game.baseMax) +
+        ' · 晶元 ' + Math.round(game.crystals);
+    }
   }
 
   /* ---------------------------------------------------------------- chart */
@@ -766,6 +766,7 @@
     el.content = $('rv-content');
     el.summary = $('rv-summary');
     el.canvas = $('rv-canvas');
+    el.arenaHud = $('rv-arena-hud');
     el.chart = $('rv-chart');
     el.damage = $('rv-damage');
     el.build = $('rv-build');

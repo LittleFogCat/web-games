@@ -983,6 +983,7 @@
           Math.round(e.shield || 0),
           e.def && e.def.stealth ? 1 : 0,
           this._enemyRevealed(e) ? 1 : 0,
+          e.id,
         ]);
       }
       this.replayFrames.push({

@@ -60,6 +60,7 @@
 - [x] 第十三轮（用户实测 + 真实 build 回放）：L7 终波铁壁 3→6、`hpScale` 1.90→2.00；L8 终波铁壁 5→15；真实 11 棱镜平铺回放 L7 28%（3 漏）、L8 失败（4 漏），ace/normal 仍过；新增 `tools/replay-record.js`
 - [x] 第十四轮：极致混搭无伤回归（`tools/verify-extreme.js`）——10 攻击塔 + 2 灯塔 + 壁垒，动能/能量/低温三通道，ACE 技能无修复；L7/L8 各 3 种子 100% 无伤，证明前压只淘汰纯动能平铺
 - [x] 第十五轮：内部复盘系统（`review.html` / `review.css` / `review.js`）——调试面板「复盘」入口；数据看板 + 逐帧回放；最近一局保留 `replay.frames`，旧记录兼容；`tools/export-replay.js` 导出自动测试回放；Playwright 12 项 + 导入 816 帧回归通过
+- [x] 第十六轮：棱镜主 / 副箭显示与伤害修正——副箭也吃超频；`formatStat` ≥100 保留 1 位；`formatArrow` 固定 1 位；`?v=0.14.5-dev.1` 破缓存；回放 L7/L8/L9 结果不变
 - [x] 无脑 L7/L8 已压到“L7 28% / L8 失败”，达到“应失败或核心 <40%”目标
 - [ ] 手测 3 局 + 三尺寸回归
 - [ ] 标记 `accepted`

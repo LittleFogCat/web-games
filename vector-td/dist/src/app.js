@@ -2553,7 +2553,7 @@
     if (type === 'prism') {
       chips.push('<span>齐射 <b>' + stats.shots + '</b></span>');
       if (stats.second) {
-        chips.push('<span>主箭 <b>' + formatStat(stats.damage) + '</b> / 副箭 <b>' + formatStat(stats.second) + '</b></span>');
+        chips.push('<span>主箭 <b>' + formatArrow(stats.damage) + '</b> / 副箭 <b>' + formatArrow(stats.second) + '</b></span>');
       }
     } else if (type === 'gatling' || type === 'cannon') {
       chips.push('<span>间隔 <b>' + stats.cooldown.toFixed(2) + 's</b></span>');
@@ -2571,9 +2571,16 @@
   }
 
   function formatStat(value) {
-    if (value >= 100) return String(Math.round(value));
-    if (value >= 10) return String(Math.round(value * 10) / 10);
-    return String(Math.round(value * 10) / 10);
+    if (typeof value !== 'number' || !isFinite(value)) return '-';
+    // 统一到至多 1 位小数；≥100 也保留有效小数，避免 274.4 被显示成 274。
+    const rounded = Math.round(value * 10) / 10;
+    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  }
+
+  function formatArrow(value) {
+    if (typeof value !== 'number' || !isFinite(value)) return '-';
+    // 主箭 / 副箭固定保留 1 位小数：91.0000000001 → 91.0，44.8 → 44.8。
+    return value.toFixed(1);
   }
 
   function intelTagMarkup(info) {

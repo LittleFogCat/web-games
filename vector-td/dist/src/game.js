@@ -330,6 +330,7 @@
       const base = def.levels[Math.min(this._towerMaxLevel(type), level) - 1];
       const stats = Object.assign({}, base);
       if (typeof stats.damage === 'number') stats.damage *= this.mods.damageMult;
+      if (typeof stats.second === 'number') stats.second *= this.mods.damageMult;
       if (typeof stats.dps === 'number') stats.dps *= this.mods.damageMult;
       return stats;
     }

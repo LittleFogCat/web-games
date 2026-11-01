@@ -435,6 +435,7 @@ class CorridorBot {
         if (!(c > 0) || game.crystals < c) continue;
         if (this.upgradePolicy === 'value') {
           const gain = this.towerDpsAt(s.type, s.level + 1) - this.towerDpsAt(s.type, s.level);
+          if (gain <= 0) continue;
           const score = (gain / c) * (this.counterBias[s.type] || 1);
           if (score > bestScore) {
             bestScore = score;
@@ -487,6 +488,16 @@ class CorridorBot {
   }
 
   nextTowerType(game) {
+    if (this.comp === 'extreme') {
+      /* Extreme mixed regression: every damage channel and every function
+         slot gets a body — kinetic (prism/cannon), energy (laser/tesla),
+         cryo control (frost), knockback (shock). The rotation opens with
+         three damage towers before the control slots. */
+      const rotation = ['prism', 'laser', 'cannon', 'prism', 'laser', 'tesla',
+        'prism', 'laser', 'cannon', 'frost'];
+      const attackCount = game._towerCount() - this.countBeacons(game);
+      return rotation[Math.min(Math.max(0, attackCount), rotation.length - 1)];
+    }
     if (this.comp === 'kMix') {
       // Pure-kinetic mix: open with 4 prisms (range + cheap), then
       // alternate gatling/prism — gatling wins DPS/crystal at I–III,
@@ -731,6 +742,7 @@ function runLevel(levelIndex, skills, opts) {
     channels: Object.keys(channels),
     beaconWave,
     w10,
+    build: compDump,
   };
 }
 

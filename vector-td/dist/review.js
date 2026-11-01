@@ -499,6 +499,8 @@
       out.push({
         def: def,
         type: def.id,
+        typeIndex: entry[0],
+        id: entry[8],
         x: Number(entry[1]) || 0,
         y: Number(entry[2]) || 0,
         hp: Number(entry[3]) || 0,
@@ -551,13 +553,31 @@
           e[0],
           a[1] + (e[1] - a[1]) * alpha,
           a[2] + (e[2] - a[2]) * alpha,
-          e[3], e[4], e[5], e[6], e[7],
+          e[3], e[4], e[5], e[6], e[7], e[8],
         ]);
       } else {
         interpolated.push(e);
       }
     }
-    return mapFrameEnemies(interpolated);
+    const out = mapFrameEnemies(interpolated);
+    for (const enemy of out) {
+      let a = null;
+      let b = null;
+      if (enemy.id != null) {
+        a = f0.e.find(function (e) { return e[8] === enemy.id; });
+        b = f1.e.find(function (e) { return e[8] === enemy.id; });
+      }
+      if (!a || !b) {
+        a = f0.e.find(function (e) { return e[0] === enemy.typeIndex; });
+        b = f1.e.find(function (e) { return e[0] === enemy.typeIndex; });
+      }
+      if (a && b) {
+        const dx = b[1] - a[1];
+        const dy = b[2] - a[2];
+        if (dx * dx + dy * dy > 0.0025) enemy.angle = Math.atan2(dy, dx);
+      }
+    }
+    return out;
   }
 
   function buildRenderGame(run, level, time) {

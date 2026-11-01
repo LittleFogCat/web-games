@@ -193,6 +193,8 @@ chmod -R u+rwX,go+rX "$TARGET"
 
 ### 0.14.5-dev（当前）
 
+- 复盘敌人朝向修正：2026-11-01 23:43 —— 之前所有敌人固定 `angle = π/2`（朝下），在路径回弯 / 向上路段看起来像倒着走；现在按相邻帧位移计算 `atan2(dy, dx)`，朝向跟随实际运动，转角自然旋转。复盘资源查询升至 `?v=0.14.5-dev.3`。仅 `review.js` / `review.html` 变更，无版本号变更。备份 `vector-td-20261101-234342.tar.gz`；发布包 SHA-256 `673d34da61c005e3425a3b20e113422ac031688febfd5d5b8a4acaea8811e530`（19 个条目）；staging 校验 review.html（`c95bfcfb…`）/ review.js（`90b419f0…`）与本地一致、`.3` 查询存在 → 原子替换；部署后复盘页 200。
+
 - 复盘资源缓存键修正：2026-11-01 23:34 —— 复盘页资源查询 `?v=0.14.5-dev.1` 升至 `.2`，确保 23:32 的「重新模拟」版本不会被旧 `review.js` 缓存挡住。仅 `review.html` / `dist/review.html` 变更，无版本号变更。备份 `vector-td-20261101-233437.tar.gz`；发布包 SHA-256 `f3451fb48547556dd0d80beb262b51a096e18ee738a171585b576e81076fa656`（19 个条目）；staging 校验 review.html（`84d2669c…`）、`review.js?v=0.14.5-dev.2` 存在 → 原子替换；部署后复盘页 200。
 
 - 复盘旧记录补帧：2026-11-01 23:32 —— 没有 `replay.frames` 的记录显示警告条 +「重新模拟」按钮；点击后在浏览器内用记录 `buildLog` / 技能重跑真实 `Game`（`captureReplay`）生成近似逐帧，标注“重模拟回放（近似）”。同时 HUD 增加「敌 N」，战场放大到 480px，导入记录自动选中。运行时 `review.html` / `review.js` / `review.css` / `README.md` 变更，无版本号变更。备份 `vector-td-20261101-233205.tar.gz`；发布包 SHA-256 `e95d3034cdea8bdecc3fa5c25ade287d254812f99273bf7e85d2d474f700fab7`（19 个条目）；staging 校验 review.html（`c2a865ab…`）/ review.js（`29f0f2f9…`）/ review.css（`e2594e48…`）与本地一致、`src/game.js?v=0.14.5-dev.1` 存在 → 原子替换；部署后服务器 Host 头 review 200，线上文件 SHA-256 与本地一致。

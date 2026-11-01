@@ -3510,7 +3510,7 @@
     if (els.debugClose) els.debugClose.addEventListener('click', closeDebugPanel);
     if ($('debug-review')) {
       $('debug-review').addEventListener('click', function () {
-        window.open('review.html?debug=1&v=0.14.5-dev.8', '_blank', 'noopener');
+        window.open('review.html?debug=1&v=0.14.5-dev.9', '_blank', 'noopener');
       });
     }
     if (els.debugPanel) els.debugPanel.addEventListener('click', handleDebugClick);

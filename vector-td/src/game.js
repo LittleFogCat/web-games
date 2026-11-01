@@ -30,8 +30,8 @@
   const PREP_WARNING_AT = 3;
   /* Review replay: one compact frame per second of combat, capped so a
      full run stays well under the localStorage budget. */
-  const REPLAY_INTERVAL = 1;
-  const REPLAY_FRAME_LIMIT = 900;
+  const REPLAY_INTERVAL = 0.5;
+  const REPLAY_FRAME_LIMIT = 1800;
   const REPLAY_ENEMY_LIMIT = 80;
   const FLOAT_LIFE = 1.1;
   const SELL_HINT_LIFE = 3.5;

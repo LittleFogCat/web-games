@@ -193,6 +193,8 @@ chmod -R u+rwX,go+rX "$TARGET"
 
 ### 0.14.5-dev（当前）
 
+- 复盘资源缓存键修正：2026-11-01 23:34 —— 复盘页资源查询 `?v=0.14.5-dev.1` 升至 `.2`，确保 23:32 的「重新模拟」版本不会被旧 `review.js` 缓存挡住。仅 `review.html` / `dist/review.html` 变更，无版本号变更。备份 `vector-td-20261101-233437.tar.gz`；发布包 SHA-256 `f3451fb48547556dd0d80beb262b51a096e18ee738a171585b576e81076fa656`（19 个条目）；staging 校验 review.html（`84d2669c…`）、`review.js?v=0.14.5-dev.2` 存在 → 原子替换；部署后复盘页 200。
+
 - 复盘旧记录补帧：2026-11-01 23:32 —— 没有 `replay.frames` 的记录显示警告条 +「重新模拟」按钮；点击后在浏览器内用记录 `buildLog` / 技能重跑真实 `Game`（`captureReplay`）生成近似逐帧，标注“重模拟回放（近似）”。同时 HUD 增加「敌 N」，战场放大到 480px，导入记录自动选中。运行时 `review.html` / `review.js` / `review.css` / `README.md` 变更，无版本号变更。备份 `vector-td-20261101-233205.tar.gz`；发布包 SHA-256 `e95d3034cdea8bdecc3fa5c25ade287d254812f99273bf7e85d2d474f700fab7`（19 个条目）；staging 校验 review.html（`c2a865ab…`）/ review.js（`29f0f2f9…`）/ review.css（`e2594e48…`）与本地一致、`src/game.js?v=0.14.5-dev.1` 存在 → 原子替换；部署后服务器 Host 头 review 200，线上文件 SHA-256 与本地一致。
 
 - 复盘回放改为真实游戏渲染：2026-11-01 23:14 —— 复盘页加载 `src/render.js`，战场直接复用 `GameRenderer`（真实星空背景、流动路径、岩体、五级塔体 / 灯塔光环 / 壁垒、敌人特性、核心光效），不再自绘示意图；逐帧数据增加敌人 `id`（`e[8]`），相邻帧按 id 插值，旧帧按类型 / 最近坐标回退。`review.html` 资源查询升至 `?v=0.14.5-dev.1`。运行时 `review.html` / `review.css` / `review.js` / `src/game.js` / `README.md` 变更，无版本号变更。备份 `vector-td-20261101-231402.tar.gz`；发布包 SHA-256 `e8138832d62453d3e052c8b71e6c3b8969f21ad628b274a5fad181d4a3d3fade`（19 个条目）；staging 校验 review.html（`06d7e098…`）/ review.js（`3ac1a3ab…`）/ review.css（`582e71ca…`）/ game.js（`4f6e95d8…`）与本地一致、`src/render.js?v=0.14.5-dev.1` 存在 → 原子替换；部署后服务器 Host 头 review 与 render.js 全 200，线上文件 SHA-256 与本地一致。

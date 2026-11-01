@@ -6458,6 +6458,31 @@ body.debug-modal-open #screen-game {
   line-height: 1;
 }
 
+.debug-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.debug-review {
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(94, 242, 255, 0.34);
+  background: rgba(94, 242, 255, 0.08);
+  color: #a9f6ff;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.debug-review:hover,
+.debug-review:focus-visible {
+  border-color: rgba(94, 242, 255, 0.8);
+  background: rgba(94, 242, 255, 0.16);
+  outline: none;
+}
+
 .debug-body {
   padding: 8px 10px 12px;
 }

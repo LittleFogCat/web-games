@@ -582,6 +582,7 @@ function runLevel(levelIndex, skills, opts) {
     level: level,
     mods: Object.assign({}, skills),
     canvas: {},
+    captureReplay: !!opts.captureReplay,
     events: {
       onVictory: (summary) => {
         result = { win: true, wave: summary.totalWaves, hp: summary.baseHp, baseMax: summary.baseMax };
@@ -743,6 +744,21 @@ function runLevel(levelIndex, skills, opts) {
     beaconWave,
     w10,
     build: compDump,
+    baseHp: game.baseHp,
+    baseMax: game.baseMax,
+    startCrystals: game.startCrystals,
+    crystals: Math.floor(game.crystals),
+    crystalsEarned: game.crystalsEarned,
+    combatTime: game.combatTime,
+    totalWaves: game.totalWaves,
+    currentWave: game.currentWave,
+    levelCode: level.code,
+    levelName: level.name,
+    buildLog: game.actionLog.slice(),
+    towerRecords: game._towerRecordList(),
+    leakLog: game.leakLog.slice(),
+    waveStats: game.waveStats.slice(),
+    replay: game.replayFrames.slice(),
   };
 }
 

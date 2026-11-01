@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#050a12">
+<link rel="icon" href="icons/icon-192.png">
+<title>VECTOR // 复盘</title>
+<link rel="stylesheet" href="review.css">
+</head>
+<body>
+<div id="rv-gate" class="rv-gate hidden">
+  <div class="rv-gate-card">
+    <div class="rv-kicker">VECTOR // REVIEW</div>
+    <h1>仅调试环境可用</h1>
+    <p>复盘系统不向玩家开放。请在本地环境（localhost / 127.0.0.1）或带 <code>?debug=1</code> 的地址打开，并从调试面板进入。</p>
+  </div>
+</div>
+
+<header class="rv-header">
+  <div class="rv-brand">
+    <span class="rv-brand-main">VECTOR</span>
+    <span class="rv-brand-sub">// REVIEW</span>
+    <span class="rv-brand-note">内部复盘 · 不向玩家开放</span>
+  </div>
+  <div class="rv-actions">
+    <label class="rv-import" for="rv-file">导入 JSON
+      <input id="rv-file" type="file" accept=".json,application/json" multiple>
+    </label>
+    <button id="rv-refresh" class="rv-button" type="button">刷新本地记录</button>
+    <span id="rv-count" class="rv-count"></span>
+  </div>
+</header>
+
+<main class="rv-layout">
+  <aside class="rv-sidebar" aria-label="对局列表">
+    <div class="rv-sidebar-head">
+      <span>对局</span>
+      <span class="rv-muted">手动 / 自动 / 导入</span>
+    </div>
+    <div id="rv-runs" class="rv-runs"></div>
+    <div id="rv-empty-list" class="rv-empty-list hidden">
+      <p>没有记录。</p>
+      <p class="rv-muted">先在调试模式打一局，或从调试面板导出记录 JSON 后导入。</p>
+    </div>
+  </aside>
+
+  <section class="rv-main">
+    <div id="rv-empty" class="rv-empty">
+      <div class="rv-empty-icon">◈</div>
+      <h2>选择一局开始复盘</h2>
+      <p>数据看板 + 逐帧回放。最新一局带逐帧回放；旧记录显示聚合数据与波次时间线。</p>
+    </div>
+
+    <div id="rv-content" class="rv-content hidden">
+      <div id="rv-summary" class="rv-summary"></div>
+
+      <div class="rv-row">
+        <section class="rv-card rv-card-arena">
+          <div class="rv-card-head">
+            <h2>战场 / 回放</h2>
+            <span id="rv-arena-note" class="rv-note"></span>
+          </div>
+          <div class="rv-canvas-wrap">
+            <canvas id="rv-canvas"></canvas>
+          </div>
+          <div class="rv-playback">
+            <button id="rv-play" class="rv-button rv-play" type="button">▶ 播放</button>
+            <button id="rv-speed" class="rv-button" type="button">1×</button>
+            <input id="rv-seek" class="rv-seek" type="range" min="0" max="1" step="0.1" value="0" aria-label="回放进度">
+            <span id="rv-time" class="rv-time">0:00 / 0:00</span>
+            <button id="rv-reset" class="rv-button" type="button">⟲</button>
+          </div>
+        </section>
+
+        <section class="rv-card rv-card-damage">
+          <div class="rv-card-head">
+            <h2>塔伤害</h2>
+            <span class="rv-note">伤害 / 护盾伤害 / 击杀</span>
+          </div>
+          <div id="rv-damage" class="rv-damage"></div>
+        </section>
+      </div>
+
+      <section class="rv-card">
+        <div class="rv-card-head">
+          <h2>波次曲线</h2>
+          <span class="rv-note">核心完整度 · 晶元</span>
+        </div>
+        <div class="rv-chart-wrap"><canvas id="rv-chart"></canvas></div>
+      </section>
+
+      <div class="rv-row">
+        <section class="rv-card">
+          <div class="rv-card-head"><h2>建造 / 升级 / 回收</h2><span id="rv-build-count" class="rv-note"></span></div>
+          <div id="rv-build" class="rv-table-wrap"></div>
+        </section>
+        <section class="rv-card">
+          <div class="rv-card-head"><h2>漏怪</h2><span id="rv-leak-count" class="rv-note"></span></div>
+          <div id="rv-leaks" class="rv-table-wrap"></div>
+        </section>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="src/util.js"></script>
+<script src="src/config.js"></script>
+<script src="src/pathgrid.js"></script>
+<script src="review.js"></script>
+</body>
+</html>

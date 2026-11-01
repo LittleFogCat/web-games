@@ -188,6 +188,15 @@ python -m http.server 5180 --bind 127.0.0.1
 
 闯关记录只保存在浏览器本地，不面向玩家展示。需要离线分析时，按 [从 Chrome Local Storage 提取记录](docs/records/chrome-localstorage.md) 操作；调试面板仍可导出 JSON 或清空。
 
+### 复盘系统（调试）
+
+`review.html` 是独立复盘页，**不向玩家开放**：调试面板顶部「复盘」按钮打开，或本地访问 `review.html?debug=1`。
+
+- 左侧选局；右侧看摘要、逐塔伤害、9×16 布局、逐波核心 / 晶元曲线、建造 / 升级 / 回收、漏怪。
+- 最新一局带逐秒帧，可播放 / 暂停 / 1×–4× / 拖动进度；旧记录退化为「波次 + 建造时间线」粗回放。
+- 自动化测试用 `node tools/export-replay.js --level=7 --out=tmp/replay-L7.json` 导出，再在页面里「导入 JSON」。
+- 详细说明见 [复盘系统](docs/design/复盘系统.md)。
+
 ## 项目结构
 
 ```text
@@ -200,6 +209,10 @@ src/audio.js        Web Audio 程序化音效
 src/render.js       Canvas 战场渲染器、五级塔体、特性敌人与弹道
 src/game.js         战斗模拟、护盾/抗性/隐匿结算、塔/敌/弹道、调试 API
 src/app.js          界面导航、存档、金币技能、调试面板、输入与主循环
+review.html         内部复盘页（调试入口，不向玩家开放）
+review.css          复盘页样式
+review.js           复盘页数据看板与逐帧回放
+tools/               无头模拟、三档门禁、真实 build 回放、极致混搭回归、复盘导出
 docs/design/        设计文档索引、总案、关卡/数值策划、单位图鉴与扩容文档
 docs/deployment.md  游戏专属部署文档
 docs/prd/           UI/视觉评审文档

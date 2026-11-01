@@ -171,10 +171,19 @@
   }
 
   function persistRecords() {
-    try {
+    const write = function () {
       window.localStorage.setItem(RECORDS_KEY, JSON.stringify(records.slice(0, RECORD_LIMIT)));
+    };
+    try {
+      write();
     } catch (error) {
-      // 记录是本地诊断数据，容量不足时静默丢弃新记录。
+      // 容量不足时优先保留聚合数据，丢掉逐帧回放后再试一次。
+      for (let i = 0; i < records.length; i++) delete records[i].replay;
+      try {
+        write();
+      } catch (error2) {
+        // 仍然失败：记录是本地诊断数据，静默丢弃。
+      }
     }
   }
 
@@ -3114,9 +3123,14 @@
       towers: summary.towers || [],
       leaks: summary.leaks || [],
       waves: summary.waves || [],
+      replay: summary.replay || null,
     };
     records.unshift(record);
     if (records.length > RECORD_LIMIT) records.length = RECORD_LIMIT;
+    // 逐帧回放体积大，只保留最近一局；旧记录仍保留聚合数据。
+    for (let i = 1; i < records.length; i++) {
+      if (records[i] && records[i].replay) delete records[i].replay;
+    }
     persistRecords();
     return record;
   }
@@ -3487,6 +3501,11 @@
     if (els.debugFab) els.debugFab.addEventListener('click', toggleDebugPanel);
     if (els.debugHud) els.debugHud.addEventListener('click', toggleDebugPanel);
     if (els.debugClose) els.debugClose.addEventListener('click', closeDebugPanel);
+    if ($('debug-review')) {
+      $('debug-review').addEventListener('click', function () {
+        window.open('review.html?debug=1', '_blank', 'noopener');
+      });
+    }
     if (els.debugPanel) els.debugPanel.addEventListener('click', handleDebugClick);
     $$('[data-nav="home"]').forEach(function (button) {
       button.addEventListener('click', function () {

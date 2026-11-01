@@ -28,6 +28,11 @@
   const PREP_INITIAL = 20;
   const PREP_BETWEEN = 10;
   const PREP_WARNING_AT = 3;
+  /* Review replay: one compact frame per second of combat, capped so a
+     full run stays well under the localStorage budget. */
+  const REPLAY_INTERVAL = 1;
+  const REPLAY_FRAME_LIMIT = 900;
+  const REPLAY_ENEMY_LIMIT = 80;
   const FLOAT_LIFE = 1.1;
   const SELL_HINT_LIFE = 3.5;
 
@@ -87,6 +92,10 @@
       this.retiredTowers = [];
       this.waveStats = [];
       this.waveRecord = null;
+      this.replayFrames = [];
+      this._replayNextAt = 0;
+      this._enemyOrder = null;
+      this.captureReplay = options.captureReplay !== false;
       this.combatTime = 0;
       this.clock = 0;
 
@@ -947,6 +956,45 @@
       return rows;
     }
 
+    _sampleReplay() {
+      if (!this.captureReplay) return;
+      if (this.replayFrames.length >= REPLAY_FRAME_LIMIT) return;
+      if (this.combatTime + 0.0001 < this._replayNextAt) return;
+      this._replayNextAt = this.combatTime + REPLAY_INTERVAL;
+      if (!this._enemyOrder) {
+        this._enemyOrder = {};
+        for (let i = 0; i < C.ENEMY_ORDER.length; i++) {
+          this._enemyOrder[C.ENEMY_ORDER[i]] = i;
+        }
+      }
+      const enemies = [];
+      for (let i = 0; i < this.enemies.length && enemies.length < REPLAY_ENEMY_LIMIT; i++) {
+        const e = this.enemies[i];
+        if (e.dead || e.leaked) continue;
+        const type = this._enemyOrder[e.type];
+        if (type == null) continue;
+        enemies.push([
+          type,
+          Math.round(e.x * 10) / 10,
+          Math.round(e.y * 10) / 10,
+          Math.round(e.hp),
+          Math.round(e.maxHp),
+          Math.round(e.shield || 0),
+          e.def && e.def.stealth ? 1 : 0,
+          this._enemyRevealed(e) ? 1 : 0,
+        ]);
+      }
+      this.replayFrames.push({
+        t: Math.round(this.combatTime * 10) / 10,
+        w: this.currentWave,
+        hp: Math.round(this.baseHp),
+        cr: Math.floor(this.crystals),
+        k: this.kills,
+        l: this.leaked,
+        e: enemies,
+      });
+    }
+
     _buildSummary(success) {
       const ratio = U.clamp(this.baseHp / this.baseMax, 0, 1);
       let stars = 0;
@@ -979,6 +1027,7 @@
         towers: this._towerRecordList(),
         leaks: this.leakLog.slice(),
         waves: waves,
+        replay: { v: 1, interval: REPLAY_INTERVAL, frames: this.replayFrames },
       };
     }
 
@@ -1048,6 +1097,7 @@
         });
         this._updateTowers(dt);
         this._updateProjectiles(dt);
+        this._sampleReplay();
         if (this.phase === 'wave' && this.spawnQueue.length === 0 && this.enemies.length === 0) {
           this._completeWave();
         }

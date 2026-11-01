@@ -920,7 +920,7 @@
       difficulty: 4,
       gold: 336,
       startCrystals: 240,
-      hpScale: 1.90,
+      hpScale: 2.00,
       speedScale: 1.08,
       rewardScale: 1.20,
       lateWaveHp: 0.65,
@@ -960,7 +960,7 @@
         w([['nullifier', 6, 0.80], ['wraith', 8, 0.55]]),
         w([['juggernaut', 4, 1.10], ['aegis', 6, 0.80]]),
         w([['nullifier', 8, 0.70], ['warden', 8, 0.70], ['scout', 20, 0.20]]),
-        w([['juggernaut', 3, 1.00], ['aegis', 4, 0.80], ['wraith', 5, 0.55]]),
+        w([['juggernaut', 6, 1.00], ['aegis', 4, 0.80], ['wraith', 5, 0.55]]),
       ],
     },
     {
@@ -1011,7 +1011,7 @@
         w([['nullifier', 8, 0.70], ['juggernaut', 5, 1.00]]),
         w([['brute', 10, 0.60], ['warden', 8, 0.70], ['drone', 20, 0.25]]),
         w([['aegis', 8, 0.70], ['wraith', 12, 0.45], ['nullifier', 8, 0.70]]),
-        w([['juggernaut', 5, 0.90], ['aegis', 7, 0.70], ['nullifier', 7, 0.70]]),
+        w([['juggernaut', 15, 0.90], ['aegis', 7, 0.70], ['nullifier', 7, 0.70]]),
       ],
     },
     {

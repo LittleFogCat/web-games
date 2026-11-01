@@ -56,7 +56,7 @@ vector-td/
   src/render.js             Canvas 背景、路径、五级塔体、特性敌人、弹道、特效、范围、选择框
   src/app.js                DOM 绑定、HUD、建造栏、暂停、关卡/技能界面、存档、调试面板
   screenshots/              README 用首页与实机截图
-  tools/                    开发工具：三档门禁、无头模拟、关卡/对比度检查
+  tools/                    开发工具：三档门禁、无头模拟、真实 build 回放、关卡/对比度检查
   docs/records/             从浏览器 Local Storage 离线提取闯关记录的方法
   release/                  静态部署包与 SHA-256
   dist/                     可直接部署的镜像目录

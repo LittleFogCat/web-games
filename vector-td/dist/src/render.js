@@ -2033,7 +2033,10 @@
       const radius = def.radius * cell * spawnScale * (def.boss ? 1.1 : 1);
       const hitFlash = enemy.hitFlash || 0;
       const slowed = enemy.slowTimer > 0 && (def.tenacity || 0) < 1;
-      const angle = enemy.angle || Math.PI / 2;
+      const moveAngle = enemy.angle || Math.PI / 2;
+      // Review replay can pass a bodyAngle that aligns the polygon's nose with
+      // the movement direction; live units keep using the historical angle.
+      const angle = enemy.bodyAngle != null ? enemy.bodyAngle : moveAngle;
       const sides = def.sides || (def.shape === 'octagon' ? 8 : def.shape === 'hex' ? 6 : def.shape === 'pentagon' ? 5 : def.shape === 'square' ? 4 : 3);
       const stealth = !!def.stealth;
       const revealed = !stealth || game._enemyRevealed(enemy);
@@ -2104,8 +2107,8 @@
         ctx.strokeStyle = hexA(color, 0.18);
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(-Math.cos(angle) * radius * 0.6, -Math.sin(angle) * radius * 0.6);
-        ctx.lineTo(-Math.cos(angle) * radius * 2.5, -Math.sin(angle) * radius * 2.5);
+        ctx.moveTo(-Math.cos(moveAngle) * radius * 0.6, -Math.sin(moveAngle) * radius * 0.6);
+        ctx.lineTo(-Math.cos(moveAngle) * radius * 2.5, -Math.sin(moveAngle) * radius * 2.5);
         ctx.stroke();
       }
 

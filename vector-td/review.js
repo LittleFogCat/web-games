@@ -513,6 +513,7 @@
         slowFactor: 0,
         slowBlocked: 0,
         angle: Math.PI / 2,
+        bodyAngle: 0,
         revealed: entry[7] !== 0,
         shieldFlash: 0,
         dead: false,
@@ -559,6 +560,11 @@
         interpolated.push(e);
       }
     }
+    // 目标帧里消失的敌人（死亡 / 漏怪）在区间内保留在起点帧的位置，
+    // 不要在 f0 到 f1 的整秒里提前消失。
+    for (let i = 0; i < f0.e.length; i++) {
+      if (!used.has(i)) interpolated.push(f0.e[i]);
+    }
     const out = mapFrameEnemies(interpolated);
     for (const enemy of out) {
       let a = null;
@@ -575,6 +581,7 @@
         const dx = b[1] - a[1];
         const dy = b[2] - a[2];
         if (dx * dx + dy * dy > 0.0025) enemy.angle = Math.atan2(dy, dx);
+        if (dx * dx + dy * dy > 0.0025) enemy.bodyAngle = Math.atan2(dy, dx) - Math.PI / 2;
       }
     }
     return out;

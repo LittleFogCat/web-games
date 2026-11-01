@@ -541,18 +541,7 @@
     const span = Math.max(1e-6, f1.t - f0.t);
     const alpha = clamp((time - f0.t) / span, 0, 1);
     const used = new Set();
-    const interpolated = [];
-    const shardIndex = C.ENEMY_ORDER.indexOf('shard');
-    const gates = state.grid && Array.isArray(state.grid.gates) ? state.grid.gates : [];
-    function spawnPoint(x, y) {
-      let best = null;
-      let bestDist = Infinity;
-      for (const gate of gates) {
-        const d = Math.hypot((gate.x + 0.5) - x, (gate.y + 0.5) - y);
-        if (d < bestDist) { bestDist = d; best = gate; }
-      }
-      return best ? { x: best.x + 0.5, y: best.y + 0.5 } : null;
-    }
+    const matched = [];
     for (const e of f1.e) {
       let match = -1;
       if (e[8] != null) {
@@ -569,84 +558,33 @@
         }
         if (best > 2.5) match = -1;
       }
-      if (match >= 0) {
-        used.add(match);
-        const a = f0.e[match];
-        interpolated.push([
-          e[0],
-          a[1] + (e[1] - a[1]) * alpha,
-          a[2] + (e[2] - a[2]) * alpha,
-          e[3], e[4], e[5], e[6], e[7], e[8],
-        ]);
-      } else {
-        // 新生成：从最近的裂口向 f1 位置插值，先从门口出现再前进，
-        // 不要直接在 f1 的未来位置冒出来（会看起来往回跳）。
-        const spawn = e[0] !== shardIndex ? spawnPoint(e[1], e[2]) : null;
-        if (spawn) {
-          interpolated.push([
-            e[0],
-            spawn.x + (e[1] - spawn.x) * alpha,
-            spawn.y + (e[2] - spawn.y) * alpha,
-            e[3], e[4], e[5], e[6], e[7], e[8],
-          ]);
-        } else {
-          interpolated.push(e);
-        }
-      }
+      // 新敌人这一刻还没有实际位置：等到下一帧出现后再画。
+      // 旧敌人这一帧之后消失：也不再画。两端都不做淡入 / 淡出 / 缩放。
+      if (match < 0) continue;
+      used.add(match);
+      const a = f0.e[match];
+      matched.push([
+        e[0],
+        a[1] + (e[1] - a[1]) * alpha,
+        a[2] + (e[2] - a[2]) * alpha,
+        e[3], e[4], e[5], e[6], e[7], e[8],
+      ]);
     }
-    // 目标帧里消失的敌人（死亡 / 漏怪）在区间内保留在起点帧的位置，
-    // 不要在 f0 到 f1 的整秒里提前消失。
+    // 这一帧之后消失的敌人保留到下一帧，不做淡出 / 缩小。
     for (let i = 0; i < f0.e.length; i++) {
-      if (!used.has(i)) interpolated.push(f0.e[i]);
+      if (!used.has(i)) matched.push(f0.e[i]);
     }
-    const out = mapFrameEnemies(interpolated);
+    const out = mapFrameEnemies(matched);
     for (const enemy of out) {
-      let a = null;
-      let b = null;
-      let prev = null;
-      let nxt = null;
-      if (enemy.id != null) {
-        a = f0.e.find(function (e) { return e[8] === enemy.id; }) || null;
-        b = f1.e.find(function (e) { return e[8] === enemy.id; }) || null;
-        if (!a && b) {
-          const after = nextFrame(f1.t);
-          nxt = after && Array.isArray(after.e)
-            ? after.e.find(function (e) { return e[8] === enemy.id; }) || null
-            : null;
-        } else if (a && !b) {
-          const before = previousFrame(f0.t);
-          prev = before && Array.isArray(before.e)
-            ? before.e.find(function (e) { return e[8] === enemy.id; }) || null
-            : null;
-        }
-      } else {
-        // Legacy frames without ids: nearest same-type pair only.
-        a = f0.e.find(function (e) { return e[0] === enemy.typeIndex; }) || null;
-        b = f1.e.find(function (e) { return e[0] === enemy.typeIndex; }) || null;
-      }
-      let p0 = null;
-      let p1 = null;
-      if (a && b) { p0 = a; p1 = b; }
-      else if (!a && b && nxt) { p0 = b; p1 = nxt; }
-      else if (a && !b && prev) { p0 = prev; p1 = a; }
-      if (p0 && p1) {
-        const dx = p1[1] - p0[1];
-        const dy = p1[2] - p0[2];
+      if (enemy.id == null) continue;
+      const a = f0.e.find(function (e) { return e[8] === enemy.id; });
+      const b = f1.e.find(function (e) { return e[8] === enemy.id; });
+      if (a && b) {
+        const dx = b[1] - a[1];
+        const dy = b[2] - a[2];
         if (dx * dx + dy * dy > 0.0025) {
           enemy.angle = Math.atan2(dy, dx);
           enemy.bodyAngle = enemy.angle - Math.PI / 2;
-        }
-      }
-      if (enemy.id != null) {
-        const inF0 = f0.e.some(function (e) { return e[8] === enemy.id; });
-        const inF1 = f1.e.some(function (e) { return e[8] === enemy.id; });
-        if (!inF0 && inF1) {
-          // 只做透明度渐入，不缩放；缩放会被看成“往回缩”。
-          enemy.spawnAnim = 1;
-          enemy.renderAlpha = alpha;
-        } else if (inF0 && !inF1) {
-          enemy.spawnAnim = 1;
-          enemy.renderAlpha = 1 - alpha;
         }
       }
     }

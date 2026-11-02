@@ -759,6 +759,7 @@ function runLevel(levelIndex, skills, opts) {
     leakLog: game.leakLog.slice(),
     waveStats: game.waveStats.slice(),
     replay: game.replayFrames.slice(),
+    replayDeaths: (game.replayDeaths || []).slice(),
   };
 }
 

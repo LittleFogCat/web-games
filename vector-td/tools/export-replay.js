@@ -103,7 +103,7 @@ const record = {
   towers: result.towerRecords,
   leaks: result.leakLog,
   waves: result.waveStats,
-  replay: { v: 1, interval: 1, frames: result.replay },
+  replay: { v: 1, interval: 0.5, frames: result.replay, deaths: result.replayDeaths || [] },
 };
 
 const payload = {

@@ -193,6 +193,8 @@ chmod -R u+rwX,go+rX "$TARGET"
 
 ### 0.14.5-dev（当前）
 
+- 复盘恢复存活插值 + 死亡事件隐藏：2026-11-02 23:05 —— `game.js` 新增 `replay.deaths`（精确死亡 / 漏怪时刻）；复盘对存活敌人做同 id 插值，死亡到点立即隐藏，不再有尸体 / 上移伪动画；新敌按下一帧真实位置出现；旧记录无 id / deaths 时逐帧快照。`export-replay` / `sim-headless` 同步输出 deaths。复盘资源 `.10`，游戏资源 `.5`，调试入口带 `&v=0.14.5-dev.10`。备份 `vector-td-20261102-230541.tar.gz`；发布包 SHA-256 `12b85bbedfe0851a3d86ea0cd26dff62a8a631fca2b719f0cdb159a3a25d7bfd`（19 个条目）；staging 校验 index（`56e2a56c…`）/ review.html（`01c361b2…`）/ review.js（`49a2a752…`）/ game.js（`9c11db4f…`）/ app.js（`e5b5838d…`）与本地一致 → 原子替换；部署后复盘页 200。
+
 - 修复复盘页建造列表遮挡主页面：2026-11-02 01:33 —— 版本徽标误用了 `id="rv-build"`，与建造表容器 ID 冲突，`$('rv-build')` 取到头部徽标，导致 30 行建造记录被注入页头。徽标改为 `id="rv-version"` / `class="rv-version"`，建造表恢复卡片内布局。复盘资源 `.9`，游戏资源 `.4`，调试入口带 `&v=0.14.5-dev.9`。备份 `vector-td-20261102-013322.tar.gz`；发布包 SHA-256 `17d1766dada05c59c30a8ecc1b386d9956341ec7128a408e0e86ed7213936a96`（19 个条目）；staging 校验 index（`d45a2e0b…`）/ review.html（`2823293e…`）/ review.css（`00d3afc1…`）/ review.js（`b3570295…`）/ app.js（`ee2f11e0…`）与本地一致 → 原子替换；部署后复盘页 200。
 
 - 复盘改为纯逐帧（无插值）：2026-11-02 01:26 —— 敌人位置只取采样帧原值，删除 f0→f1 插值、裂口补位、淡入淡出、缩放；死亡敌人下一帧直接消失，不会留下会移动的“尸体”；新敌按真实采样位置出现。复盘页显示版本徽标，调试入口带 `&v=0.14.5-dev.8`，资源查询 `.8`；游戏资源查询 `.3`。备份 `vector-td-20261102-012635.tar.gz`；发布包 SHA-256 `1268cc0eec499b2c8f10c0f9f336d5950ea9fa28f9ab878c66ac12d06e08428a`（19 个条目）；staging 校验 index（`6d2670b5…`）/ review.html（`e1f6d60d…`）/ review.js（`b3570295…`）/ review.css（`fc81bdbb…`）/ app.js（`7faf5342…`）与本地一致 → 原子替换；部署后复盘页 200。

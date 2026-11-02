@@ -93,6 +93,7 @@
       this.waveStats = [];
       this.waveRecord = null;
       this.replayFrames = [];
+      this.replayDeaths = [];
       this._replayNextAt = 0;
       this._enemyOrder = null;
       this.captureReplay = options.captureReplay !== false;
@@ -1029,7 +1030,7 @@
         towers: this._towerRecordList(),
         leaks: this.leakLog.slice(),
         waves: waves,
-        replay: { v: 1, interval: REPLAY_INTERVAL, frames: this.replayFrames },
+        replay: { v: 1, interval: REPLAY_INTERVAL, frames: this.replayFrames, deaths: this.replayDeaths.slice() },
       };
     }
 
@@ -1232,6 +1233,7 @@
     _leakEnemy(enemy) {
       if (enemy.leaked || enemy.dead) return;
       enemy.leaked = true;
+      this._recordReplayDeath(enemy, 'leak');
       this.leaked++;
       this.leaksThisWave++;
       const damage = this.mods.godMode ? 0 : Math.max(1, enemy.damage);
@@ -1901,9 +1903,22 @@
       this._play('shieldBreak');
     }
 
+    _recordReplayDeath(enemy, kind) {
+      if (!this.captureReplay) return;
+      if (this.replayDeaths.length >= 2400) return;
+      this.replayDeaths.push({
+        t: Math.round(this.combatTime * 100) / 100,
+        id: enemy.id,
+        kind: kind,
+        x: Math.round(enemy.x * 10) / 10,
+        y: Math.round(enemy.y * 10) / 10,
+      });
+    }
+
     _killEnemy(enemy, sourceTower) {
       if (enemy.dead) return;
       enemy.dead = true;
+      this._recordReplayDeath(enemy, 'kill');
       const def = enemy.def;
       this.kills++;
       this.killsThisWave++;

@@ -27,6 +27,7 @@
     maxTime: 1,
     frames: [],
     synthetic: false,
+    deaths: new Map(),
     grid: null,
     renderer: null,
     raf: 0,
@@ -392,12 +393,18 @@
     }
     const frames = game.replayFrames || [];
     if (!frames.length) return false;
-    run.replay = { v: 1, interval: 1, frames: frames, resimulated: true };
+    run.replay = { v: 1, interval: 0.5, frames: frames, deaths: game.replayDeaths || [], resimulated: true };
     return true;
   }
 
   function prepareFrames(run) {
     const replay = run.replay;
+    state.deaths = new Map();
+    if (replay && Array.isArray(replay.deaths)) {
+      for (const death of replay.deaths) {
+        if (death && death.id != null && death.t != null) state.deaths.set(death.id, death.t);
+      }
+    }
     if (replay && Array.isArray(replay.frames) && replay.frames.length) {
       state.frames = replay.frames.slice().sort(function (a, b) { return a.t - b.t; });
       state.synthetic = false;
@@ -534,21 +541,53 @@
   }
 
   function enemiesAt(time) {
-    // 回放只展示采样帧里的真实位置：不做插值、不做裂口补位、不做淡入淡出。
-    // 敌人死亡后在下一帧直接消失，不会留下“尸体”或产生任何位移动画。
-    const frame = frameAt(time);
-    if (!frame || !Array.isArray(frame.e)) return [];
-    const out = mapFrameEnemies(frame.e);
+    const f0 = frameAt(time);
+    if (!f0 || !Array.isArray(f0.e)) return [];
+    const f1 = nextFrame(time);
+    const hasIds = f0.e.some(function (e) { return e[8] != null; }) &&
+      (!f1 || (Array.isArray(f1.e) && f1.e.some(function (e) { return e[8] != null; })));
+    // 没有敌人 id 的旧帧无法安全配对（会把死亡敌人和新敌人插成“尸体上移”），
+    // 这类记录只做逐帧快照。
+    if (!f1 || !Array.isArray(f1.e) || f1 === f0 || !hasIds) {
+      return filterDead(mapFrameEnemies(f0.e), time);
+    }
+    const span = Math.max(1e-6, f1.t - f0.t);
+    const alpha = clamp((time - f0.t) / span, 0, 1);
+    const f0ById = new Map();
+    for (const e of f0.e) {
+      if (e[8] != null) f0ById.set(e[8], e);
+    }
+    const f1ById = new Map();
+    for (const e of f1.e) {
+      if (e[8] != null) f1ById.set(e[8], e);
+    }
+    const list = [];
+    // 两边都存在的敌人：插值移动。
+    for (const e of f1.e) {
+      if (e[8] == null) continue;
+      const a = f0ById.get(e[8]);
+      if (!a) continue; // 新敌人等到下一帧出现，不在区间内提前画。
+      list.push([
+        e[0],
+        a[1] + (e[1] - a[1]) * alpha,
+        a[2] + (e[2] - a[2]) * alpha,
+        e[3], e[4], e[5], e[6], e[7], e[8],
+      ]);
+    }
+    // f0 有、f1 没有：已死亡 / 漏怪。只在死亡时刻之前画，且不再移动；
+    // 没有死亡时间（旧记录）就直接隐藏。
+    for (const a of f0.e) {
+      if (a[8] == null || f1ById.has(a[8])) continue;
+      const deathT = state.deaths.get(a[8]);
+      if (deathT == null) continue;
+      if (time >= deathT - 1e-6) continue;
+      list.push(a);
+    }
+    const out = mapFrameEnemies(list);
     for (const enemy of out) {
       if (enemy.id == null) continue;
-      const prev = previousFrame(frame.t);
-      const next = nextFrame(frame.t);
-      const a = prev && Array.isArray(prev.e)
-        ? prev.e.find(function (e) { return e[8] === enemy.id; }) || null
-        : null;
-      const b = next && Array.isArray(next.e)
-        ? next.e.find(function (e) { return e[8] === enemy.id; }) || null
-        : null;
+      const a = f0ById.get(enemy.id);
+      const b = f1ById.get(enemy.id);
       if (a && b) {
         const dx = b[1] - a[1];
         const dy = b[2] - a[2];
@@ -558,7 +597,17 @@
         }
       }
     }
-    return out;
+    return filterDead(out, time);
+  }
+
+  function filterDead(list, time) {
+    const kept = [];
+    for (const enemy of list) {
+      const deathT = enemy.id != null ? state.deaths.get(enemy.id) : null;
+      if (deathT != null && time >= deathT - 1e-6) continue;
+      kept.push(enemy);
+    }
+    return kept;
   }
 
   function buildRenderGame(run, level, time) {
@@ -753,8 +802,8 @@
       : (function () {
         const run = state.runs.find(function (r) { return r.id === state.selectedId; });
         return run && run.replay && run.replay.resimulated
-          ? '重模拟回放（逐帧，无插值）'
-          : (state.frames.length + ' 帧逐帧回放（无插值）');
+          ? '重模拟回放（存活敌人插值，死亡即隐藏）'
+          : (state.frames.length + ' 帧回放（存活敌人插值，死亡即隐藏）');
       })();
     drawArena();
     drawChart();

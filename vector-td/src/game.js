@@ -2108,17 +2108,21 @@
       if (!this.canvas) return;
       const rect = this.canvas.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
+        // On tall screens #app is zoomed; the 14/8 gutters are design pixels
+        // and must scale with it (clientWidth stays in design units).
+        const designWidth = this.canvas.clientWidth || rect.width;
+        const uiScale = designWidth > 0 ? rect.width / designWidth : 1;
         const hud = document.querySelector('.game-hud');
         const dock = document.getElementById('build-dock');
         let safeTop = 0;
         let safeBottom = 0;
         if (hud) {
           const hr = hud.getBoundingClientRect();
-          safeTop = Math.max(0, hr.bottom - rect.top + 14);
+          safeTop = Math.max(0, hr.bottom - rect.top + 14 * uiScale);
         }
         if (dock) {
           const dr = dock.getBoundingClientRect();
-          if (dr.height > 0) safeBottom = Math.max(0, rect.bottom - dr.top + 8);
+          if (dr.height > 0) safeBottom = Math.max(0, rect.bottom - dr.top + 8 * uiScale);
         }
         this.renderer.resize(rect.width, rect.height, { top: safeTop, bottom: safeBottom });
       }

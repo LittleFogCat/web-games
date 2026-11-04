@@ -338,6 +338,7 @@
     const height = vv && vv.height > 0 ? vv.height : window.innerHeight;
     if (!(height > 0)) return;
     document.documentElement.style.setProperty('--app-height', Math.round(height) + 'px');
+    fitStageScale(height);
   }
 
   let viewportSyncFrame = 0;
@@ -951,8 +952,8 @@
     });
     if (name === 'game') {
       requestAnimationFrame(fitArena);
-    } else {
-      // Menu screens keep the designed 560px column.
+    } else if (stageScale <= 1) {
+      // Menu screens keep the designed 560px column (the zoomed stage owns its size).
       const app = document.getElementById('app');
       if (app) app.style.maxWidth = '';
     }
@@ -1885,7 +1886,8 @@
       globalToastEl.className = 'global-toast';
       globalToastEl.setAttribute('role', 'status');
       globalToastEl.setAttribute('aria-live', 'polite');
-      document.body.appendChild(globalToastEl);
+      // Lives inside #app so the stage zoom scales it with the rest of the UI.
+      (document.getElementById('app') || document.body).appendChild(globalToastEl);
     }
     globalToastEl.textContent = message;
     globalToastEl.className = 'global-toast show' + (type === 'error' ? ' error' : '') + (type === 'success' ? ' success' : '');
@@ -1935,12 +1937,11 @@
     els.levelIntro.classList.remove('show');
   }
 
-  /* The arena is a fixed 9x16 portrait grid. Windowed phones/tablets and
-     landscape desktops keep their designed column width (560px, or 720px
-     when desktop fullscreen). On height-first windows (portrait monitors,
-     tall browser windows) that same column would letterbox the grid with
-     large empty bands above and below, so grow the column until the grid can
-     use all of the height left between the HUD and the build bar. */
+  /* The interface is designed as a 560px-wide portrait column (HUD → 9x16
+     arena → build bar). Phones, tablets and landscape windows run that column
+     1:1. Tall desktop windows (portrait monitors) scale the complete stage up
+     with CSS zoom — DOM UI, fonts and the canvas alike — until the arena fills
+     the height, instead of leaving phone-sized text on a huge screen. */
   const STAGE_MIN_WIDTH = 560;
   const STAGE_IMMERSIVE_MIN_WIDTH = 720;
   const STAGE_HUD_GAP = 14;
@@ -1948,6 +1949,54 @@
   const STAGE_COLS = 9;
   const STAGE_ROWS = 16;
   const STAGE_WIDTH_PAD = 4; // #app keeps 1px side borders on wide screens
+  const STAGE_HUD_HEIGHT = 48;
+  const STAGE_DOCK_HEIGHT = 91;
+  const STAGE_DOCK_BOTTOM = 6;
+  const STAGE_DESIGN_HEIGHT =
+    (STAGE_MIN_WIDTH * STAGE_ROWS) / STAGE_COLS +
+    STAGE_HUD_GAP +
+    STAGE_DOCK_GAP +
+    STAGE_HUD_HEIGHT +
+    STAGE_DOCK_HEIGHT +
+    STAGE_DOCK_BOTTOM;
+  let stageScale = 1;
+  const STAGE_ZOOM_SUPPORTED =
+    typeof CSS !== 'undefined' && typeof CSS.supports === 'function' ? CSS.supports('zoom', '1.5') : false;
+
+  function fitStageScale(viewportHeight) {
+    const app = document.getElementById('app');
+    if (!app) return;
+    const viewportWidth = window.innerWidth;
+    const viewportH = viewportHeight > 0 ? viewportHeight : window.innerHeight;
+    const scale = STAGE_ZOOM_SUPPORTED
+      ? Math.max(1, Math.min(viewportWidth / STAGE_MIN_WIDTH, viewportH / STAGE_DESIGN_HEIGHT))
+      : 1;
+    const rounded = Math.round(scale * 1000) / 1000;
+    stageScale = rounded;
+    if (rounded <= 1) {
+      app.style.zoom = '';
+      app.style.width = '';
+      app.style.height = '';
+      app.style.maxWidth = '';
+      app.style.position = '';
+      app.style.top = '';
+      app.style.left = '';
+      return;
+    }
+    // Lay the stage out in phone design units and let zoom render it.
+    const designWidth = viewportWidth / rounded;
+    const designHeight = viewportH / rounded;
+    let base = STAGE_MIN_WIDTH;
+    if (immersive.active) base = viewportWidth >= 900 ? STAGE_IMMERSIVE_MIN_WIDTH : designWidth;
+    const width = Math.floor(Math.min(designWidth, Math.max(base, STAGE_MIN_WIDTH)));
+    app.style.zoom = String(rounded);
+    app.style.position = 'absolute';
+    app.style.top = '0';
+    app.style.left = Math.floor((designWidth - width) / 2) + 'px';
+    app.style.width = width + 'px';
+    app.style.height = Math.floor(designHeight) + 'px';
+    app.style.maxWidth = 'none';
+  }
 
   function stageWidthForArena() {
     if (!els.gameCanvas) return 0;
@@ -1968,6 +2017,7 @@
   function fitStageWidth() {
     const app = document.getElementById('app');
     if (!app) return;
+    if (stageScale > 1) return; // the zoomed stage owns the size
     if (activeScreen !== 'game') {
       if (app.style.maxWidth) app.style.maxWidth = '';
       return;
@@ -2000,7 +2050,7 @@
   // height exactly so it can never rise into the lower grid rows.
   function syncIntelPanelHeight() {
     if (!els.intelPanel || !els.buildDock) return;
-    const height = Math.round(els.buildDock.getBoundingClientRect().height);
+    const height = Math.round(els.buildDock.getBoundingClientRect().height / (stageScale || 1));
     if (height > 0) els.intelPanel.style.setProperty('--intel-h', height + 'px');
   }
 
@@ -4024,6 +4074,12 @@
      ============================================================ */
   function boot() {
     syncViewportHeight();
+    // Page-level UI surfaces live inside #app so the stage zoom scales them.
+    const appRoot = document.getElementById('app');
+    ['help-modal', 'debug-panel'].forEach(function (id) {
+      const node = document.getElementById(id);
+      if (node && appRoot && node.parentNode !== appRoot) appRoot.appendChild(node);
+    });
     const dpr = Math.min(window.devicePixelRatio || 1, 2.25);
     els.homeCore.width = Math.round(220 * dpr);
     els.homeCore.height = Math.round(220 * dpr);

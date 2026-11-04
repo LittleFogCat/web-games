@@ -951,6 +951,10 @@
     });
     if (name === 'game') {
       requestAnimationFrame(fitArena);
+    } else {
+      // Menu screens keep the designed 560px column.
+      const app = document.getElementById('app');
+      if (app) app.style.maxWidth = '';
     }
     updateDebugChrome();
     updateResumeUI();
@@ -1931,9 +1935,56 @@
     els.levelIntro.classList.remove('show');
   }
 
+  /* The arena is a fixed 9x16 portrait grid. Windowed phones/tablets and
+     landscape desktops keep their designed column width (560px, or 720px
+     when desktop fullscreen). On height-first windows (portrait monitors,
+     tall browser windows) that same column would letterbox the grid with
+     large empty bands above and below, so grow the column until the grid can
+     use all of the height left between the HUD and the build bar. */
+  const STAGE_MIN_WIDTH = 560;
+  const STAGE_IMMERSIVE_MIN_WIDTH = 720;
+  const STAGE_HUD_GAP = 14;
+  const STAGE_DOCK_GAP = 8;
+  const STAGE_COLS = 9;
+  const STAGE_ROWS = 16;
+  const STAGE_WIDTH_PAD = 4; // #app keeps 1px side borders on wide screens
+
+  function stageWidthForArena() {
+    if (!els.gameCanvas) return 0;
+    const canvasRect = els.gameCanvas.getBoundingClientRect();
+    const hud = document.querySelector('.game-hud');
+    const dock = els.buildDock;
+    if (!hud || !dock || !(canvasRect.height > 0)) return 0;
+    const hudRect = hud.getBoundingClientRect();
+    const dockRect = dock.getBoundingClientRect();
+    // Mirrors Game.resize(): safeTop = hud.bottom + 14, safeBottom = bottom - dock.top + 8.
+    const safeTop = Math.max(0, hudRect.bottom - canvasRect.top + STAGE_HUD_GAP);
+    const safeBottom = Math.max(0, canvasRect.bottom - dockRect.top + STAGE_DOCK_GAP);
+    const usable = canvasRect.height - safeTop - safeBottom;
+    if (!(usable > 0)) return 0;
+    return (usable * STAGE_COLS) / STAGE_ROWS + STAGE_WIDTH_PAD;
+  }
+
+  function fitStageWidth() {
+    const app = document.getElementById('app');
+    if (!app) return;
+    if (activeScreen !== 'game') {
+      if (app.style.maxWidth) app.style.maxWidth = '';
+      return;
+    }
+    const viewportWidth = window.innerWidth;
+    let base = STAGE_MIN_WIDTH;
+    if (immersive.active) base = viewportWidth >= 900 ? STAGE_IMMERSIVE_MIN_WIDTH : viewportWidth;
+    const ideal = stageWidthForArena();
+    const target = Math.ceil(Math.min(viewportWidth, Math.max(base, ideal)));
+    const next = target + 'px';
+    if (app.style.maxWidth !== next) app.style.maxWidth = next;
+  }
+
   function fitArena() {
     if (!els.arenaWrap || !els.arenaFrame) return;
     if (activeScreen !== 'game') return;
+    fitStageWidth();
     const style = window.getComputedStyle(els.arenaWrap);
     const paddingX = parseFloat(style.paddingLeft || '0') + parseFloat(style.paddingRight || '0');
     const paddingY = parseFloat(style.paddingTop || '0') + parseFloat(style.paddingBottom || '0');

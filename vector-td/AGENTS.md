@@ -112,6 +112,7 @@ vector-td/
 - 调试面板只在调试模式显示；游戏内入口为 HUD 的 `DBG`，正式环境不显示，首页为顶部 `DEBUG`。面板顶部显示版本与修订号（`src/app.js` 的 SHA-256 前 8 位），提供正式 / 调试存档分别重置，以及「首闯金币预算」开关；**进入关卡不自动关闭**，有简报 / 结算等模态时让位到遮罩下，关闭模态后恢复。面板顶部另有「复盘」按钮，打开独立内部复盘页 `review.html?debug=1`（不向玩家开放）。
 - 移动端必须检查 320×568、390×667、390×844；不得出现横向溢出。
 - **移动端沉浸式全屏**：手机进入关卡时默认自动请求 Fullscreen；首页右上角与暂停时 HUD 中间的 `全屏` 图标可随时切换。`#app` 高度使用 `--app-height`（visualViewport）兜底，不能回退到会被 Safari 工具栏撑开的 `100vh`。全屏/独立应用模式下 `#app` 取消 560px 宽度上限（桌面全屏上限 720px），战场不得保留 1px 边缝。
+- **大屏自适应列宽**：游戏页在高度富余的窗口（竖屏显示器、高窗口）里按 HUD 与建造栏的实测高度反推可用宽度并放大 `#app` 列，让 9×16 战场铺满二者之间的高度，避免上下各空 300px；下限为窗口模式 560px、桌面全屏 720px，上限为视口宽度；手机 / 平板 / 横屏窗口宽度不变，菜单类页面仍为 560px 列。窗口 resize、全屏进出、进入 / 离开关卡都会重算（`src/app.js` 的 `fitStageWidth()` / `stageWidthForArena()`，与 `Game.resize()` 的 `safeTop / safeBottom` 保持同一套常量）。
 - Fullscreen 状态必须同步到 `body.is-immersive`、按钮 `aria-pressed` / `aria-label`；进入时尝试竖屏锁定与 Wake Lock，离开/暂停/切后台时释放。iPhone Safari 不支持网页 Fullscreen API，只能提示「分享 → 添加到主屏幕」，并以 `display: fullscreen` 的 PWA 清单提供全屏启动。
 
 ## 修改流程

@@ -16,7 +16,7 @@
 
 | 游戏 | 目录 | 类型 | 线上地址 | 文档 |
 | --- | --- | --- | --- | --- |
-| VECTOR // 矢界防线 | [`vector-td/`](vector-td/) | 竖版深空塔防 | <https://xiaoniu.tech/games/vector-td/> | [开发约定](vector-td/AGENTS.md) · [游戏说明](vector-td/README.md) · [策划文档](vector-td/docs/design/游戏策划文档.md) · [单位图鉴](vector-td/docs/design/单位图鉴.md) |
+| VECTOR // 矢界防线 | [`vector-td/`](vector-td/) | 竖版深空塔防 | <https://xiaoniu.tech/games/vector-td/> | [开发约定](vector-td/AGENTS.md) · [游戏说明](vector-td/README.md) · [设计索引](vector-td/docs/design/README.md) · [总案](vector-td/docs/design/游戏策划文档.md) · [关卡](vector-td/docs/design/关卡策划.md) · [数值](vector-td/docs/design/数值策划.md) · [图鉴](vector-td/docs/design/单位图鉴.md) |
 
 新增游戏时在表格追加一行。版本号、玩法数值与 UI 约定以各游戏目录的 `AGENTS.md` 和 `README.md` 为准。
 
@@ -121,7 +121,7 @@ docker exec nginx nginx -s reload
 
 ## Git 约定
 
-- 直接提交到 `main`，不做无意义的强制推送。
+- 每次修改完成后，直接提交推送到主分支；提交之前需检查隐私数据是否忽略。
 - 提交信息使用 `type: summary`，例如 `feat: ...`、`fix: ...`、`docs: ...`、`chore: ...`。
 - PowerShell 下 `git push` 可能因 stderr 输出返回非零退出码，但推送成功；以 `git ls-remote origin main` 和 `git log` 为准。
 - **任务完成后自主推送**：任务完成并验证后，执行提交前检查——工作区与暂存区无隐私数据（密钥、凭据、令牌、内网地址），无测试产物、临时文件等垃圾文件（或已被 `.gitignore` 忽略）；检查通过后**无需再次询问**，只暂存本次任务相关文件，按上述提交信息规范 commit 并 push 到 `main`。与任务无关的本地改动保持不动，不要顺手提交。

@@ -60,6 +60,7 @@ vector-td/
   review.css                复盘页样式
   review.js                 复盘页数据看板与逐帧回放
   tools/                    开发工具：三档门禁、无头模拟、真实 build 回放、极致混搭无伤回归、复盘导出、关卡/对比度检查
+  tools/tech-tree/          科技树编辑器 MVP（基于 Skill Tree Planner，MIT；内部工具，不随游戏发布）与 Markdown 生成器
   docs/records/             从浏览器 Local Storage 离线提取闯关记录的方法
   release/                  静态部署包与 SHA-256
   dist/                     可直接部署的镜像目录

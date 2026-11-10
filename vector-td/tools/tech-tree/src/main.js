@@ -44,7 +44,7 @@ function init() {
 			}
 		} else {
 			const error_msg = result.errors.slice(0, 5).join("\n");
-			alert("Import failed:\n" + error_msg);
+			alert("导入失败：\n" + error_msg);
 		}
 	});
 

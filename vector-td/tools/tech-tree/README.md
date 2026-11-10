@@ -14,6 +14,7 @@
   3. `src/storage.js`：`localStorage` 键改为 `vector_tech_tree_planner_v1`。
   4. `src/styles.css`：字体栈换系统字体；追加说明条、导出提示、画布光标样式。
   5. 新增 `vector-loader.js`（自动载入初稿）、`vector-export.js`（浏览器导出 Markdown）、`vector-export-core.js`（共用导出核心）、`vector-tree.json`（初稿数据）、`export-md.js`（Node 校验/生成 CLI）、本 README。
+  6. **界面中文化**：`index.html`、`src/renderer.js`、`src/interactions.js`、`src/actions.js`、`src/main.js`、`src/validation_engine.js`、`src/io.js` 的用户可见文案统一改为中文（代码注释与内部标识保持英文）。
 - 上游其余代码未改动；MIT 许可与版权声明保留在 [LICENSE](LICENSE)。
 
 ## 快速开始
@@ -99,7 +100,7 @@ node vector-td/tools/tech-tree/export-md.js --inject vector-td/docs/design/科�
 
 ## 已知限制
 
-- 界面是英文的（上游 UI）；VECTOR 语义通过 Meta Data 表达。
+- 界面已中文化；上游升级后需要把上述中文化补丁重新套用一遍（见本 README「来源与许可」的修改列表）。
 - 树的「能量核心预算」写在每棵树里；若最终采用**单一全局技能点池**，导出时以各树预算之和作为总预算，接入游戏时再统一成一个池。
 - 分支名称 / 颜色 / 效果字典的展示配置维护在 `vector-export-core.js` 顶部；节点只引用效果键。
 - 浏览器 `localStorage` 只存当前浏览器；换机器请用 Export / Import。

@@ -54,7 +54,7 @@ function setup_interactions(get_state, dispatch, elements) {
 				const center_y = (rect.height / 2 - vp.y) / vp.zoom - 40;
 
 				dispatch(actions.add_node, tree_id, {
-					name: "New Skill",
+					name: "新技能",
 					x: Math.max(0, center_x + (Math.random() - 0.5) * 50),
 					y: Math.max(0, center_y + (Math.random() - 0.5) * 50)
 				});
@@ -66,7 +66,7 @@ function setup_interactions(get_state, dispatch, elements) {
 			event.preventDefault();
 			const tree_id = state.ui_state.active_tree_id;
 			const node = find_node(state, tree_id, hovered_node_id);
-			if (tree_id && node && confirm(`Delete skill "${node.name}"?`)) {
+			if (tree_id && node && confirm(`删除技能「${node.name}」？`)) {
 				dispatch(actions.remove_node, tree_id, hovered_node_id);
 				hovered_node_id = null;
 				hide_tooltip(elements);
@@ -117,7 +117,7 @@ function setup_node_interactions(get_state, dispatch, elements) {
 				const node = find_node(state, tree_id, node_id);
 				if (node) {
 					elements.connection_panel.querySelector(".panel_description").textContent =
-						`Source: ${node.name}. Now click a target node.`;
+						`起点：${node.name}。请点击目标节点。`;
 				}
 			} else if (node_id !== from_id) {
 				// Second click: create connection
@@ -133,7 +133,7 @@ function setup_node_interactions(get_state, dispatch, elements) {
 				elements.edit_tools.classList.remove("hidden");
 				elements.btn_connect_mode.classList.remove("active");
 				elements.connection_panel.querySelector(".panel_description").textContent =
-					"Click a source node, then click a target node to create a dependency.";
+					"先点起点节点，再点目标节点建立依赖。";
 			}
 			return;
 		}
@@ -584,7 +584,7 @@ function setup_toolbar_interactions(get_state, dispatch, elements) {
 	elements.btn_reset.addEventListener("click", () => {
 		const state = get_state();
 		const tree_id = state.ui_state.active_tree_id;
-		if (tree_id && confirm("Reset all points in this tree?")) {
+		if (tree_id && confirm("重置这棵树的全部点数？")) {
 			dispatch(actions.reset_tree, tree_id);
 		}
 	});
@@ -664,7 +664,7 @@ function setup_sidebar_interactions(get_state, dispatch, elements) {
 	elements.btn_delete_tree.addEventListener("click", () => {
 		const state = get_state();
 		const tree_id = state.ui_state.active_tree_id;
-		if (tree_id && confirm("Delete this skill tree?")) {
+		if (tree_id && confirm("删除这棵科技树？")) {
 			dispatch(actions.remove_tree, tree_id);
 		}
 	});
@@ -680,7 +680,7 @@ function setup_sidebar_interactions(get_state, dispatch, elements) {
 
 	// Add resource button
 	elements.btn_add_resource.addEventListener("click", () => {
-		elements.resource_modal_title.textContent = "Add Resource";
+		elements.resource_modal_title.textContent = "添加资源";
 		elements.resource_name.value = "";
 		elements.resource_color.value = "#6366f1";
 		elements.resource_total.value = "100";
@@ -706,7 +706,7 @@ function setup_sidebar_interactions(get_state, dispatch, elements) {
 
 		// Edit button
 		if (event.target.closest(".btn_edit_resource")) {
-			elements.resource_modal_title.textContent = "Edit Resource";
+			elements.resource_modal_title.textContent = "编辑资源";
 			elements.resource_name.value = resource.name;
 			elements.resource_color.value = resource.icon_color;
 			elements.resource_total.value = resource.pool.total;
@@ -718,7 +718,7 @@ function setup_sidebar_interactions(get_state, dispatch, elements) {
 
 		// Delete button
 		if (event.target.closest(".btn_delete_resource")) {
-			if (confirm(`Delete resource "${resource.name}"?`)) {
+			if (confirm(`删除资源「${resource.name}」？`)) {
 				dispatch(actions.remove_resource, tree_id, resource_id);
 			}
 		}
@@ -861,7 +861,7 @@ function setup_sidebar_interactions(get_state, dispatch, elements) {
 		const state = get_state();
 		const tree_id = state.ui_state.active_tree_id;
 		const node_id = state.ui_state.selected_node_id;
-		if (tree_id && node_id && confirm("Delete this node?")) {
+		if (tree_id && node_id && confirm("删除这个节点？")) {
 			dispatch(actions.remove_node, tree_id, node_id);
 		}
 	});
@@ -881,7 +881,7 @@ function setup_sidebar_interactions(get_state, dispatch, elements) {
 			const center_y = (rect.height / 2 - vp.y) / vp.zoom - 40;
 
 			dispatch(actions.add_node, tree_id, {
-				name: "New Skill",
+				name: "新技能",
 				x: Math.max(0, center_x + (Math.random() - 0.5) * 50),
 				y: Math.max(0, center_y + (Math.random() - 0.5) * 50)
 			});
@@ -988,7 +988,7 @@ function setup_modal_interactions(get_state, dispatch, elements) {
 					hide_modal(elements.import_modal);
 				}
 			} catch (e) {
-				alert("Invalid JSON: " + e.message);
+				alert("JSON 无效：" + e.message);
 			}
 		}
 	});
@@ -1017,7 +1017,7 @@ function setup_modal_interactions(get_state, dispatch, elements) {
 		const total = parseInt(elements.resource_total.value, 10) || 100;
 
 		if (!name) {
-			alert("Please enter a resource name.");
+			alert("请输入资源名称。");
 			return;
 		}
 

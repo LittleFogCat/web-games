@@ -284,7 +284,7 @@ function check_resource_affordability(tree, node) {
 	for (const cost of rank_costs) {
 		const resource = tree.resources.find(r => r.id === cost.resource_id);
 		if (!resource) {
-			missing_resources.push({ resource_id: cost.resource_id, reason: "Resource not found" });
+			missing_resources.push({ resource_id: cost.resource_id, reason: "资源不存在" });
 			continue;
 		}
 		const available = resource.pool.total - resource.pool.spent;
@@ -316,7 +316,7 @@ function can_allocate_point(state, tree_id, node_id) {
 	if (!tree) {
 		return {
 			can_allocate: false,
-			reason: "Tree not found"
+			reason: "科技树不存在"
 		};
 	}
 
@@ -324,7 +324,7 @@ function can_allocate_point(state, tree_id, node_id) {
 	if (!node) {
 		return {
 			can_allocate: false,
-			reason: "Node not found"
+			reason: "节点不存在"
 		};
 	}
 
@@ -334,7 +334,7 @@ function can_allocate_point(state, tree_id, node_id) {
 		if (node.current_rank >= node.max_rank) {
 			return {
 				can_allocate: false,
-				reason: "Maximum rank reached"
+				reason: "已达最高等级"
 			};
 		}
 
@@ -346,8 +346,8 @@ function can_allocate_point(state, tree_id, node_id) {
 				return {
 					can_allocate: false,
 					reason: first_missing.name
-						? `Not enough ${first_missing.name}`
-						: "Not enough resources"
+						? `资源不足：${first_missing.name}`
+						: "资源不足"
 				};
 			}
 		} else {
@@ -356,7 +356,7 @@ function can_allocate_point(state, tree_id, node_id) {
 			if (available < cost) {
 				return {
 					can_allocate: false,
-					reason: "Not enough points"
+					reason: "点数不足"
 				};
 			}
 		}
@@ -373,21 +373,21 @@ function can_allocate_point(state, tree_id, node_id) {
 	if (status === NODE_STATUS.LOCKED) {
 		return {
 			can_allocate: false,
-			reason: "Prerequisites not met"
+			reason: "前置未满足"
 		};
 	}
 
 	if (status === NODE_STATUS.MAXED) {
 		return {
 			can_allocate: false,
-			reason: "Maximum rank reached"
+			reason: "已达最高等级"
 		};
 	}
 
 	if (status === NODE_STATUS.INVALID) {
 		return {
 			can_allocate: false,
-			reason: "Invalid node state"
+			reason: "节点状态异常"
 		};
 	}
 
@@ -399,8 +399,8 @@ function can_allocate_point(state, tree_id, node_id) {
 			return {
 				can_allocate: false,
 				reason: first_missing.name
-					? `Not enough ${first_missing.name}`
-					: "Not enough resources"
+					? `资源不足：${first_missing.name}`
+					: "资源不足"
 			};
 		}
 	} else {
@@ -409,7 +409,7 @@ function can_allocate_point(state, tree_id, node_id) {
 		if (available < cost) {
 			return {
 				can_allocate: false,
-				reason: "Not enough points"
+				reason: "点数不足"
 			};
 		}
 	}
@@ -446,7 +446,7 @@ function can_refund_point(state, tree_id, node_id) {
 	if (!state.project.settings.allow_refunds) {
 		return {
 			can_refund: false,
-			reason: "Refunds are disabled",
+			reason: "未开启返还",
 			affected_nodes: []
 		};
 	}
@@ -455,7 +455,7 @@ function can_refund_point(state, tree_id, node_id) {
 	if (!tree) {
 		return {
 			can_refund: false,
-			reason: "Tree not found",
+			reason: "科技树不存在",
 			affected_nodes: []
 		};
 	}
@@ -464,7 +464,7 @@ function can_refund_point(state, tree_id, node_id) {
 	if (!node) {
 		return {
 			can_refund: false,
-			reason: "Node not found",
+			reason: "节点不存在",
 			affected_nodes: []
 		};
 	}
@@ -473,7 +473,7 @@ function can_refund_point(state, tree_id, node_id) {
 	if (node.current_rank <= 0) {
 		return {
 			can_refund: false,
-			reason: "No points allocated",
+			reason: "尚未投入点数",
 			affected_nodes: []
 		};
 	}
@@ -496,7 +496,7 @@ function can_refund_point(state, tree_id, node_id) {
 		// providing better UX by not hard-blocking the user.
 		return {
 			can_refund: true,
-			reason: "Will cascade to dependent nodes",
+			reason: "会连带影响后续节点",
 			affected_nodes: blocking_dependents
 		};
 	}
@@ -614,7 +614,7 @@ function validate_state(state) {
 	for (const id of duplicate_trees) {
 		errors.push({
 			code: "ERR_DUPLICATE_TREE_ID",
-			message: `Duplicate tree ID: ${id}`,
+			message: `科技树 ID 重复：${id}`,
 			tree_id: id,
 			details: {}
 		});
@@ -643,7 +643,7 @@ function validate_tree(state, tree_id) {
 	if (!tree) {
 		errors.push({
 			code: "ERR_TREE_NOT_FOUND",
-			message: "Tree not found",
+			message: "科技树不存在",
 			tree_id: tree_id,
 			details: {}
 		});
@@ -659,7 +659,7 @@ function validate_tree(state, tree_id) {
 	for (const id of duplicate_nodes) {
 		errors.push({
 			code: "ERR_DUPLICATE_NODE_ID",
-			message: `Duplicate node ID: ${id}`,
+			message: `节点 ID 重复：${id}`,
 			tree_id: tree_id,
 			node_id: id,
 			details: {}
@@ -674,7 +674,7 @@ function validate_tree(state, tree_id) {
 		if (!from_exists) {
 			errors.push({
 				code: "ERR_INVALID_CONNECTION_SOURCE",
-				message: `Connection references non-existent source node: ${conn.from_node_id}`,
+				message: `连线引用了不存在的前置节点：${conn.from_node_id}`,
 				tree_id: tree_id,
 				connection_id: conn.id,
 				details: { from_node_id: conn.from_node_id }
@@ -684,7 +684,7 @@ function validate_tree(state, tree_id) {
 		if (!to_exists) {
 			errors.push({
 				code: "ERR_INVALID_CONNECTION_TARGET",
-				message: `Connection references non-existent target node: ${conn.to_node_id}`,
+				message: `连线引用了不存在的目标节点：${conn.to_node_id}`,
 				tree_id: tree_id,
 				connection_id: conn.id,
 				details: { to_node_id: conn.to_node_id }
@@ -697,7 +697,7 @@ function validate_tree(state, tree_id) {
 	if (cycle) {
 		errors.push({
 			code: "ERR_CYCLIC_DEPENDENCY",
-			message: "Cyclic dependency detected",
+			message: "检测到循环依赖",
 			tree_id: tree_id,
 			details: { cycle: cycle }
 		});
@@ -708,7 +708,7 @@ function validate_tree(state, tree_id) {
 	if (calculated_spent !== tree.point_pool.spent) {
 		warnings.push({
 			code: "WARN_POINT_POOL_MISMATCH",
-			message: `Point pool mismatch: spent=${tree.point_pool.spent}, calculated=${calculated_spent}`,
+			message: `点数池不一致：记录 ${tree.point_pool.spent}，实际 ${calculated_spent}`,
 			tree_id: tree_id,
 			details: { stored: tree.point_pool.spent, calculated: calculated_spent }
 		});
@@ -723,7 +723,7 @@ function validate_tree(state, tree_id) {
 			if (!has_incoming && !has_outgoing) {
 				warnings.push({
 					code: "WARN_ORPHANED_NODE",
-					message: `Node has no connections: ${node.name}`,
+					message: `节点没有连线：${node.name}`,
 					tree_id: tree_id,
 					node_id: node.id,
 					details: {}

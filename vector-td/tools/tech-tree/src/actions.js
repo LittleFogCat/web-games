@@ -55,7 +55,7 @@ function update_project_metadata(state, changes) {
 function add_tree(state, options = {}) {
 	const new_state = touch_modified(clone_state(state));
 	const id = generate_id("tree");
-	const tree = create_tree(id, options.name || "New Tree");
+	const tree = create_tree(id, options.name || "新科技树");
 
 	if (options.description) {
 		tree.description = options.description;
@@ -159,7 +159,7 @@ function add_resource(state, tree_id, options = {}) {
 	const id = generate_id("res");
 	const resource = create_resource(
 		id,
-		options.name || "New Resource",
+		options.name || "新资源",
 		options.icon_color || "#6366f1",
 		options.total || 100
 	);
@@ -263,7 +263,7 @@ function add_node(state, tree_id, options = {}) {
 	const id = generate_id("node");
 	const node = create_node(
 		id,
-		options.name || "New Skill",
+		options.name || "新技能",
 		options.x || 100,
 		options.y || 100
 	);
@@ -289,6 +289,8 @@ function add_node(state, tree_id, options = {}) {
 	}
 
 	new_state.project.trees[tree_index].nodes.push(node);
+	// VECTOR patch: 新建后自动选中，右侧属性面板直接可编辑
+	new_state.ui_state.selected_node_id = id;
 
 	return new_state;
 }

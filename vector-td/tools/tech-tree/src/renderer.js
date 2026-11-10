@@ -43,7 +43,7 @@ function render_tree_selector(state, elements) {
 	if (state.project.trees.length === 0) {
 		const option = document.createElement("option");
 		option.value = "";
-		option.textContent = "No trees";
+		option.textContent = "未选择科技树";
 		select.appendChild(option);
 		return;
 	}
@@ -93,7 +93,7 @@ function render_point_display(state, elements) {
 		}
 
 		if (tree.resources.length === 0) {
-			elements.resources_display.innerHTML = '<span class="resource_name">No resources defined</span>';
+			elements.resources_display.innerHTML = '<span class="resource_name">未定义资源</span>';
 		}
 	} else {
 		// Show points display, hide resources display
@@ -366,7 +366,7 @@ function create_node_element(node, status, state) {
 	const logic = node.prerequisite_logic || "AND";
 	const badge = document.createElement("div");
 	badge.className = "node_logic_badge";
-	badge.textContent = logic;
+	badge.textContent = { AND: "且", OR: "或", SUM: "合计" }[logic] || logic;
 	div.appendChild(badge);
 	div.classList.add(`logic-${logic.toLowerCase()}`);
 
@@ -494,12 +494,12 @@ function render_resources_list(tree, elements) {
 				<div class="resource_pool">${available} / ${resource.pool.total} available</div>
 			</div>
 			<div class="resource_actions">
-				<button class="btn btn_icon_small btn_edit_resource" title="Edit resource">
+				<button class="btn btn_icon_small btn_edit_resource" title="编辑资源">
 					<svg viewBox="0 0 24 24" width="14" height="14">
 						<path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
 					</svg>
 				</button>
-				<button class="btn btn_icon_small btn_danger btn_delete_resource" title="Delete resource">
+				<button class="btn btn_icon_small btn_danger btn_delete_resource" title="删除资源">
 					<svg viewBox="0 0 24 24" width="14" height="14">
 						<path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
 					</svg>
@@ -512,7 +512,7 @@ function render_resources_list(tree, elements) {
 	if (tree.resources.length === 0) {
 		const empty = document.createElement("div");
 		empty.className = "form_hint";
-		empty.textContent = "No resources defined. Click 'Add Resource' to create one.";
+		empty.textContent = "未定义资源。点击「添加资源」创建。";
 		list.appendChild(empty);
 	}
 }
@@ -531,7 +531,7 @@ function render_node_resource_costs(state, tree, node, elements) {
 	if (tree.resources.length === 0) {
 		const hint = document.createElement("div");
 		hint.className = "form_hint";
-		hint.textContent = "Add resources to the tree first.";
+		hint.textContent = "请先为这棵树添加资源。";
 		container.appendChild(hint);
 		return;
 	}
@@ -543,7 +543,7 @@ function render_node_resource_costs(state, tree, node, elements) {
 
 		const header = document.createElement("div");
 		header.className = "rank_cost_header";
-		header.textContent = `Rank ${rank + 1}`;
+		header.textContent = `等级 ${rank + 1}`;
 		rank_row.appendChild(header);
 
 		const inputs = document.createElement("div");
@@ -593,7 +593,7 @@ function render_tree_warnings(state, tree, elements) {
 		});
 
 		orphans.forEach(orphan => {
-			warnings.push(`"${orphan.name}" is isolated (no connections)`);
+			warnings.push(`「${orphan.name}」没有任何连线`);
 		});
 
 		// Check for unreachable nodes
@@ -604,7 +604,7 @@ function render_tree_warnings(state, tree, elements) {
 				// Don't duplicate orphan warnings
 				const has_incoming = tree.connections.some(c => c.to_node_id === node_id);
 				if (has_incoming) {
-					warnings.push(`"${node.name}" is unreachable with current requirements`);
+					warnings.push(`「${node.name}」在当前前置条件下不可达`);
 				}
 			}
 		});
@@ -645,11 +645,11 @@ function render_tooltip(state, node, x, y, elements) {
 
 	elements.tooltip_name.textContent = node.name;
 	elements.tooltip_rank.textContent = `${node.current_rank}/${node.max_rank}`;
-	elements.tooltip_description.textContent = node.description || "No description";
+	elements.tooltip_description.textContent = node.description || "无描述";
 
 	// Show cost based on cost mode
 	if (node.current_rank >= node.max_rank) {
-		elements.tooltip_cost.textContent = "Max rank reached";
+		elements.tooltip_cost.textContent = "已达最高等级";
 	} else if (tree && tree.cost_mode === "resources") {
 		// Show resource costs
 		const rank_index = node.current_rank;
@@ -658,25 +658,25 @@ function render_tooltip(state, node, x, y, elements) {
 			: [];
 
 		if (rank_costs.length === 0) {
-			elements.tooltip_cost.textContent = "Next rank: Free";
+			elements.tooltip_cost.textContent = "下一级：免费";
 		} else {
 			const cost_strings = rank_costs.map(cost => {
 				const resource = tree.resources.find(r => r.id === cost.resource_id);
 				return resource ? `${cost.amount} ${resource.name}` : `${cost.amount} ???`;
 			});
-			elements.tooltip_cost.textContent = `Next rank: ${cost_strings.join(", ")}`;
+			elements.tooltip_cost.textContent = `下一级：${cost_strings.join("，")}`;
 		}
 	} else {
 		const cost = get_allocation_cost(node);
-		elements.tooltip_cost.textContent = `Next rank costs ${cost} point${cost !== 1 ? "s" : ""}`;
+		elements.tooltip_cost.textContent = `下一级需要 ${cost} 点`;
 	}
 
 	const status_messages = {
-		[NODE_STATUS.LOCKED]: "🔒 Prerequisites not met",
-		[NODE_STATUS.UNLOCKABLE]: "✨ Click to allocate",
-		[NODE_STATUS.ACTIVE]: "⬆️ Click to upgrade, Right-click to refund",
-		[NODE_STATUS.MAXED]: "⭐ Fully upgraded",
-		[NODE_STATUS.INVALID]: "⚠️ Invalid state"
+		[NODE_STATUS.LOCKED]: "🔒 前置未满足",
+		[NODE_STATUS.UNLOCKABLE]: "✨ 点击投入",
+		[NODE_STATUS.ACTIVE]: "⬆️ 点击升级，右键返还",
+		[NODE_STATUS.MAXED]: "⭐ 已点满",
+		[NODE_STATUS.INVALID]: "⚠️ 状态异常"
 	};
 	elements.tooltip_status.textContent = status_messages[status] || "";
 

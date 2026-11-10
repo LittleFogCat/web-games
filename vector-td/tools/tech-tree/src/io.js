@@ -16,25 +16,25 @@ function validate_project(project) {
 	const errors = [];
 
 	if (!project) {
-		errors.push("Project is null or undefined");
+		errors.push("项目数据为空");
 		return { valid: false, errors: errors };
 	}
 
 	// Check required fields
 	if (!project.metadata) {
-		errors.push("Missing project.metadata");
+		errors.push("缺少 project.metadata");
 	} else {
 		if (!project.metadata.name || typeof project.metadata.name !== "string") {
-			errors.push("Missing or invalid project.metadata.name");
+			errors.push("project.metadata.name 缺失或无效");
 		}
 	}
 
 	if (!project.settings) {
-		errors.push("Missing project.settings");
+		errors.push("缺少 project.settings");
 	}
 
 	if (!Array.isArray(project.trees)) {
-		errors.push("project.trees must be an array");
+		errors.push("project.trees 必须是数组");
 	} else {
 		// Validate each tree
 		for (let i = 0; i < project.trees.length; i++) {
@@ -60,39 +60,39 @@ function validate_tree(tree, index) {
 	const prefix = `trees[${index}]`;
 
 	if (!tree) {
-		errors.push(`${prefix} is null or undefined`);
+		errors.push(`${prefix} 为空`);
 		return errors;
 	}
 
 	if (!tree.id || typeof tree.id !== "string") {
-		errors.push(`${prefix}.id is missing or invalid`);
+		errors.push(`${prefix}.id 缺失或无效`);
 	}
 
 	if (!tree.name || typeof tree.name !== "string") {
-		errors.push(`${prefix}.name is missing or invalid`);
+		errors.push(`${prefix}.name 缺失或无效`);
 	}
 
 	if (!tree.point_pool) {
-		errors.push(`${prefix}.point_pool is missing`);
+		errors.push(`${prefix}.point_pool 缺失`);
 	} else {
 		if (typeof tree.point_pool.total !== "number") {
-			errors.push(`${prefix}.point_pool.total must be a number`);
+			errors.push(`${prefix}.point_pool.total 必须是数字`);
 		}
 		if (typeof tree.point_pool.spent !== "number") {
-			errors.push(`${prefix}.point_pool.spent must be a number`);
+			errors.push(`${prefix}.point_pool.spent 必须是数字`);
 		}
 	}
 
 	// Validate cost_mode if present
 	if (tree.cost_mode && !["skill_points", "resources"].includes(tree.cost_mode)) {
-		errors.push(`${prefix}.cost_mode must be "skill_points" or "resources"`);
+		errors.push(`${prefix}.cost_mode 必须是 "skill_points" 或 "resources"`);
 	}
 
 	// Validate resources if present
 	const resource_ids = new Set();
 	if (tree.resources) {
 		if (!Array.isArray(tree.resources)) {
-			errors.push(`${prefix}.resources must be an array`);
+			errors.push(`${prefix}.resources 必须是数组`);
 		} else {
 			for (let i = 0; i < tree.resources.length; i++) {
 				const res_errors = validate_resource(tree.resources[i], `${prefix}.resources[${i}]`);
@@ -100,7 +100,7 @@ function validate_tree(tree, index) {
 
 				if (tree.resources[i].id) {
 					if (resource_ids.has(tree.resources[i].id)) {
-						errors.push(`Duplicate resource ID: ${tree.resources[i].id}`);
+						errors.push(`资源 ID 重复：${tree.resources[i].id}`);
 					}
 					resource_ids.add(tree.resources[i].id);
 				}
@@ -109,7 +109,7 @@ function validate_tree(tree, index) {
 	}
 
 	if (!Array.isArray(tree.nodes)) {
-		errors.push(`${prefix}.nodes must be an array`);
+		errors.push(`${prefix}.nodes 必须是数组`);
 	} else {
 		// Validate nodes
 		const node_ids = new Set();
@@ -120,7 +120,7 @@ function validate_tree(tree, index) {
 			// Check for duplicate IDs
 			if (tree.nodes[i].id) {
 				if (node_ids.has(tree.nodes[i].id)) {
-					errors.push(`Duplicate node ID: ${tree.nodes[i].id}`);
+					errors.push(`节点 ID 重复：${tree.nodes[i].id}`);
 				}
 				node_ids.add(tree.nodes[i].id);
 			}
@@ -128,7 +128,7 @@ function validate_tree(tree, index) {
 	}
 
 	if (!Array.isArray(tree.connections)) {
-		errors.push(`${prefix}.connections must be an array`);
+		errors.push(`${prefix}.connections 必须是数组`);
 	} else {
 		// Validate connections
 		const node_ids = new Set(tree.nodes?.map(n => n.id) || []);
@@ -152,38 +152,38 @@ function validate_node(node, prefix, resource_ids = new Set()) {
 	const errors = [];
 
 	if (!node) {
-		errors.push(`${prefix} is null or undefined`);
+		errors.push(`${prefix} 为空`);
 		return errors;
 	}
 
 	if (!node.id || typeof node.id !== "string") {
-		errors.push(`${prefix}.id is missing or invalid`);
+		errors.push(`${prefix}.id 缺失或无效`);
 	}
 
 	if (!node.name || typeof node.name !== "string") {
-		errors.push(`${prefix}.name is missing or invalid`);
+		errors.push(`${prefix}.name 缺失或无效`);
 	}
 
 	if (!node.position || typeof node.position.x !== "number" || typeof node.position.y !== "number") {
-		errors.push(`${prefix}.position must have numeric x and y`);
+		errors.push(`${prefix}.position 的 x / y 必须是数字`);
 	}
 
 	if (typeof node.max_rank !== "number" || node.max_rank < 1) {
-		errors.push(`${prefix}.max_rank must be a number >= 1`);
+		errors.push(`${prefix}.max_rank 必须 ≥1`);
 	}
 
 	if (typeof node.current_rank !== "number" || node.current_rank < 0) {
-		errors.push(`${prefix}.current_rank must be a number >= 0`);
+		errors.push(`${prefix}.current_rank 必须 ≥0`);
 	}
 
 	if (!Array.isArray(node.cost_per_rank) || node.cost_per_rank.length === 0) {
-		errors.push(`${prefix}.cost_per_rank must be a non-empty array`);
+		errors.push(`${prefix}.cost_per_rank 必须是非空数组`);
 	}
 
 	// Validate resource_costs if present
 	if (node.resource_costs) {
 		if (!Array.isArray(node.resource_costs)) {
-			errors.push(`${prefix}.resource_costs must be an array`);
+			errors.push(`${prefix}.resource_costs 必须是数组`);
 		} else {
 			for (let r = 0; r < node.resource_costs.length; r++) {
 				const rank_costs = node.resource_costs[r];
@@ -194,12 +194,12 @@ function validate_node(node, prefix, resource_ids = new Set()) {
 				for (let c = 0; c < rank_costs.length; c++) {
 					const cost = rank_costs[c];
 					if (!cost.resource_id || typeof cost.resource_id !== "string") {
-						errors.push(`${prefix}.resource_costs[${r}][${c}].resource_id is missing or invalid`);
+						errors.push(`${prefix}.resource_costs[${r}][${c}].resource_id 缺失或无效`);
 					} else if (resource_ids.size > 0 && !resource_ids.has(cost.resource_id)) {
-						errors.push(`${prefix}.resource_costs[${r}][${c}].resource_id references non-existent resource`);
+						errors.push(`${prefix}.resource_costs[${r}][${c}].resource_id 引用了不存在的资源`);
 					}
 					if (typeof cost.amount !== "number" || cost.amount < 0) {
-						errors.push(`${prefix}.resource_costs[${r}][${c}].amount must be a non-negative number`);
+						errors.push(`${prefix}.resource_costs[${r}][${c}].amount 必须是非负数字`);
 					}
 				}
 			}
@@ -219,30 +219,30 @@ function validate_resource(resource, prefix) {
 	const errors = [];
 
 	if (!resource) {
-		errors.push(`${prefix} is null or undefined`);
+		errors.push(`${prefix} 为空`);
 		return errors;
 	}
 
 	if (!resource.id || typeof resource.id !== "string") {
-		errors.push(`${prefix}.id is missing or invalid`);
+		errors.push(`${prefix}.id 缺失或无效`);
 	}
 
 	if (!resource.name || typeof resource.name !== "string") {
-		errors.push(`${prefix}.name is missing or invalid`);
+		errors.push(`${prefix}.name 缺失或无效`);
 	}
 
 	if (!resource.icon_color || typeof resource.icon_color !== "string") {
-		errors.push(`${prefix}.icon_color is missing or invalid`);
+		errors.push(`${prefix}.icon_color 缺失或无效`);
 	}
 
 	if (!resource.pool) {
-		errors.push(`${prefix}.pool is missing`);
+		errors.push(`${prefix}.pool 缺失`);
 	} else {
 		if (typeof resource.pool.total !== "number" || resource.pool.total < 0) {
-			errors.push(`${prefix}.pool.total must be a non-negative number`);
+			errors.push(`${prefix}.pool.total 必须是非负数字`);
 		}
 		if (typeof resource.pool.spent !== "number" || resource.pool.spent < 0) {
-			errors.push(`${prefix}.pool.spent must be a non-negative number`);
+			errors.push(`${prefix}.pool.spent 必须是非负数字`);
 		}
 	}
 
@@ -260,24 +260,24 @@ function validate_connection(conn, prefix, node_ids) {
 	const errors = [];
 
 	if (!conn) {
-		errors.push(`${prefix} is null or undefined`);
+		errors.push(`${prefix} 为空`);
 		return errors;
 	}
 
 	if (!conn.id || typeof conn.id !== "string") {
-		errors.push(`${prefix}.id is missing or invalid`);
+		errors.push(`${prefix}.id 缺失或无效`);
 	}
 
 	if (!conn.from_node_id || typeof conn.from_node_id !== "string") {
-		errors.push(`${prefix}.from_node_id is missing or invalid`);
+		errors.push(`${prefix}.from_node_id 缺失或无效`);
 	} else if (!node_ids.has(conn.from_node_id)) {
-		errors.push(`${prefix}.from_node_id references non-existent node: ${conn.from_node_id}`);
+		errors.push(`${prefix}.from_node_id 引用了不存在的节点：${conn.from_node_id}`);
 	}
 
 	if (!conn.to_node_id || typeof conn.to_node_id !== "string") {
-		errors.push(`${prefix}.to_node_id is missing or invalid`);
+		errors.push(`${prefix}.to_node_id 缺失或无效`);
 	} else if (!node_ids.has(conn.to_node_id)) {
-		errors.push(`${prefix}.to_node_id references non-existent node: ${conn.to_node_id}`);
+		errors.push(`${prefix}.to_node_id 引用了不存在的节点：${conn.to_node_id}`);
 	}
 
 	return errors;
@@ -346,12 +346,12 @@ function import_project(json) {
 	try {
 		data = JSON.parse(json);
 	} catch (e) {
-		result.errors.push(`Invalid JSON: ${e.message}`);
+		result.errors.push(`JSON 无效：${e.message}`);
 		return result;
 	}
 
 	if (!data || typeof data !== "object") {
-		result.errors.push("Data must be an object");
+		result.errors.push("数据必须是对象");
 		return result;
 	}
 
@@ -367,7 +367,7 @@ function import_project(json) {
 
 	// Version check
 	if (data.version && data.version !== CURRENT_VERSION) {
-		result.warnings.push(`Version mismatch: file is ${data.version}, current is ${CURRENT_VERSION}`);
+		result.warnings.push(`版本不一致：文件为 ${data.version}，当前为 ${CURRENT_VERSION}`);
 	}
 
 	// Create new state
@@ -378,7 +378,7 @@ function import_project(json) {
 	state.project = {
 		version: CURRENT_VERSION,
 		metadata: {
-			name: project.metadata?.name || "Imported Project",
+			name: project.metadata?.name || "导入的项目",
 			description: project.metadata?.description || "",
 			author: project.metadata?.author || "",
 			created_at: project.metadata?.created_at || new Date().toISOString(),

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="A powerful skill tree planner and editor for designing game skill systems">
+    <meta name="description" content="VECTOR 科技树编辑器（内部设计工具）">
     <link rel="icon" href="data:,">
     <title>VECTOR 科技树编辑器</title>
     <link rel="stylesheet" href="src/styles.css">
@@ -16,18 +16,18 @@
         <header id="toolbar" class="toolbar">
             <div class="toolbar_left">
                 <a href="https://github.com/CommanderFoo/skill-tree-planner" target="_blank" rel="noopener noreferrer"
-                    class="btn btn_icon github_link" title="View Source on GitHub">
+                    class="btn btn_icon github_link" title="查看上游源码（GitHub）">
                     <svg viewBox="0 0 24 24" width="20" height="20">
                         <path fill="currentColor"
                             d="M12,2A10,10,0,0,0,8.84,21.5c.5.08.66-.23.66-.5V19.31c-2.78.6-3.37-1.34-3.37-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61,1,.07,1.53,1.03,1.53,1.03.89,1.52,2.34,1.08,2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94a3.88,3.88,0,0,1,1-2.69,3.6,3.6,0,0,1,.1-2.65s.84-.27,2.75,1.02a9.42,9.42,0,0,1,5,0c1.91-1.29,2.75-1.02,2.75-1.02a3.6,3.6,0,0,1,.1,2.65,3.88,3.88,0,0,1,1,2.69c0,3.84-2.34,4.68-4.57,4.93.36.31.68.92.68,1.85V21c0,.27.16.59.67.5A10,10,0,0,0,12,2Z" />
                     </svg>
                 </a>
-                <h1 class="app_title">Skill Tree Planner</h1>
+                <h1 class="app_title">科技树编辑器</h1>
                 <div class="tree_selector">
                     <select id="tree_select" class="tree_select">
-                        <option value="">No tree selected</option>
+                        <option value="">未选择科技树</option>
                     </select>
-                    <button id="btn_add_tree" class="btn btn_icon" title="Add new tree">
+                    <button id="btn_add_tree" class="btn btn_icon" title="新建科技树">
                         <svg viewBox="0 0 24 24" width="20" height="20">
                             <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
                         </svg>
@@ -45,30 +45,30 @@
             </div>
             <div class="toolbar_right">
                 <div class="mode_toggle">
-                    <button id="btn_mode_edit" class="btn btn_mode active" data-mode="edit">Edit</button>
-                    <button id="btn_mode_play" class="btn btn_mode" data-mode="play">Play</button>
+                    <button id="btn_mode_edit" class="btn btn_mode active" data-mode="edit">编辑</button>
+                    <button id="btn_mode_play" class="btn btn_mode" data-mode="play">试玩</button>
                 </div>
                 <div class="zoom_controls">
-                    <button id="btn_zoom_out" class="btn btn_icon" title="Zoom out (scroll down)">
+                    <button id="btn_zoom_out" class="btn btn_icon" title="缩小">
                         <svg viewBox="0 0 24 24" width="18" height="18">
                             <path fill="currentColor" d="M19 13H5v-2h14v2z" />
                         </svg>
                     </button>
                     <span id="zoom_level" class="zoom_level"
-                        title="Current zoom level. Scroll to zoom, hold Space+drag to pan.">100%</span>
-                    <button id="btn_zoom_in" class="btn btn_icon" title="Zoom in (scroll up)">
+                        title="当前缩放；滚轮缩放，空白处拖动平移">100%</span>
+                    <button id="btn_zoom_in" class="btn btn_icon" title="放大">
                         <svg viewBox="0 0 24 24" width="18" height="18">
                             <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
                         </svg>
                     </button>
                     <button id="btn_reset_view" class="btn btn_icon"
-                        title="Reset view to default (100% zoom, centered)">
+                        title="复位视图（100% 居中）">
                         <svg viewBox="0 0 24 24" width="18" height="18">
                             <path fill="currentColor"
                                 d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />
                         </svg>
                     </button>
-                    <button id="btn_zoom_fit" class="btn btn_icon" title="Zoom to Fit (F)">
+                    <button id="btn_zoom_fit" class="btn btn_icon" title="适应视图（F）">
                         <svg viewBox="0 0 24 24" width="18" height="18">
                             <path fill="currentColor"
                                 d="M15 3l2.3 2.3-2.89 2.87 1.42 1.42L18.7 6.7 21 9V3zM3 9l2.3-2.3 2.87 2.89 1.42-1.42L6.7 5.3 9 3H3zm6 12l-2.3-2.3 2.89-2.87-1.42-1.42L5.3 17.3 3 15v6zm12-6l-2.3 2.3-2.87-2.89-1.42 1.42 2.89 2.87L15 21h6z" />
@@ -76,31 +76,31 @@
                     </button>
                 </div>
                 <div class="grid_controls_toolbar">
-                    <label class="toolbar_checkbox" title="Show grid overlay on canvas">
+                    <label class="toolbar_checkbox" title="显示网格">
                         <input type="checkbox" id="grid_visible">
                         <svg viewBox="0 0 24 24" width="18" height="18">
                             <path fill="currentColor"
                                 d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM8 20H4v-4h4v4zm0-6H4v-4h4v4zm0-6H4V4h4v4zm6 12h-4v-4h4v4zm0-6h-4v-4h4v4zm0-6h-4V4h4v4zm6 12h-4v-4h4v4zm0-6h-4v-4h4v4zm0-6h-4V4h4v4z" />
                         </svg>
                     </label>
-                    <label class="toolbar_checkbox" title="Snap nodes to grid when dragging">
+                    <label class="toolbar_checkbox" title="拖动时吸附网格">
                         <input type="checkbox" id="grid_snap">
                         <svg viewBox="0 0 24 24" width="18" height="18">
                             <path fill="currentColor" d="M20 19V3H4v16H2v2h20v-2h-2zM12 5l4 4h-3v4h-2V9H8l4-4z" />
                         </svg>
                     </label>
                     <input type="number" id="grid_size" class="grid_size_input" min="10" max="200" value="100"
-                        title="Grid cell size in pixels">
+                        title="网格尺寸（px）">
                 </div>
                 <div class="toolbar_actions">
-                    <button id="btn_reset" class="btn btn_secondary" title="Reset all points">
-                        Reset
+                    <button id="btn_reset" class="btn btn_secondary" title="重置这棵树的全部点数">
+                        重置
                     </button>
-                    <button id="btn_export" class="btn btn_secondary" title="Export project">
-                        Export
+                    <button id="btn_export" class="btn btn_secondary" title="导出 JSON 项目">
+                        导出 JSON
                     </button>
-                    <button id="btn_import" class="btn btn_secondary" title="Import project">
-                        Import
+                    <button id="btn_import" class="btn btn_secondary" title="导入 JSON 项目">
+                        导入 JSON
                     </button>
                 </div>
             </div>
@@ -109,7 +109,7 @@
         <!-- VECTOR 说明条：内部设计工具，不进玩家包 -->
         <div id="vector_banner" class="vector_banner">
             <span class="vector_badge">VECTOR</span>
-            <span class="vector_note">科技树初稿编辑器 · 基于 <a href="https://github.com/CommanderFoo/skill-tree-planner" target="_blank" rel="noopener noreferrer">Skill Tree Planner</a>（MIT）。货币：<b>能量核心</b>；改完点工具栏 <b>导出 MD</b> 直接下载 Markdown（或 <b>Export</b> 导出 JSON）。Meta Data 格式：<code>branch=PRISM;tier=1;type=rule;effect=prism.precision</code></span>
+            <span class="vector_note">科技树初稿编辑器 · 基于 <a href="https://github.com/CommanderFoo/skill-tree-planner" target="_blank" rel="noopener noreferrer">Skill Tree Planner</a>（MIT）。货币：<b>能量核心</b>；改完点工具栏 <b>导出 MD</b> 直接下载 Markdown（或点 <b>导出 JSON</b>）。Meta Data 格式：<code>branch=PRISM;tier=1;type=rule;effect=prism.precision</code></span>
             <label class="vector_snap" title="开启后节点按 100px 网格吸附；按住 Alt 拖拽可临时绕过">
                 <input type="checkbox" id="vector_snap">
                 网格吸附
@@ -131,10 +131,10 @@
                             <path fill="currentColor"
                                 d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                         </svg>
-                        <h2>No Skill Tree</h2>
-                        <p>Create your first skill tree to get started</p>
+                        <h2>还没有科技树</h2>
+                        <p>创建第一棵科技树开始设计</p>
                         <button id="btn_create_first_tree" class="btn btn_primary">
-                            Create Skill Tree
+                            创建科技树
                         </button>
                     </div>
                 </div>
@@ -142,8 +142,8 @@
             <!-- Sidebar -->
             <aside id="sidebar" class="sidebar">
                 <div class="sidebar_header">
-                    <h2 class="sidebar_title">Properties</h2>
-                    <button id="btn_toggle_sidebar" class="btn btn_icon" title="Toggle sidebar">
+                    <h2 class="sidebar_title">属性</h2>
+                    <button id="btn_toggle_sidebar" class="btn btn_icon" title="收起 / 展开属性栏">
                         <svg viewBox="0 0 24 24" width="20" height="20">
                             <path fill="currentColor" d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z" />
                         </svg>
@@ -151,174 +151,170 @@
                 </div>
                 <!-- Tree Properties Panel -->
                 <section id="tree_properties" class="sidebar_panel">
-                    <h3 class="panel_title">Tree Settings</h3>
+                    <h3 class="panel_title">树设置</h3>
                     <div class="form_group">
-                        <label for="tree_name">Name</label>
-                        <input type="text" id="tree_name" class="input" placeholder="Tree name"
-                            title="Display name for this skill tree. Used in the dropdown selector and export filename.">
+                        <label for="tree_name">名称</label>
+                        <input type="text" id="tree_name" class="input" placeholder="科技树名称"
+                            title="科技树名称；显示在顶部选择器中，也用作导出文件名。">
                     </div>
                     <div class="form_group">
-                        <label for="tree_description">Description</label>
-                        <textarea id="tree_description" class="input textarea" placeholder="Tree description"
-                            title="Optional description explaining the purpose or theme of this skill tree."></textarea>
+                        <label for="tree_description">描述</label>
+                        <textarea id="tree_description" class="input textarea" placeholder="科技树描述"
+                            title="可选：说明这棵科技树的定位或主题。"></textarea>
                     </div>
                     <div class="form_group">
-                        <label for="tree_cost_mode">Cost System</label>
+                        <label for="tree_cost_mode">成本体系</label>
                         <select id="tree_cost_mode" class="input"
-                            title="Choose between skill points (single pool) or custom resources (multiple resource types).">
-                            <option value="skill_points">Skill Points</option>
-                            <option value="resources">Resources</option>
+                            title="「点数」使用能量核心；「多资源」使用自定义资源池。">
+                            <option value="skill_points">点数（能量核心）</option>
+                            <option value="resources">多资源</option>
                         </select>
                     </div>
                     <!-- Skill Points Section -->
                     <div id="skill_points_section" class="form_group">
                         <label for="tree_points">能量核心预算</label>
                         <input type="number" id="tree_points" class="input" min="0" value="20"
-                            title="Maximum number of points available to allocate in this tree. Players can spend these points on skills during Play mode.">
+                            title="这棵树可投入的能量核心总量；试玩时按此预算点亮节点。">
                     </div>
                     <!-- Resources Section -->
                     <div id="resources_section" class="resources_section hidden">
-                        <label>Resources</label>
+                        <label>资源</label>
                         <div id="resources_list" class="resources_list"></div>
-                        <button id="btn_add_resource" class="btn btn_secondary btn_small">+ Add Resource</button>
+                        <button id="btn_add_resource" class="btn btn_secondary btn_small">＋ 添加资源</button>
                     </div>
                     <div class="form_group">
-                        <label for="export_convention">Export Naming</label>
+                        <label for="export_convention">导出命名</label>
                         <select id="export_convention" class="input"
-                            title="Naming convention for JSON export keys (e.g., for Unity/C# compatibility).">
-                            <option value="snake_case">snake_case (Default)</option>
+                            title="JSON 导出的键名风格（按游戏引擎需要选择）。">
+                            <option value="snake_case">snake_case（默认）</option>
                             <option value="camelCase">camelCase</option>
                             <option value="PascalCase">PascalCase</option>
                         </select>
                     </div>
                     <div class="form_actions">
                         <button id="btn_delete_tree" class="btn btn_danger"
-                            title="Permanently delete this skill tree and all its nodes. This action cannot be undone.">Delete
-                            Tree</button>
+                            title="永久删除这棵科技树及其全部节点，无法撤销。">删除科技树</button>
                     </div>
 
                     <div id="tree_warnings" class="validation_warnings hidden">
-                        <h4 class="warning_title">⚠️ Warnings</h4>
+                        <h4 class="warning_title">⚠️ 提醒</h4>
                         <ul id="warning_list" class="warning_list"></ul>
                     </div>
                 </section>
                 <!-- Node Properties Panel -->
                 <section id="node_properties" class="sidebar_panel hidden">
-                    <h3 class="panel_title">Node Settings</h3>
+                    <h3 class="panel_title">节点设置</h3>
                     <div class="form_group">
-                        <label for="node_name">Name</label>
-                        <input type="text" id="node_name" class="input" placeholder="Skill name"
-                            title="Display name for this skill node. Shown on the node and in tooltips.">
+                        <label for="node_name">名称</label>
+                        <input type="text" id="node_name" class="input" placeholder="技能名称"
+                            title="节点显示名；会出现在节点与悬浮提示中。">
                     </div>
                     <div class="form_group">
-                        <label for="node_description">Description</label>
-                        <textarea id="node_description" class="input textarea" placeholder="Skill description"
-                            title="Detailed description of what this skill does. Displayed in the hover tooltip."></textarea>
+                        <label for="node_description">描述</label>
+                        <textarea id="node_description" class="input textarea" placeholder="技能描述"
+                            title="详细说明节点效果，显示在悬浮提示中。"></textarea>
                     </div>
                     <div class="form_row">
                         <div class="form_group">
-                            <label for="node_max_rank">Max Rank</label>
+                            <label for="node_max_rank">最大等级</label>
                             <input type="number" id="node_max_rank" class="input" min="1" value="1"
-                                title="Maximum number of points that can be invested in this skill. Higher ranks usually provide stronger effects.">
+                                title="这个节点最多可投入的等级。">
                         </div>
                         <div class="form_group">
-                            <label for="node_type">Type</label>
+                            <label for="node_type">类型</label>
                             <select id="node_type" class="input"
-                                title="Passive skills provide constant bonuses. Active skills typically grant usable abilities.">
-                                <option value="passive">Passive</option>
-                                <option value="active">Active</option>
+                                title="被动节点提供常驻效果；主动节点通常提供可释放能力。">
+                                <option value="passive">被动</option>
+                                <option value="active">主动</option>
                             </select>
                         </div>
                     </div>
                     <!-- Skill Points Cost -->
                     <div id="node_costs_section" class="form_group">
-                        <label for="node_costs">Cost per Rank</label>
+                        <label for="node_costs">每级成本</label>
                         <input type="text" id="node_costs" class="input" placeholder="1, 1, 2, 3"
-                            title="Point cost for each rank. Use comma-separated values for different costs per rank (e.g., '1, 2, 3' means rank 1 costs 1 point, rank 2 costs 2 points, etc.).">
-                        <span class="form_hint">Comma-separated list</span>
+                            title="每一级消耗的能量核心，用逗号分隔，如 2, 4。">
+                        <span class="form_hint">逗号分隔</span>
                     </div>
                     <!-- Resource Costs -->
                     <div id="node_resource_costs_section" class="form_group hidden">
-                        <label>Resource Costs per Rank</label>
+                        <label>每级资源成本</label>
                         <div id="node_resource_costs" class="node_resource_costs"></div>
                     </div>
                     <div class="form_group">
-                        <label for="node_metadata">Meta Data</label>
+                        <label for="node_metadata">元数据（Meta Data）</label>
                         <input type="text" id="node_metadata" class="input" placeholder="custom_data"
-                            title="Custom metadata associated with this node for game integration.">
+                            title="VECTOR 约定：branch=...;tier=...;type=...;effect=...">
                     </div>
                     <div class="form_row">
                         <div class="form_group">
-                            <label for="node_prereq_logic">Prerequisite Logic</label>
+                            <label for="node_prereq_logic">前置逻辑</label>
                             <select id="node_prereq_logic" class="input"
-                                title="Define how this node evaluates its prerequisites. AND: All prerequisites required. OR: Any one prerequisite required. SUM: Total points in prerequisites must meet threshold.">
-                                <option value="AND">AND (All)</option>
-                                <option value="OR">OR (Any)</option>
-                                <option value="SUM">SUM (Total)</option>
+                                title="AND 需要全部前置；OR 任一前置即可；SUM 前置等级总和需达到阈值。">
+                                <option value="AND">且（全部）</option>
+                                <option value="OR">或（任一）</option>
+                                <option value="SUM">合计（总等级）</option>
                             </select>
                         </div>
                         <div id="group_node_threshold" class="form_group hidden">
-                            <label for="node_prereq_threshold">Required Total</label>
+                            <label for="node_prereq_threshold">所需合计</label>
                             <input type="number" id="node_prereq_threshold" class="input" min="1" value="1"
-                                title="Threshold for SUM logic: total points spent in ALL parent nodes must reach this value.">
+                                title="合计逻辑的阈值：所有前置节点的等级总和达到该值。">
                         </div>
                     </div>
                     <div class="form_group form_group_inline">
                         <input type="checkbox" id="node_hidden_until" class="checkbox">
-                        <label for="node_hidden_until">Hide Until Unlockable</label>
+                        <label for="node_hidden_until">未解锁前隐藏</label>
                     </div>
 
                     <div class="form_actions">
                         <button id="btn_delete_node" class="btn btn_danger"
-                            title="Permanently delete this skill node and any connections to it. This action cannot be undone.">Delete
-                            Node</button>
+                            title="永久删除这个节点及其连线，无法撤销。">删除节点</button>
                     </div>
                 </section>
                 <!-- Connection Mode Panel -->
                 <section id="connection_panel" class="sidebar_panel hidden">
-                    <h3 class="panel_title">Create Connection</h3>
+                    <h3 class="panel_title">建立连线</h3>
                     <p class="panel_description">
-                        Click a source node, then click a target node to create a dependency.
+                        先点起点节点，再点目标节点建立依赖。
                     </p>
                     <div class="form_group">
-                        <label for="connection_rank">Required Rank</label>
+                        <label for="connection_rank">前置等级</label>
                         <input type="number" id="connection_rank" class="input" min="1" value="1"
-                            title="Minimum rank the source node must reach before the target node becomes unlockable. For example, '2' means the prerequisite skill needs at least 2 points invested.">
+                            title="起点节点需要达到的等级；例如 2 表示前置至少投入 2 级。">
                     </div>
                     <div class="form_actions">
                         <button id="btn_cancel_connection" class="btn btn_secondary"
-                            title="Exit connection creation mode without creating a connection.">Cancel</button>
+                            title="退出连线模式，不创建连线。">取消</button>
                     </div>
                 </section>
                 <!-- Edit Mode Tools -->
                 <section id="edit_tools" class="sidebar_panel">
-                    <h3 class="panel_title">Tools</h3>
+                    <h3 class="panel_title">工具</h3>
                     <div class="tool_buttons">
                         <button id="btn_add_node" class="btn btn_tool"
-                            title="Create a new skill node on the canvas. Drag nodes to reposition them, click to select and edit properties.">
+                            title="在画布上新建节点；拖动改位置，点击编辑属性。">
                             <svg viewBox="0 0 24 24" width="20" height="20">
                                 <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
                             </svg>
-                            Add Node
+                            添加节点
                         </button>
                         <button id="btn_connect_mode" class="btn btn_tool"
-                            title="Create dependencies between nodes. Click a prerequisite node first, then click the dependent node to connect them.">
+                            title="建立节点依赖：先点前置，再点后继。">
                             <svg viewBox="0 0 24 24" width="20" height="20">
                                 <path fill="currentColor"
                                     d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z" />
                             </svg>
-                            Connect Nodes
+                            连线
                         </button>
                     </div>
                     <p class="panel_hint">
-                        <strong>Tip:</strong> Shift+drag from a node to quickly connect it. Click a connection line to
-                        delete it. Use <strong>A</strong> to add a node at center, <strong>D</strong> to delete hovered
-                        skill.
+                        <strong>提示：</strong>Shift+拖动节点可快速连线；点击连线可删除；<strong>A</strong> 在画布中心添加节点，<strong>D</strong> 删除悬停的节点。
                     </p>
                 </section>
             </aside>
             <!-- Floating sidebar toggle (visible when sidebar collapsed) -->
-            <button id="btn_show_sidebar" class="btn_show_sidebar" title="Show properties panel">
+            <button id="btn_show_sidebar" class="btn_show_sidebar" title="显示属性栏">
                 <svg viewBox="0 0 24 24" width="20" height="20">
                     <path fill="currentColor" d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z" />
                 </svg>
@@ -339,7 +335,7 @@
             <div class="modal_backdrop"></div>
             <div class="modal_content">
                 <div class="modal_header">
-                    <h2>Import Project</h2>
+                    <h2>导入项目</h2>
                     <button id="btn_close_import" class="btn btn_icon">
                         <svg viewBox="0 0 24 24" width="24" height="24">
                             <path fill="currentColor"
@@ -348,16 +344,16 @@
                     </button>
                 </div>
                 <div class="modal_body">
-                    <p>Paste your project JSON below or drag and drop a .json file:</p>
+                    <p>在下方粘贴项目 JSON，或把 .json 文件拖进来：</p>
                     <textarea id="import_json" class="input textarea_large"
                         placeholder='{"version": "1.0.0", "project": {...}}'></textarea>
                     <div id="import_dropzone" class="dropzone">
-                        <p>Drop JSON file here</p>
+                        <p>把 JSON 文件拖到这里</p>
                     </div>
                 </div>
                 <div class="modal_footer">
-                    <button id="btn_cancel_import" class="btn btn_secondary">Cancel</button>
-                    <button id="btn_confirm_import" class="btn btn_primary">Import</button>
+                    <button id="btn_cancel_import" class="btn btn_secondary">取消</button>
+                    <button id="btn_confirm_import" class="btn btn_primary">导入</button>
                 </div>
             </div>
         </div>
@@ -366,17 +362,17 @@
             <div class="modal_backdrop"></div>
             <div class="modal_content modal_small">
                 <div class="modal_header">
-                    <h2>New Skill Tree</h2>
+                    <h2>新建科技树</h2>
                 </div>
                 <div class="modal_body">
                     <div class="form_group">
-                        <label for="new_tree_name">Tree Name</label>
-                        <input type="text" id="new_tree_name" class="input" placeholder="Enter tree name">
+                        <label for="new_tree_name">科技树名称</label>
+                        <input type="text" id="new_tree_name" class="input" placeholder="输入科技树名称">
                     </div>
                 </div>
                 <div class="modal_footer">
-                    <button id="btn_cancel_tree" class="btn btn_secondary">Cancel</button>
-                    <button id="btn_confirm_tree" class="btn btn_primary">Create</button>
+                    <button id="btn_cancel_tree" class="btn btn_secondary">取消</button>
+                    <button id="btn_confirm_tree" class="btn btn_primary">创建</button>
                 </div>
             </div>
         </div>
@@ -385,25 +381,25 @@
             <div class="modal_backdrop"></div>
             <div class="modal_content modal_small">
                 <div class="modal_header">
-                    <h2 id="resource_modal_title">Add Resource</h2>
+                    <h2 id="resource_modal_title">添加资源</h2>
                 </div>
                 <div class="modal_body">
                     <div class="form_group">
-                        <label for="resource_name">Name</label>
-                        <input type="text" id="resource_name" class="input" placeholder="e.g., Red Nectar">
+                        <label for="resource_name">名称</label>
+                        <input type="text" id="resource_name" class="input" placeholder="例如：能量核心">
                     </div>
                     <div class="form_group">
-                        <label for="resource_color">Color</label>
+                        <label for="resource_color">颜色</label>
                         <input type="color" id="resource_color" class="input input_color" value="#6366f1">
                     </div>
                     <div class="form_group">
-                        <label for="resource_total">Total Amount</label>
+                        <label for="resource_total">总量</label>
                         <input type="number" id="resource_total" class="input" min="1" value="100">
                     </div>
                 </div>
                 <div class="modal_footer">
-                    <button id="btn_cancel_resource" class="btn btn_secondary">Cancel</button>
-                    <button id="btn_confirm_resource" class="btn btn_primary">Save</button>
+                    <button id="btn_cancel_resource" class="btn btn_secondary">取消</button>
+                    <button id="btn_confirm_resource" class="btn btn_primary">保存</button>
                 </div>
             </div>
         </div>

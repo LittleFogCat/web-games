@@ -8,7 +8,7 @@ import { can_allocate_point, can_refund_point } from "./validation_engine.js";
 import * as actions from "./actions.js";
 import { render_tooltip, hide_tooltip } from "./renderer.js";
 import { calculate_zoom_to_fit, calculate_center_on_node } from "./viewport_utils.js";
-import { setup_flow_handles } from "./vector-flow.js";
+import { setup_flow_handles, build_metadata } from "./vector-flow.js";
 
 // Global interaction state
 let hovered_node_id = null;
@@ -895,6 +895,16 @@ function setup_sidebar_interactions(get_state, dispatch, elements) {
 				y: Math.max(0, center_y + (Math.random() - 0.5) * 50),
 				type: "passive"
 			});
+
+			// VECTOR: 与拖出建树一致，自动补 branch/type（tier 等连线后再推导）
+			const after_add = get_state();
+			const new_node_id = after_add.ui_state.selected_node_id;
+			const active_tree = after_add.project.trees.find((item) => item.id === tree_id);
+			if (new_node_id && active_tree) {
+				dispatch(actions.update_node, tree_id, new_node_id, {
+					metadata: build_metadata(active_tree, null)
+				});
+			}
 		}
 	});
 

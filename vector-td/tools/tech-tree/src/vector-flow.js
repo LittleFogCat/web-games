@@ -41,7 +41,7 @@ export function decorate_node_element(node, element) {
  * 给新建节点自动补一份 VECTOR 元数据（branch/tier/type），避免整棵树校验时缺字段。
  * 只做保守推导：源节点有 tier 才推导层级，效果键留空待填。
  */
-function build_metadata(tree, source_node) {
+export function build_metadata(tree, source_node) {
   const parse = (raw) => {
     const out = {};
     String(raw || "").split(";").forEach((part) => {

@@ -96,7 +96,23 @@ import { generateMarkdown, summarizeIssues } from "./vector-export-core.js";
     }
   }
 
+  function bind_snap_toggle() {
+    const visible = document.getElementById("vector_snap");
+    const hidden = document.getElementById("grid_snap");
+    if (!visible || !hidden) return;
+    visible.checked = !!hidden.checked;
+    visible.addEventListener("change", function () {
+      hidden.checked = visible.checked;
+      hidden.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    // 应用内其它入口（如工具栏原生复选框）变化时同步
+    hidden.addEventListener("change", function () {
+      visible.checked = !!hidden.checked;
+    });
+  }
+
   function bind() {
+    bind_snap_toggle();
     const actions = document.querySelector(".toolbar_actions");
     if (!actions) {
       window.setTimeout(bind, 300);

@@ -348,8 +348,8 @@ function setup_canvas_interactions(get_state, dispatch, elements) {
 			let new_x = node_start.x + dx;
 			let new_y = node_start.y + dy;
 
-			// Apply snap to grid if enabled
-			if (state.ui_state.grid.snap_enabled) {
+			// Apply snap to grid if enabled（VECTOR patch: 按住 Alt 临时自由拖动）
+			if (state.ui_state.grid.snap_enabled && !event.altKey) {
 				const cell_size = state.ui_state.grid.cell_size;
 				new_x = Math.round(new_x / cell_size) * cell_size;
 				new_y = Math.round(new_y / cell_size) * cell_size;

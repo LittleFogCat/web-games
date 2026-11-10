@@ -55,7 +55,8 @@ function create_initial_state() {
             },
             grid: {
                 visible: true,
-                snap_enabled: true,
+                // VECTOR patch: 科技树节点默认自由拖动（原上游默认吸附 100px 网格）
+                snap_enabled: false,
                 cell_size: 100
             }
         },

@@ -1465,3 +1465,25 @@ body {
     border-color: rgba(255, 95, 109, 0.65);
     color: #ffc9ce;
 }
+
+/* 开关样式：网格吸附 */
+
+.vector_snap {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex: 0 0 auto;
+    padding: 2px 8px;
+    border: 1px solid rgba(95, 215, 255, 0.28);
+    border-radius: 6px;
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    user-select: none;
+}
+.vector_snap input {
+    width: 13px;
+    height: 13px;
+    accent-color: #5fd7ff;
+    cursor: pointer;
+}

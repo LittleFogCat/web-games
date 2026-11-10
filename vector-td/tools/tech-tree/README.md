@@ -15,6 +15,7 @@
   4. `src/styles.css`：字体栈换系统字体；追加说明条、导出提示、画布光标样式。
   5. 新增 `vector-loader.js`（自动载入初稿）、`vector-export.js`（浏览器导出 Markdown）、`vector-export-core.js`（共用导出核心）、`vector-tree.json`（初稿数据）、`export-md.js`（Node 校验/生成 CLI）、本 README。
   6. **界面中文化**：`index.html`、`src/renderer.js`、`src/interactions.js`、`src/actions.js`、`src/main.js`、`src/validation_engine.js`、`src/io.js` 的用户可见文案统一改为中文（代码注释与内部标识保持英文）。
+  7. 新增 `src/vector-flow.js`：节点四边连接点（拖出新节点 / 拖到节点连线），并在 `renderer.js` / `interactions.js` 中挂载。
 - 上游其余代码未改动；MIT 许可与版权声明保留在 [LICENSE](LICENSE)。
 
 ## 快速开始
@@ -32,6 +33,7 @@ python -m http.server 5180 --bind 127.0.0.1
 - 想回到初稿：点顶部说明条右侧的 **载入初稿**（覆盖当前项目，有二次确认）。
 - 画布操作：**左键拖拽空白处平移**、滚轮缩放、拖拽节点改位置、Shift+拖拽节点连线、`F` 适应视图。
 - 节点**默认自由拖动**（不吸附）；需要对齐时勾选说明条「网格吸附」，或拖动时按住 `Alt` 临时绕过吸附。
+- **流程图式建树**：节点四边有连接点（悬停/选中时出现）——拖到空白处直接创建后继节点（当前节点 → 新节点），拖到另一个节点上建立「当前节点 → 目标节点」的依赖；新建节点会自动带上 `branch/tier/type` 元数据。
 
 ## 科技树的结构是自由的
 
@@ -95,6 +97,7 @@ node vector-td/tools/tech-tree/export-md.js --inject vector-td/docs/design/科�
 | `vector-export-core.js` | 数据解析、校验、Markdown 生成（浏览器 / Node 共用） |
 | `export-md.js` | Node CLI：`--check` / `--out` / `--inject` |
 | `vector-tree.json` | 科技树数据（当前为演示初稿，可整体替换） |
+| `src/vector-flow.js` | 流程图式连接点：拖出新节点 / 拖到节点连线 |
 | `package.json` | `type: module`，让 Node 直接运行 ESM 脚本 |
 | `LICENSE` | 上游 MIT 许可 |
 

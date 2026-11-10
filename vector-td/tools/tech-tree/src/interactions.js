@@ -8,6 +8,7 @@ import { can_allocate_point, can_refund_point } from "./validation_engine.js";
 import * as actions from "./actions.js";
 import { render_tooltip, hide_tooltip } from "./renderer.js";
 import { calculate_zoom_to_fit, calculate_center_on_node } from "./viewport_utils.js";
+import { setup_flow_handles } from "./vector-flow.js";
 
 // Global interaction state
 let hovered_node_id = null;
@@ -268,6 +269,11 @@ function setup_canvas_interactions(get_state, dispatch, elements) {
 			return;
 		}
 
+		// VECTOR: 连接点单独处理，不触发节点拖动
+		if (event.target.closest(".flow_handle")) {
+			return;
+		}
+
 		const node_element = event.target.closest(".skill_node");
 		if (!node_element) {
 			return;
@@ -521,6 +527,9 @@ function setup_canvas_interactions(get_state, dispatch, elements) {
 		// Delete without confirmation for a smoother UX
 		dispatch(actions.remove_connection, tree_id, connection_id);
 	});
+
+	// VECTOR: 流程图式连接点（拖出新节点 / 拖到节点连线）
+	setup_flow_handles(get_state, dispatch, elements);
 }
 
 /**
@@ -883,7 +892,8 @@ function setup_sidebar_interactions(get_state, dispatch, elements) {
 			dispatch(actions.add_node, tree_id, {
 				name: "新技能",
 				x: Math.max(0, center_x + (Math.random() - 0.5) * 50),
-				y: Math.max(0, center_y + (Math.random() - 0.5) * 50)
+				y: Math.max(0, center_y + (Math.random() - 0.5) * 50),
+				type: "passive"
 			});
 		}
 	});

@@ -1487,3 +1487,63 @@ body {
     accent-color: #5fd7ff;
     cursor: pointer;
 }
+
+/* ============================================================
+   VECTOR 流程图式连接点：拖出新节点 / 拖到节点连线
+   ============================================================ */
+.flow_handle {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--color-bg-secondary);
+    border: 2px solid var(--color-accent-primary);
+    box-shadow: 0 0 0 2px rgba(15, 15, 19, 0.9);
+    opacity: 0;
+    transform: scale(0.7);
+    transition: opacity 0.12s ease, transform 0.12s ease, background 0.12s ease;
+    cursor: crosshair;
+    pointer-events: none;
+    z-index: 8;
+}
+.skill_node:hover .flow_handle,
+.skill_node.selected .flow_handle,
+.skill_node.flow_active .flow_handle {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+}
+.flow_handle:hover {
+    background: var(--color-accent-primary);
+}
+.flow_handle_top {
+    top: -7px;
+    left: calc(50% - 6px);
+}
+.flow_handle_bottom {
+    bottom: -7px;
+    left: calc(50% - 6px);
+}
+.flow_handle_left {
+    left: -7px;
+    top: calc(50% - 6px);
+}
+.flow_handle_right {
+    right: -7px;
+    top: calc(50% - 6px);
+}
+.flow_temp_line {
+    stroke: var(--color-accent-primary);
+    stroke-width: 2.5;
+    stroke-dasharray: 6 4;
+    pointer-events: none;
+}
+.skill_node.flow_target {
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.9);
+}
+body.flow_dragging {
+    cursor: crosshair;
+}
+body.flow_dragging .skill_node {
+    cursor: crosshair;
+}

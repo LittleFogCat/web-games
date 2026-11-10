@@ -5,6 +5,7 @@
 
 import { find_tree, find_node } from "./state.js";
 import * as validation from "./validation_engine.js";
+import { decorate_node_element } from "./vector-flow.js";
 const { get_node_status, get_all_node_statuses, NODE_STATUS, get_allocation_cost, is_connection_satisfied } = validation;
 
 /**
@@ -398,6 +399,11 @@ function create_node_element(node, status, state) {
 		rank.className = "node_rank";
 		rank.textContent = `${node.current_rank}/${node.max_rank}`;
 		div.appendChild(rank);
+	}
+
+	// VECTOR: 编辑模式下挂四个连接点（拖出新节点 / 拖到节点连线）
+	if (state.ui_state.mode === "edit") {
+		decorate_node_element(node, div);
 	}
 
 	return div;

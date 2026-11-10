@@ -6,6 +6,7 @@
 import { find_tree, find_node } from "./state.js";
 import * as validation from "./validation_engine.js";
 import { decorate_node_element } from "./vector-flow.js";
+import { create_connection_element } from "./vector-edges.js";
 const { get_node_status, get_all_node_statuses, NODE_STATUS, get_allocation_cost, is_connection_satisfied } = validation;
 
 /**
@@ -234,7 +235,8 @@ function render_connections(state, tree, elements) {
 		return false;
 	};
 
-	for (const conn of tree.connections) {
+	for (let index = 0; index < tree.connections.length; index++) {
+		const conn = tree.connections[index];
 		const from_node = find_node(state, tree.id, conn.from_node_id);
 		const to_node = find_node(state, tree.id, conn.to_node_id);
 
@@ -249,45 +251,13 @@ function render_connections(state, tree, elements) {
 			}
 		}
 
-		const path = create_connection_path(state, from_node, to_node, conn, statuses);
-		svg.appendChild(path);
+		const element = create_connection_element(conn, from_node, to_node, {
+			satisfied: is_connection_satisfied(state, tree.id, conn),
+			selected: state.ui_state.selected_connection_id === conn.id,
+			index: index
+		});
+		svg.appendChild(element);
 	}
-}
-
-/**
- * Creates an SVG path element for a connection
- */
-function create_connection_path(state, from_node, to_node, connection, statuses) {
-	const node_size = 80;
-	const half = node_size / 2;
-
-	const x1 = from_node.position.x + half;
-	const y1 = from_node.position.y + half;
-	const x2 = to_node.position.x + half;
-	const y2 = to_node.position.y + half;
-
-	const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-
-	// Create curved path
-	const dx = x2 - x1;
-	const dy = y2 - y1;
-	const ctrl_offset = Math.min(Math.abs(dx), Math.abs(dy)) * 0.5;
-
-	const d = `M ${x1} ${y1} C ${x1 + ctrl_offset} ${y1}, ${x2 - ctrl_offset} ${y2}, ${x2} ${y2}`;
-	path.setAttribute("d", d);
-	path.classList.add("connection_path");
-	path.dataset.connection_id = connection.id;
-
-	// Determine connection state
-	const is_satisfied = is_connection_satisfied(state, state.ui_state.active_tree_id, connection);
-
-	if (is_satisfied) {
-		path.classList.add("active");
-	} else {
-		path.classList.add("locked");
-	}
-
-	return path;
 }
 
 /**
@@ -417,11 +387,27 @@ function render_sidebar(state, elements) {
 	const node = state.ui_state.selected_node_id
 		? find_node(state, state.ui_state.active_tree_id, state.ui_state.selected_node_id)
 		: null;
+	const selected_connection = state.ui_state.selected_connection_id && tree
+		? tree.connections.find((conn) => conn.id === state.ui_state.selected_connection_id) || null
+		: null;
 
 	// Show/hide panels based on selection
-	elements.tree_properties.classList.toggle("hidden", !tree || node);
-	elements.node_properties.classList.toggle("hidden", !node);
+	elements.tree_properties.classList.toggle("hidden", !tree || node || !!selected_connection);
+	elements.node_properties.classList.toggle("hidden", !node || !!selected_connection);
+	if (elements.connection_properties) {
+		elements.connection_properties.classList.toggle("hidden", !selected_connection);
+	}
 	elements.edit_tools.classList.toggle("hidden", state.ui_state.mode !== "edit");
+
+	// Populate connection properties (VECTOR)
+	if (selected_connection) {
+		const from_node = find_node(state, state.ui_state.active_tree_id, selected_connection.from_node_id);
+		const to_node = find_node(state, state.ui_state.active_tree_id, selected_connection.to_node_id);
+		if (elements.conn_from_name) elements.conn_from_name.textContent = from_node ? from_node.name : "（已删除）";
+		if (elements.conn_to_name) elements.conn_to_name.textContent = to_node ? to_node.name : "（已删除）";
+		if (elements.conn_rank) elements.conn_rank.value = selected_connection.required_rank || 1;
+		if (elements.conn_style) elements.conn_style.value = selected_connection.style || "solid";
+	}
 
 	// Populate tree properties
 	if (tree && !node) {

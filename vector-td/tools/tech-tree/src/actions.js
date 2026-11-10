@@ -707,6 +707,9 @@ function remove_connection(state, tree_id, connection_id) {
 	}
 
 	tree.connections.splice(conn_index, 1);
+	if (new_state.ui_state.selected_connection_id === connection_id) {
+		new_state.ui_state.selected_connection_id = null;
+	}
 
 	return new_state;
 }
@@ -742,6 +745,13 @@ function update_connection(state, tree_id, connection_id, changes) {
 	if (typeof changes.required_rank === "number") {
 		connection.required_rank = changes.required_rank;
 	}
+	if (changes.from_node_id && changes.to_node_id) {
+		connection.from_node_id = changes.from_node_id;
+		connection.to_node_id = changes.to_node_id;
+	}
+	if (changes.style === "solid" || changes.style === "dashed" || changes.style === "dotted") {
+		connection.style = changes.style;
+	}
 
 	return new_state;
 }
@@ -760,6 +770,20 @@ function set_active_tree(state, tree_id) {
 	const new_state = clone_state(state);
 	new_state.ui_state.active_tree_id = tree_id;
 	new_state.ui_state.selected_node_id = null;
+	new_state.ui_state.selected_connection_id = null;
+	return new_state;
+}
+
+/**
+ * 选中一条连线（VECTOR）：同时取消节点选中，右侧显示连线属性。
+ * @param {object} state - Current state
+ * @param {string|null} connection_id - ID of connection to select
+ * @returns {object} New state with selected connection set
+ */
+function set_selected_connection(state, connection_id) {
+	const new_state = clone_state(state);
+	new_state.ui_state.selected_connection_id = connection_id;
+	if (connection_id) new_state.ui_state.selected_node_id = null;
 	return new_state;
 }
 
@@ -772,6 +796,7 @@ function set_active_tree(state, tree_id) {
 function set_selected_node(state, node_id) {
 	const new_state = clone_state(state);
 	new_state.ui_state.selected_node_id = node_id;
+	new_state.ui_state.selected_connection_id = null;
 	return new_state;
 }
 
@@ -952,6 +977,7 @@ export {
 	// UI state actions
 	set_active_tree,
 	set_selected_node,
+	set_selected_connection,
 	set_mode,
 	set_viewport,
 	set_tooltip,

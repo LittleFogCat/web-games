@@ -220,7 +220,7 @@
                             <input type="number" id="node_max_rank" class="input" min="1" value="1"
                                 title="这个节点最多可投入的等级。">
                         </div>
-                        <div class="form_group">
+                        <div class="form_group hidden">
                             <label for="node_type">类型</label>
                             <select id="node_type" class="input"
                                 title="被动节点提供常驻效果；主动节点通常提供可释放能力。">
@@ -272,6 +272,40 @@
                             title="永久删除这个节点及其连线，无法撤销。">删除节点</button>
                     </div>
                 </section>
+                <!-- Connection Properties Panel (VECTOR) -->
+                <section id="connection_properties" class="sidebar_panel hidden">
+                    <h3 class="panel_title">连线属性</h3>
+                    <div class="form_group">
+                        <label>起点（前置）</label>
+                        <div id="conn_from_name" class="conn_node_name">—</div>
+                    </div>
+                    <div class="form_group">
+                        <label>终点（后续）</label>
+                        <div id="conn_to_name" class="conn_node_name">—</div>
+                    </div>
+                    <div class="form_actions">
+                        <button id="btn_conn_swap" class="btn btn_secondary" type="button"
+                            title="交换起点与终点，箭头方向随之反转">交换方向</button>
+                    </div>
+                    <div class="form_row">
+                        <div class="form_group">
+                            <label for="conn_rank">前置等级</label>
+                            <input type="number" id="conn_rank" class="input" min="1" value="1">
+                        </div>
+                        <div class="form_group">
+                            <label for="conn_style">线型</label>
+                            <select id="conn_style" class="input">
+                                <option value="solid">实线</option>
+                                <option value="dashed">虚线</option>
+                                <option value="dotted">点线</option>
+                            </select>
+                        </div>
+                    </div>
+                    <p class="panel_hint">箭头从「前置」指向「后续」；AND / OR / SUM 逻辑在节点属性里设置。</p>
+                    <div class="form_actions">
+                        <button id="btn_conn_delete" class="btn btn_danger" type="button">删除连线</button>
+                    </div>
+                </section>
                 <!-- Connection Mode Panel -->
                 <section id="connection_panel" class="sidebar_panel hidden">
                     <h3 class="panel_title">建立连线</h3>
@@ -309,7 +343,7 @@
                         </button>
                     </div>
                     <p class="panel_hint">
-                        <strong>提示：</strong>Shift+拖动节点可快速连线；点击连线可删除；<strong>A</strong> 在画布中心添加节点，<strong>D</strong> 删除悬停的节点。
+                        <strong>提示：</strong>Shift+拖动节点可快速连线；<strong>点击连线可编辑属性</strong>（方向 / 线型 / 前置等级）；<strong>A</strong> 在画布中心添加节点，<strong>D</strong> 删除悬停的节点。
                     </p>
                 </section>
             </aside>

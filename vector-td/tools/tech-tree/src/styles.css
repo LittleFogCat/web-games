@@ -440,8 +440,9 @@ body {
     left: -2px;
 }
 
+/* VECTOR: 节点统一为圆形（类型不再影响形状） */
 .skill_node.type-active {
-    border-radius: var(--radius-lg);
+    border-radius: 50%;
 }
 
 /* Status Indicators */
@@ -583,8 +584,45 @@ body {
 }
 
 .connection_path:hover {
-    stroke: var(--color-error);
+    stroke: var(--color-accent-primary);
     stroke-width: 5;
+}
+
+/* VECTOR：连线命中区（透明加宽，便于点击） */
+.connection_hit {
+    fill: none;
+    stroke: transparent;
+    stroke-width: 16;
+    pointer-events: stroke;
+    cursor: pointer;
+}
+
+/* VECTOR：选中态 */
+.connection_group.selected .connection_path {
+    stroke: var(--color-accent-primary);
+    stroke-width: 5;
+    filter: drop-shadow(0 0 4px rgba(99, 102, 241, 0.85));
+}
+.connection_group.selected .connection_arrow {
+    fill: var(--color-accent-primary);
+}
+
+/* VECTOR：线型（与连线数据的 style 对应） */
+.connection_group.style-dashed .connection_path {
+    stroke-dasharray: 10 6;
+}
+.connection_group.style-dotted .connection_path {
+    stroke-dasharray: 2 6;
+}
+
+/* VECTOR：连线属性面板中的节点名 */
+.conn_node_name {
+    padding: 7px 9px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-tertiary);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
 }
 
 .connection_path.active {

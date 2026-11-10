@@ -35,6 +35,8 @@ python -m http.server 5180 --bind 127.0.0.1
 - 节点**默认自由拖动**（不吸附）；需要对齐时勾选说明条「网格吸附」，或拖动时按住 `Alt` 临时绕过吸附。
 - **流程图式建树**：节点四边有连接点（悬停/选中时出现）——拖到空白处直接创建后继节点（当前节点 → 新节点），拖到另一个节点上建立「当前节点 → 目标节点」的依赖；新建节点会自动带上 `branch/tier/type` 元数据。
 - **前置提示**：悬浮节点时列出前置科技及掌握状态（已满足高亮、未满足暗淡），不再只提示「前置未满足」。
+- **连线**：从节点边缘到节点边缘绘制（不穿过节点），箭头由「前置」指向「后续」；**点击连线**打开「连线属性」面板，可交换方向、修改前置等级、切换实线 / 虚线 / 点线、删除连线。
+- **节点形状**：统一为圆形（上游的 Passive/Active 不再影响形状，类型语义写在 Meta Data 的 `type=` 里）。
 
 ## 科技树的结构是自由的
 
@@ -99,6 +101,7 @@ node vector-td/tools/tech-tree/export-md.js --inject vector-td/docs/design/科�
 | `export-md.js` | Node CLI：`--check` / `--out` / `--inject` |
 | `vector-tree.json` | 科技树数据（当前为演示初稿，可整体替换） |
 | `src/vector-flow.js` | 流程图式连接点：拖出新节点 / 拖到节点连线 |
+| `src/vector-edges.js` | 连线几何与渲染：边到边、箭头方向、线型 |
 | `package.json` | `type: module`，让 Node 直接运行 ESM 脚本 |
 | `LICENSE` | 上游 MIT 许可 |
 

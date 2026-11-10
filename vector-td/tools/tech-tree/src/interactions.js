@@ -24,6 +24,7 @@ function setup_interactions(get_state, dispatch, elements) {
 	setup_canvas_interactions(get_state, dispatch, elements);
 	setup_toolbar_interactions(get_state, dispatch, elements);
 	setup_sidebar_interactions(get_state, dispatch, elements);
+	setup_connection_interactions(get_state, dispatch, elements);
 	setup_modal_interactions(get_state, dispatch, elements);
 
 	// Global Keyboard Shortcuts
@@ -499,33 +500,31 @@ function setup_canvas_interactions(get_state, dispatch, elements) {
 		});
 	}, { passive: false });
 
-	// Click on canvas to deselect
+	// Click on canvas to deselect（VECTOR：同时取消节点与连线选中）
 	container.addEventListener("click", (event) => {
-		if (event.target === container || event.target === elements.nodes_layer) {
-			const state = get_state();
-			if (state.ui_state.selected_node_id) {
-				dispatch(actions.set_selected_node, null);
-			}
+		if (event.target.closest(".skill_node") || event.target.closest(".connection_group") || event.target.closest(".flow_handle")) {
+			return;
+		}
+		const state = get_state();
+		if (state.ui_state.selected_node_id) {
+			dispatch(actions.set_selected_node, null);
+		}
+		if (state.ui_state.selected_connection_id) {
+			dispatch(actions.set_selected_connection, null);
 		}
 	});
 
-	// Click on connection to delete it
+	// Click on connection to select it（VECTOR：改为显示连线属性）
 	elements.connections_layer.addEventListener("click", (event) => {
-		const path = event.target.closest(".connection_path");
-		if (!path) {
+		const group = event.target.closest(".connection_group");
+		if (!group) {
 			return;
 		}
-
 		const state = get_state();
-		if (state.ui_state.mode !== "edit") {
+		if (!state.ui_state.active_tree_id) {
 			return;
 		}
-
-		const connection_id = path.dataset.connection_id;
-		const tree_id = state.ui_state.active_tree_id;
-
-		// Delete without confirmation for a smoother UX
-		dispatch(actions.remove_connection, tree_id, connection_id);
+		dispatch(actions.set_selected_connection, group.dataset.connection_id);
 	});
 
 	// VECTOR: 流程图式连接点（拖出新节点 / 拖到节点连线）
@@ -971,6 +970,62 @@ function setup_sidebar_interactions(get_state, dispatch, elements) {
 	elements.grid_visible.checked = initial_state.ui_state.grid.visible;
 	elements.grid_snap.checked = initial_state.ui_state.grid.snap_enabled;
 	elements.grid_size.value = initial_state.ui_state.grid.cell_size;
+}
+
+/**
+ * VECTOR: 连线属性面板交互（方向交换 / 前置等级 / 线型 / 删除）
+ */
+function setup_connection_interactions(get_state, dispatch, elements) {
+	const current_connection = () => {
+		const state = get_state();
+		const tree_id = state.ui_state.active_tree_id;
+		const conn_id = state.ui_state.selected_connection_id;
+		const tree = tree_id ? find_tree(state, tree_id) : null;
+		const connection = tree && conn_id
+			? tree.connections.find((conn) => conn.id === conn_id)
+			: null;
+		return { state, tree_id, connection };
+	};
+
+	if (elements.conn_style) {
+		elements.conn_style.addEventListener("change", (event) => {
+			const { tree_id, connection } = current_connection();
+			if (tree_id && connection) {
+				dispatch(actions.update_connection, tree_id, connection.id, { style: event.target.value });
+			}
+		});
+	}
+
+	if (elements.conn_rank) {
+		elements.conn_rank.addEventListener("change", (event) => {
+			const { tree_id, connection } = current_connection();
+			const value = parseInt(event.target.value, 10);
+			if (tree_id && connection && !Number.isNaN(value) && value >= 1) {
+				dispatch(actions.update_connection, tree_id, connection.id, { required_rank: value });
+			}
+		});
+	}
+
+	if (elements.btn_conn_swap) {
+		elements.btn_conn_swap.addEventListener("click", () => {
+			const { tree_id, connection } = current_connection();
+			if (tree_id && connection) {
+				dispatch(actions.update_connection, tree_id, connection.id, {
+					from_node_id: connection.to_node_id,
+					to_node_id: connection.from_node_id
+				});
+			}
+		});
+	}
+
+	if (elements.btn_conn_delete) {
+		elements.btn_conn_delete.addEventListener("click", () => {
+			const { tree_id, connection } = current_connection();
+			if (tree_id && connection) {
+				dispatch(actions.remove_connection, tree_id, connection.id);
+			}
+		});
+	}
 }
 
 /**

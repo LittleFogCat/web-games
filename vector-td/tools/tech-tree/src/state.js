@@ -34,6 +34,8 @@ function create_initial_state() {
         ui_state: {
             active_tree_id: null,
             selected_node_id: null,
+            // VECTOR: 当前选中的连线（点击连线后显示连线属性）
+            selected_connection_id: null,
             mode: "edit", // "edit" or "play"
             connection_mode: {
                 active: false,

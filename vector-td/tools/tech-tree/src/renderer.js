@@ -637,6 +637,74 @@ function render_empty_state(state, elements) {
 /**
  * Updates the tooltip
  */
+
+/**
+ * 悬浮提示中的「前置科技」列表（VECTOR）
+ * 已满足的前置高亮，未满足的暗淡，并显示所需等级。
+ */
+function render_tooltip_prereqs(state, tree_id, tree, node, elements) {
+	const container = elements.tooltip_prereqs;
+	if (!container) return;
+	container.innerHTML = "";
+	const connections = tree
+		? tree.connections.filter((conn) => conn.to_node_id === node.id)
+		: [];
+	if (connections.length === 0) {
+		container.classList.add("hidden");
+		return;
+	}
+	container.classList.remove("hidden");
+
+	const logic = String(node.prerequisite_logic || "AND").toUpperCase();
+	const threshold = node.prerequisite_threshold || 1;
+	const title = document.createElement("div");
+	title.className = "tooltip_prereqs_title";
+	if (logic === "OR") {
+		title.textContent = "前置科技（任一满足）";
+	} else if (logic === "SUM") {
+		title.textContent = `前置科技（合计需 ${threshold} 级）`;
+	} else {
+		title.textContent = "前置科技（需全部）";
+	}
+	container.appendChild(title);
+
+	const list = document.createElement("ul");
+	list.className = "tooltip_prereqs_list";
+	connections.forEach((conn) => {
+		const parent = find_node(state, tree_id, conn.from_node_id);
+		const need = conn.required_rank || 1;
+		const satisfied = parent ? parent.current_rank >= need : false;
+
+		const item = document.createElement("li");
+		item.className = "tooltip_prereq " + (satisfied ? "satisfied" : "unmet");
+
+		const mark = document.createElement("span");
+		mark.className = "tooltip_prereq_mark";
+		mark.textContent = satisfied ? "✓" : "·";
+		item.appendChild(mark);
+
+		const label = document.createElement("span");
+		label.className = "tooltip_prereq_name";
+		label.textContent = parent ? parent.name : "（前置已删除）";
+		item.appendChild(label);
+
+		if (parent && parent.max_rank > 1) {
+			const rank = document.createElement("span");
+			rank.className = "tooltip_prereq_rank";
+			rank.textContent = `${parent.current_rank}/${parent.max_rank}`;
+			item.appendChild(rank);
+		}
+		if (need > 1) {
+			const need_el = document.createElement("span");
+			need_el.className = "tooltip_prereq_need";
+			need_el.textContent = `需 ${need} 级`;
+			item.appendChild(need_el);
+		}
+		list.appendChild(item);
+	});
+	container.appendChild(list);
+}
+
 function render_tooltip(state, node, x, y, elements) {
 	const tooltip = elements.tooltip;
 
@@ -652,6 +720,9 @@ function render_tooltip(state, node, x, y, elements) {
 	elements.tooltip_name.textContent = node.name;
 	elements.tooltip_rank.textContent = `${node.current_rank}/${node.max_rank}`;
 	elements.tooltip_description.textContent = node.description || "无描述";
+
+	// VECTOR: 列出前置科技与掌握状态
+	render_tooltip_prereqs(state, tree_id, tree, node, elements);
 
 	// Show cost based on cost mode
 	if (node.current_rank >= node.max_rank) {

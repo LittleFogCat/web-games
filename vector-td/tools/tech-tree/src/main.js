@@ -169,6 +169,7 @@ function cache_elements() {
 		tooltip_description: document.getElementById("tooltip_description"),
 		tooltip_cost: document.getElementById("tooltip_cost"),
 		tooltip_status: document.getElementById("tooltip_status"),
+		tooltip_prereqs: document.getElementById("tooltip_prereqs"),
 
 		// Import Modal
 		import_modal: document.getElementById("import_modal"),

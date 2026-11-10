@@ -367,7 +367,7 @@ function create_node_element(node, status, state) {
 	const logic = node.prerequisite_logic || "AND";
 	const badge = document.createElement("div");
 	badge.className = "node_logic_badge";
-	badge.textContent = { AND: "且", OR: "或", SUM: "合计" }[logic] || logic;
+	badge.textContent = logic;
 	div.appendChild(badge);
 	div.classList.add(`logic-${logic.toLowerCase()}`);
 
@@ -660,11 +660,11 @@ function render_tooltip_prereqs(state, tree_id, tree, node, elements) {
 	const title = document.createElement("div");
 	title.className = "tooltip_prereqs_title";
 	if (logic === "OR") {
-		title.textContent = "前置科技（任一满足）";
+		title.textContent = "前置科技（OR · 任一满足）";
 	} else if (logic === "SUM") {
-		title.textContent = `前置科技（合计需 ${threshold} 级）`;
+		title.textContent = `前置科技（SUM · 合计需 ${threshold} 级）`;
 	} else {
-		title.textContent = "前置科技（需全部）";
+		title.textContent = "前置科技（AND · 需全部）";
 	}
 	container.appendChild(title);
 

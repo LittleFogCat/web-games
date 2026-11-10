@@ -181,9 +181,9 @@ function typeLabel(type) {
 }
 
 function logicLabel(logic) {
-  if (logic === "OR") return "或";
-  if (logic === "SUM") return "合计";
-  return "须";
+  if (logic === "OR") return "OR";
+  if (logic === "SUM") return "SUM";
+  return "AND";
 }
 
 function mermaidId(id) {

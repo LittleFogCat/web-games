@@ -1,0 +1,7 @@
+{
+  "name": "@vector/tech-tree-tools",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "VECTOR 科技树编辑器配套工具：数据校验与 Markdown 生成（内部设计工具）"
+}

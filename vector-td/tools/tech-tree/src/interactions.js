@@ -426,14 +426,17 @@ function setup_canvas_interactions(get_state, dispatch, elements) {
 		}
 	});
 
-	// Pan with middle mouse button or space+left click
+	// Pan with middle mouse button, space+left click, or left-drag on empty canvas
+	// VECTOR patch: 允许在空白画布上直接左键拖拽平移（原先只支持中键 / 空格+左键）
 	container.addEventListener("mousedown", (event) => {
-		// Middle mouse button or space+left click
-		if (event.button === 1 || (event.button === 0 && space_pressed)) {
+		const on_node = event.target.closest ? event.target.closest(".skill_node") : null;
+		const left_drag_empty = event.button === 0 && !on_node;
+		if (event.button === 1 || (event.button === 0 && space_pressed) || left_drag_empty) {
 			event.preventDefault();
 			const state = get_state();
 
 			is_panning = true;
+			if (window.getSelection) window.getSelection().removeAllRanges();
 			pan_start = { x: event.clientX, y: event.clientY };
 			viewport_start = {
 				x: state.ui_state.viewport.x,

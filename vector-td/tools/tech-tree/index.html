@@ -36,7 +36,7 @@
             </div>
             <div class="toolbar_center">
                 <div id="point_display" class="point_display">
-                    <span class="point_label">Points:</span>
+                    <span class="point_label">能量核心:</span>
                     <span id="points_available" class="points_value">0</span>
                     <span class="point_separator">/</span>
                     <span id="points_total" class="points_value">0</span>
@@ -109,7 +109,7 @@
         <!-- VECTOR 说明条：内部设计工具，不进玩家包 -->
         <div id="vector_banner" class="vector_banner">
             <span class="vector_badge">VECTOR</span>
-            <span class="vector_note">科技树初稿编辑器 · 基于 <a href="https://github.com/CommanderFoo/skill-tree-planner" target="_blank" rel="noopener noreferrer">Skill Tree Planner</a>（MIT）。改完点 <b>Export</b> 导出 JSON，再运行 <code>node vector-td/tools/tech-tree/export-md.js --inject vector-td/docs/design/科技树.md</code> 生成文档表格。Meta Data 格式：<code>branch=EXP;tier=1;type=unlock;effect=unlock.expedition</code></span>
+            <span class="vector_note">科技树初稿编辑器 · 基于 <a href="https://github.com/CommanderFoo/skill-tree-planner" target="_blank" rel="noopener noreferrer">Skill Tree Planner</a>（MIT）。货币：<b>能量核心</b>；改完点工具栏 <b>导出 MD</b> 直接下载 Markdown（或 <b>Export</b> 导出 JSON）。Meta Data 格式：<code>branch=PRISM;tier=1;type=rule;effect=prism.precision</code></span>
             <button id="btn_load_vector_tree" class="vector_banner_btn" type="button" title="用 tools/tech-tree/vector-tree.json 覆盖当前项目">载入初稿</button>
             <a class="vector_banner_link" href="README.md" target="_blank" rel="noopener noreferrer">说明</a>
         </div>
@@ -168,7 +168,7 @@
                     </div>
                     <!-- Skill Points Section -->
                     <div id="skill_points_section" class="form_group">
-                        <label for="tree_points">Total Points</label>
+                        <label for="tree_points">能量核心预算</label>
                         <input type="number" id="tree_points" class="input" min="0" value="20"
                             title="Maximum number of points available to allocate in this tree. Players can spend these points on skills during Play mode.">
                     </div>
@@ -406,6 +406,7 @@
     </div>
     <script type="module" src="src/main.js"></script>
     <script type="module" src="vector-loader.js"></script>
+    <script type="module" src="vector-export.js"></script>
 </body>
 
 </html>

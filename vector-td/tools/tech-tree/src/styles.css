@@ -1428,3 +1428,40 @@ body {
         display: none;
     }
 }
+
+/* VECTOR 内部工具：空白画布可左键拖拽平移 */
+.canvas_container {
+    cursor: grab;
+}
+.canvas_container:active {
+    cursor: grabbing;
+}
+
+/* VECTOR 内部工具：导出提示 */
+.vector_toast {
+    position: fixed;
+    left: 50%;
+    bottom: 28px;
+    z-index: 9999;
+    max-width: min(520px, 90vw);
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(95, 215, 255, 0.5);
+    background: rgba(10, 20, 34, 0.97);
+    color: #d7f4ff;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+    transform: translate(-50%, 12px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.vector_toast.show {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+.vector_toast.is-error {
+    border-color: rgba(255, 95, 109, 0.65);
+    color: #ffc9ce;
+}

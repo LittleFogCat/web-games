@@ -4,10 +4,10 @@
     "version": "1.0.0",
     "metadata": {
       "name": "VECTOR 科技树（草案）",
-      "description": "VECTOR 科技树初稿：横向解锁 + 规则 + 档案；节点内容为提案，不进入当前基线。",
+      "description": "能量核心 · 7 棵塔树 + 1 棵跨局树；节点内容为提案占位，待策划评审。",
       "author": "VECTOR 设计组",
-      "created_at": "2026-11-09T00:00:00.000Z",
-      "modified_at": "2026-11-09T00:00:00.000Z",
+      "created_at": "2026-11-10T00:00:00.000Z",
+      "modified_at": "2026-11-10T00:00:00.000Z",
       "export_convention": "snake_case"
     },
     "settings": {
@@ -21,56 +21,706 @@
     },
     "trees": [
       {
-        "id": "vector_tech_tree",
-        "name": "VECTOR 科技树（草案）",
-        "description": "横向解锁为主的科技树提案：EXP 远征许可 / MOD 模块仓库 / FLT 编队扩容 / ARC 档案回廊 / LOG 后勤协议。",
-        "cost_mode": "resources",
+        "id": "prism_tree",
+        "name": "棱镜箭塔",
+        "description": "棱镜箭塔（单体 · 动能）。廉价远程基线；棱镜 IV 起可同时锁定两个目标。",
+        "cost_mode": "skill_points",
         "point_pool": {
-          "total": 0,
+          "total": 16,
           "spent": 0,
           "source": "local"
         },
-        "resources": [
+        "resources": [],
+        "nodes": [
           {
-            "id": "gold",
-            "name": "金币",
-            "icon_color": "#f5c451",
-            "pool": {
-              "total": 3000,
-              "spent": 0
-            }
+            "id": "prism_1",
+            "name": "精准射击",
+            "description": "每 3 次射击，可以射出强力一击，该次伤害为普通伤害的 1.5 倍；2 阶为 1.8 倍。",
+            "icon": null,
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "max_rank": 2,
+            "current_rank": 0,
+            "cost_per_rank": [
+              2,
+              4
+            ],
+            "resource_costs": [],
+            "tags": [],
+            "type": "passive",
+            "metadata": "branch=PRISM;tier=1;type=rule;effect=prism.precision",
+            "hidden_until_unlockable": false,
+            "prerequisite_logic": "AND",
+            "prerequisite_threshold": 1
           },
           {
-            "id": "shard",
-            "name": "残片",
-            "icon_color": "#5fd7ff",
-            "pool": {
-              "total": 400,
-              "spent": 0
-            }
+            "id": "prism_2",
+            "name": "分光",
+            "description": "副箭优先锁定未被主箭锁定的目标，减少双目标时的溢出。",
+            "icon": null,
+            "position": {
+              "x": 0,
+              "y": 190
+            },
+            "max_rank": 1,
+            "current_rank": 0,
+            "cost_per_rank": [
+              3
+            ],
+            "resource_costs": [],
+            "tags": [],
+            "type": "passive",
+            "metadata": "branch=PRISM;tier=2;type=rule;effect=prism.split",
+            "hidden_until_unlockable": false,
+            "prerequisite_logic": "AND",
+            "prerequisite_threshold": 1
           },
           {
-            "id": "core",
-            "name": "星核",
-            "icon_color": "#ff7ad9",
-            "pool": {
-              "total": 300,
-              "spent": 0
-            }
+            "id": "prism_3",
+            "name": "折射追击",
+            "description": "击杀目标后，下一发弹道折射至最近的敌人。",
+            "icon": null,
+            "position": {
+              "x": 0,
+              "y": 380
+            },
+            "max_rank": 1,
+            "current_rank": 0,
+            "cost_per_rank": [
+              5
+            ],
+            "resource_costs": [],
+            "tags": [],
+            "type": "passive",
+            "metadata": "branch=PRISM;tier=3;type=rule;effect=prism.refract",
+            "hidden_until_unlockable": false,
+            "prerequisite_logic": "AND",
+            "prerequisite_threshold": 1
           }
         ],
+        "connections": [
+          {
+            "id": "prism_c1",
+            "from_node_id": "prism_1",
+            "to_node_id": "prism_2",
+            "logic": "AND",
+            "required_rank": 1
+          },
+          {
+            "id": "prism_c2",
+            "from_node_id": "prism_2",
+            "to_node_id": "prism_3",
+            "logic": "AND",
+            "required_rank": 1
+          }
+        ]
+      },
+      {
+        "id": "gatling_tree",
+        "name": "矢量机炮",
+        "description": "矢量机炮（持续 · 动能）。近距离持续单体火力，依靠预热层数堆伤害。",
+        "cost_mode": "skill_points",
+        "point_pool": {
+          "total": 12,
+          "spent": 0,
+          "source": "local"
+        },
+        "resources": [],
+        "nodes": [
+          {
+            "id": "gatling_1",
+            "name": "枪管预热",
+            "description": "对同一目标连续射击时伤害逐步提升，换目标清空。",
+            "icon": null,
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "max_rank": 1,
+            "current_rank": 0,
+            "cost_per_rank": [
+              2
+            ],
+            "resource_costs": [],
+            "tags": [],
+            "type": "passive",
+            "metadata": "branch=GATLING;tier=1;type=rule;effect=gatling.spinup",
+            "hidden_until_unlockable": false,
+            "prerequisite_logic": "AND",
+            "prerequisite_threshold": 1
+          },
+          {
+            "id": "gatling_2",
+            "name": "弹链扩容",
+            "description": "换目标不再清空预热层数。",
+            "icon": null,
+            "position": {
+              "x": 0,
+              "y": 190
+            },
+            "max_rank": 1,
+            "current_rank": 0,
+            "cost_per_rank": [
+              3
+            ],
+            "resource_costs": [],
+            "tags": [],
+            "type": "passive",
+            "metadata": "branch=GATLING;tier=2;type=rule;effect=gatling.belt",
+            "hidden_until_unlockable": false,
+            "prerequisite_logic": "AND",
+            "prerequisite_threshold": 1
+          },
+          {
+            "id": "gatling_3",
+            "name": "破片弹",
+            "description": "每第 10 发造成小范围溅射。",
+            "icon": null,
+            "position": {
+              "x": 0,
+              "y": 380
+            },
+            "max_rank": 1,
+            "current_rank": 0,
+            "cost_per_rank": [
+              5
+            ],
+            "resource_costs": [],
+            "tags": [],
+            "type": "passive",
+            "metadata": "branch=GATLING;tier=3;type=rule;effect=gatling.splash",
+            "hidden_until_unlockable": false,
+            "prerequisite_logic": "AND",
+            "prerequisite_threshold": 1
+          }
+        ],
+        "connections": [
+          {
+            "id": "gatling_c1",
+            "from_node_id": "gatling_1",
+            "to_node_id": "gatling_2",
+            "logic": "AND",
+            "required_rank": 1
+          },
+          {
+            "id": "gatling_c2",
+            "from_node_id": "gatling_2",
+            "to_node_id": "gatling_3",
+            "logic": "AND",
+            "required_rank": 1
+          }
+        ]
+      },
+      {
+        "id": "cannon_tree",
+        "name": "引力重炮",
+        "description": "引力重炮（范围 · 动能）。范围爆发与分裂体处理，落点控制是核心。",
+        "cost_mode": "skill_points",
+        "point_pool": {
+          "total": 12,
+          "spent": 0,
+          "source": "local"
+        },
+        "resources": [],
+        "nodes": [
+          {
+            "id": "cannon_1",
+            "name": "引力弹坑",
+            "description": "落点留下 1.2 格减速场，持续 2 秒。",
+            "icon": null,
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "max_rank": 1,
+            "current_rank": 0,
+            "cost_per_rank": [
+              2
+            ],
+            "resource_costs": [],
+            "tags": [],
+            "type": "passive",
+            "metadata": "branch=CANNON;tier=1;type=rule;effect=cannon.crater",
+            "hidden_until_unlockable": false,
+            "prerequisite_logic": "AND",
+            "prerequisite_threshold": 1
+          },
+          {
+            "id": "cannon_2",
+            "name": "引力坍塌",
+            "description": "命中护盾时额外拉拽 0.3 格。",
+            "icon": null,
+            "position": {
+              "x": 0,
+              "y": 190
+            },
+            "max_rank": 1,
+            "current_rank": 0,
+            "cost_per_rank": [
+              3
+            ],
+            "resource_costs": [],
+            "tags": [],
+            "type": "passive",
+            "metadata": "branch=CANNON;tier=2;type=rule;effect=cannon.collapse",
+            "hidden_until_unlockable": false,
+            "prerequisite_logic": "AND",
+            "prerequisite_threshold": 1
+          },
+          {
+            "id": "cannon_3",
+            "name": "二段爆破",
+            "description": "范围伤害分两段结算，第二段延后 0.4 秒。",
+            "icon": null,
+            "position": {
+              "x": 0,
+              "y": 380
+            },
+            "max_rank": 1,
+            "current_rank": 0,
+            "cost_per_rank": [
+              5
+            ],
+            "resource_costs": [],
+            "tags": [],
+            "type": "passive",
+            "metadata": "branch=CANNON;tier=3;type=rule;effect=cannon.double",
+            "hidden_until_unlockable": false,
+            "prerequisite_logic": "AND",
+            "prerequisite_threshold": 1
+          }
+        ],
+        "connections": [
+          {
+            "id": "cannon_c1",
+            "from_node_id": "cannon_1",
+            "to_node_id": "cannon_2",
+            "logic": "AND",
+            "required_rank": 1
+          },
+          {
+            "id": "cannon_c2",
+            "from_node_id": "cannon_2",
+            "to_node_id": "cannon_3",
+            "logic": "AND",
+            "required_rank": 1
+          }
+        ]
+      },
+      {
+        "id": "laser_tree",
+        "name": "相干激光",
+        "description": "相干激光（持续 · 能量）。高能光束，破盾主力；升温与散热构成节奏。",
+        "cost_mode": "skill_points",
+        "point_pool": {
+          "total": 12,
+          "spent": 0,
+          "source": "local"
+        },
+        "resources": [],
+        "nodes": [
+          {
+            "id": "laser_1",
+            "name": "过载击穿",
+            "description": "升温满时对护盾额外加成。",
+            "icon": null,
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "max_rank": 1,
+            "current_rank": 0,
+            "cost_per_rank": [
+              2
+            ],
+            "resource_costs": [],
+            "tags": [],
+            "type": "passive",
+            "metadata": "branch=LASER;tier=1;type=rule;effect=laser.overcharge",
+            "hidden_until_unlockable": false,
+            "prerequisite_logic": "AND",
+            "prerequisite_threshold": 1
+          },
+          {
+            "id": "laser_2",
+            "name": "散热循环",
+            "description": "停火后升温衰减更慢，持续输出更稳。",
+            "icon": null,
+            "position": {
+              "x": 0,
+              "y": 190
+            },
+            "max_rank": 1,
+            "current_rank": 0,
+            "cost_per_rank": [
+              3
+            ],
+            "resource_costs": [],
+            "tags": [],
+            "type": "passive",
+            "metadata": "branch=LASER;tier=2;type=rule;effect=laser.cooling",
+            "hidden_until_unlockable": false,
+            "prerequisite_logic": "AND",
+            "prerequisite_threshold": 1
+          },
+          {
+            "id": "laser_3",
+            "name": "贯穿光束",
+            "description": "升温满时光束贯穿直线上的所有目标。",
+            "icon": null,
+            "position": {
+              "x": 0,
+              "y": 380
+            },
+            "max_rank": 1,
+            "current_rank": 0,
+            "cost_per_rank": [
+              5
+            ],
+            "resource_costs": [],
+            "tags": [],
+            "type": "passive",
+            "metadata": "branch=LASER;tier=3;type=rule;effect=laser.pierce",
+            "hidden_until_unlockable": false,
+            "prerequisite_logic": "AND",
+            "prerequisite_threshold": 1
+          }
+        ],
+        "connections": [
+          {
+            "id": "laser_c1",
+            "from_node_id": "laser_1",
+            "to_node_id": "laser_2",
+            "logic": "AND",
+            "required_rank": 1
+          },
+          {
+            "id": "laser_c2",
+            "from_node_id": "laser_2",
+            "to_node_id": "laser_3",
+            "logic": "AND",
+            "required_rank": 1
+          }
+        ]
+      },
+      {
+        "id": "shock_tree",
+        "name": "谐振震荡",
+        "description": "谐振震荡（近域 · 能量）。近域群伤与击退，韧性单位会让控制收益骤降。",
+        "cost_mode": "skill_points",
+        "point_pool": {
+          "total": 12,
+          "spent": 0,
+          "source": "local"
+        },
+        "resources": [],
+        "nodes": [
+          {
+            "id": "shock_1",
+            "name": "定向冲击",
+            "description": "击退方向沿路径切线，减少把敌人推离航道。",
+            "icon": null,
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "max_rank": 1,
+            "current_rank": 0,
+            "cost_per_rank": [
+              2
+            ],
+            "resource_costs": [],
+            "tags": [],
+            "type": "passive",
+            "metadata": "branch=SHOCK;tier=1;type=rule;effect=shock.directed",
+            "hidden_until_unlockable": false,
+            "prerequisite_logic": "AND",
+            "prerequisite_threshold": 1
+          },
+          {
+            "id": "shock_2",
+            "name": "共振腔",
+            "description": "每次击退提升下一发范围 8%，最多 3 层。",
+            "icon": null,
+            "position": {
+              "x": 0,
+              "y": 190
+            },
+            "max_rank": 1,
+            "current_rank": 0,
+            "cost_per_rank": [
+              3
+            ],
+            "resource_costs": [],
+            "tags": [],
+            "type": "passive",
+            "metadata": "branch=SHOCK;tier=2;type=rule;effect=shock.resonance",
+            "hidden_until_unlockable": false,
+            "prerequisite_logic": "AND",
+            "prerequisite_threshold": 1
+          },
+          {
+            "id": "shock_3",
+            "name": "坍缩",
+            "description": "被击退撞到障碍或边界时造成额外伤害。",
+            "icon": null,
+            "position": {
+              "x": 0,
+              "y": 380
+            },
+            "max_rank": 1,
+            "current_rank": 0,
+            "cost_per_rank": [
+              5
+            ],
+            "resource_costs": [],
+            "tags": [],
+            "type": "passive",
+            "metadata": "branch=SHOCK;tier=3;type=rule;effect=shock.collapse",
+            "hidden_until_unlockable": false,
+            "prerequisite_logic": "AND",
+            "prerequisite_threshold": 1
+          }
+        ],
+        "connections": [
+          {
+            "id": "shock_c1",
+            "from_node_id": "shock_1",
+            "to_node_id": "shock_2",
+            "logic": "AND",
+            "required_rank": 1
+          },
+          {
+            "id": "shock_c2",
+            "from_node_id": "shock_2",
+            "to_node_id": "shock_3",
+            "logic": "AND",
+            "required_rank": 1
+          }
+        ]
+      },
+      {
+        "id": "frost_tree",
+        "name": "熵减冻结",
+        "description": "熵减冻结（控制 · 低温）。伤害最低但减速不可替代；高韧性单位是天然克制。",
+        "cost_mode": "skill_points",
+        "point_pool": {
+          "total": 12,
+          "spent": 0,
+          "source": "local"
+        },
+        "resources": [],
+        "nodes": [
+          {
+            "id": "frost_1",
+            "name": "深冷剂",
+            "description": "减速幅度上限提高。",
+            "icon": null,
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "max_rank": 1,
+            "current_rank": 0,
+            "cost_per_rank": [
+              2
+            ],
+            "resource_costs": [],
+            "tags": [],
+            "type": "passive",
+            "metadata": "branch=FROST;tier=1;type=rule;effect=frost.deepfreeze",
+            "hidden_until_unlockable": false,
+            "prerequisite_logic": "AND",
+            "prerequisite_threshold": 1
+          },
+          {
+            "id": "frost_2",
+            "name": "脆化",
+            "description": "被减速目标受到的动能伤害提高。",
+            "icon": null,
+            "position": {
+              "x": 0,
+              "y": 190
+            },
+            "max_rank": 1,
+            "current_rank": 0,
+            "cost_per_rank": [
+              3
+            ],
+            "resource_costs": [],
+            "tags": [],
+            "type": "passive",
+            "metadata": "branch=FROST;tier=2;type=rule;effect=frost.brittle",
+            "hidden_until_unlockable": false,
+            "prerequisite_logic": "AND",
+            "prerequisite_threshold": 1
+          },
+          {
+            "id": "frost_3",
+            "name": "绝对零度",
+            "description": "减速叠满后短暂定身 0.5 秒。",
+            "icon": null,
+            "position": {
+              "x": 0,
+              "y": 380
+            },
+            "max_rank": 1,
+            "current_rank": 0,
+            "cost_per_rank": [
+              5
+            ],
+            "resource_costs": [],
+            "tags": [],
+            "type": "passive",
+            "metadata": "branch=FROST;tier=3;type=rule;effect=frost.absolute",
+            "hidden_until_unlockable": false,
+            "prerequisite_logic": "AND",
+            "prerequisite_threshold": 1
+          }
+        ],
+        "connections": [
+          {
+            "id": "frost_c1",
+            "from_node_id": "frost_1",
+            "to_node_id": "frost_2",
+            "logic": "AND",
+            "required_rank": 1
+          },
+          {
+            "id": "frost_c2",
+            "from_node_id": "frost_2",
+            "to_node_id": "frost_3",
+            "logic": "AND",
+            "required_rank": 1
+          }
+        ]
+      },
+      {
+        "id": "tesla_tree",
+        "name": "链式电弧",
+        "description": "链式电弧（连锁 · 能量）。连锁清群与破盾，链数越多越依赖站位密度。",
+        "cost_mode": "skill_points",
+        "point_pool": {
+          "total": 12,
+          "spent": 0,
+          "source": "local"
+        },
+        "resources": [],
+        "nodes": [
+          {
+            "id": "tesla_1",
+            "name": "富兰克林线圈",
+            "description": "链数 +1。",
+            "icon": null,
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "max_rank": 1,
+            "current_rank": 0,
+            "cost_per_rank": [
+              2
+            ],
+            "resource_costs": [],
+            "tags": [],
+            "type": "passive",
+            "metadata": "branch=TESLA;tier=1;type=rule;effect=tesla.extrachain",
+            "hidden_until_unlockable": false,
+            "prerequisite_logic": "AND",
+            "prerequisite_threshold": 1
+          },
+          {
+            "id": "tesla_2",
+            "name": "感生电流",
+            "description": "链末端回弹一次，伤害衰减。",
+            "icon": null,
+            "position": {
+              "x": 0,
+              "y": 190
+            },
+            "max_rank": 1,
+            "current_rank": 0,
+            "cost_per_rank": [
+              3
+            ],
+            "resource_costs": [],
+            "tags": [],
+            "type": "passive",
+            "metadata": "branch=TESLA;tier=2;type=rule;effect=tesla.rebound",
+            "hidden_until_unlockable": false,
+            "prerequisite_logic": "AND",
+            "prerequisite_threshold": 1
+          },
+          {
+            "id": "tesla_3",
+            "name": "电弧风暴",
+            "description": "每 12 次链击释放一次环状电弧。",
+            "icon": null,
+            "position": {
+              "x": 0,
+              "y": 380
+            },
+            "max_rank": 1,
+            "current_rank": 0,
+            "cost_per_rank": [
+              5
+            ],
+            "resource_costs": [],
+            "tags": [],
+            "type": "passive",
+            "metadata": "branch=TESLA;tier=3;type=rule;effect=tesla.storm",
+            "hidden_until_unlockable": false,
+            "prerequisite_logic": "AND",
+            "prerequisite_threshold": 1
+          }
+        ],
+        "connections": [
+          {
+            "id": "tesla_c1",
+            "from_node_id": "tesla_1",
+            "to_node_id": "tesla_2",
+            "logic": "AND",
+            "required_rank": 1
+          },
+          {
+            "id": "tesla_c2",
+            "from_node_id": "tesla_2",
+            "to_node_id": "tesla_3",
+            "logic": "AND",
+            "required_rank": 1
+          }
+        ]
+      },
+      {
+        "id": "fleet_tree",
+        "name": "舰队核心",
+        "description": "跨局横向解锁：远征许可、模块仓库、编队扩容、档案回廊。",
+        "cost_mode": "skill_points",
+        "point_pool": {
+          "total": 20,
+          "spent": 0,
+          "source": "local"
+        },
+        "resources": [],
         "nodes": [
           {
             "id": "exp_1",
             "name": "远征前哨",
             "description": "开放远征入口与编队编辑。",
             "icon": null,
-            "position": { "x": -20, "y": 0 },
+            "position": {
+              "x": 0,
+              "y": 0
+            },
             "max_rank": 1,
             "current_rank": 0,
-            "cost_per_rank": [0],
-            "resource_costs": [[{ "resource_id": "gold", "amount": 80 }]],
-            "tags": ["branch:EXP"],
+            "cost_per_rank": [
+              2
+            ],
+            "resource_costs": [],
+            "tags": [],
             "type": "passive",
             "metadata": "branch=EXP;tier=1;type=unlock;effect=unlock.expedition",
             "hidden_until_unlockable": false,
@@ -79,335 +729,151 @@
           },
           {
             "id": "exp_2",
-            "name": "元素星域",
-            "description": "开放元素星域群系，让地图成为第三个反应参与者。",
-            "icon": null,
-            "position": { "x": -20, "y": 190 },
-            "max_rank": 1,
-            "current_rank": 0,
-            "cost_per_rank": [0],
-            "resource_costs": [[{ "resource_id": "gold", "amount": 180 }]],
-            "tags": ["branch:EXP"],
-            "type": "passive",
-            "metadata": "branch=EXP;tier=2;type=unlock;effect=unlock.elemental",
-            "hidden_until_unlockable": false,
-            "prerequisite_logic": "AND",
-            "prerequisite_threshold": 1
-          },
-          {
-            "id": "exp_3",
-            "name": "深渊远征",
-            "description": "开放 3 章结构化远征：编队 / 威胁 / 模块 / 路线。",
-            "icon": null,
-            "position": { "x": -140, "y": 380 },
-            "max_rank": 1,
-            "current_rank": 0,
-            "cost_per_rank": [0],
-            "resource_costs": [[{ "resource_id": "shard", "amount": 120 }]],
-            "tags": ["branch:EXP"],
-            "type": "passive",
-            "metadata": "branch=EXP;tier=3;type=unlock;effect=unlock.abyss",
-            "hidden_until_unlockable": false,
-            "prerequisite_logic": "AND",
-            "prerequisite_threshold": 1
-          },
-          {
-            "id": "exp_4",
             "name": "威胁协议",
             "description": "开放 0–3 层威胁协议：每层追加地图变异与敌人强化。",
             "icon": null,
-            "position": { "x": 100, "y": 380 },
+            "position": {
+              "x": 0,
+              "y": 190
+            },
             "max_rank": 1,
             "current_rank": 0,
-            "cost_per_rank": [0],
-            "resource_costs": [[{ "resource_id": "gold", "amount": 260 }]],
-            "tags": ["branch:EXP"],
+            "cost_per_rank": [
+              5
+            ],
+            "resource_costs": [],
+            "tags": [],
             "type": "passive",
-            "metadata": "branch=EXP;tier=3;type=unlock;effect=unlock.threat",
+            "metadata": "branch=EXP;tier=2;type=unlock;effect=unlock.threat",
             "hidden_until_unlockable": false,
             "prerequisite_logic": "AND",
             "prerequisite_threshold": 1
           },
           {
             "id": "mod_1",
-            "name": "标准模块池",
-            "description": "开放标准模块（单局有效战力 +8–12%）。",
+            "name": "模块仓库",
+            "description": "开放标准 / 稀有模块池与模块槽位。",
             "icon": null,
-            "position": { "x": 320, "y": 0 },
+            "position": {
+              "x": 280,
+              "y": 190
+            },
             "max_rank": 1,
             "current_rank": 0,
-            "cost_per_rank": [0],
-            "resource_costs": [[{ "resource_id": "gold", "amount": 60 }]],
-            "tags": ["branch:MOD"],
+            "cost_per_rank": [
+              3
+            ],
+            "resource_costs": [],
+            "tags": [],
             "type": "passive",
-            "metadata": "branch=MOD;tier=1;type=unlock;effect=unlock.module.standard",
-            "hidden_until_unlockable": false,
-            "prerequisite_logic": "AND",
-            "prerequisite_threshold": 1
-          },
-          {
-            "id": "mod_2",
-            "name": "稀有模块池",
-            "description": "开放稀有模块（单局有效战力 +15–20%）。",
-            "icon": null,
-            "position": { "x": 220, "y": 190 },
-            "max_rank": 1,
-            "current_rank": 0,
-            "cost_per_rank": [0],
-            "resource_costs": [[{ "resource_id": "gold", "amount": 140 }]],
-            "tags": ["branch:MOD"],
-            "type": "passive",
-            "metadata": "branch=MOD;tier=2;type=unlock;effect=unlock.module.rare",
-            "hidden_until_unlockable": false,
-            "prerequisite_logic": "AND",
-            "prerequisite_threshold": 1
-          },
-          {
-            "id": "mod_3",
-            "name": "模块重构",
-            "description": "每局允许重构 1 个模块，改变其加成分支。",
-            "icon": null,
-            "position": { "x": 420, "y": 190 },
-            "max_rank": 1,
-            "current_rank": 0,
-            "cost_per_rank": [0],
-            "resource_costs": [[{ "resource_id": "gold", "amount": 120 }]],
-            "tags": ["branch:MOD"],
-            "type": "passive",
-            "metadata": "branch=MOD;tier=2;type=rule;effect=rule.module.reforge",
-            "hidden_until_unlockable": false,
-            "prerequisite_logic": "AND",
-            "prerequisite_threshold": 1
-          },
-          {
-            "id": "mod_4",
-            "name": "模块扩容",
-            "description": "每局可多带 1 个模块（模块槽位 +1）。",
-            "icon": null,
-            "position": { "x": 320, "y": 380 },
-            "max_rank": 1,
-            "current_rank": 0,
-            "cost_per_rank": [0],
-            "resource_costs": [[{ "resource_id": "core", "amount": 90 }]],
-            "tags": ["branch:MOD"],
-            "type": "passive",
-            "metadata": "branch=MOD;tier=3;type=unlock;effect=unlock.module.slot",
+            "metadata": "branch=MOD;tier=2;type=unlock;effect=unlock.module",
             "hidden_until_unlockable": false,
             "prerequisite_logic": "AND",
             "prerequisite_threshold": 1
           },
           {
             "id": "flt_1",
-            "name": "第二编队",
-            "description": "开放第二编队槽位，远征可保存两套编成。",
+            "name": "编队扩容",
+            "description": "开放第二 / 第三编队槽位。",
             "icon": null,
-            "position": { "x": 660, "y": 0 },
+            "position": {
+              "x": 560,
+              "y": 190
+            },
             "max_rank": 1,
             "current_rank": 0,
-            "cost_per_rank": [0],
-            "resource_costs": [[{ "resource_id": "gold", "amount": 90 }]],
-            "tags": ["branch:FLT"],
+            "cost_per_rank": [
+              3
+            ],
+            "resource_costs": [],
+            "tags": [],
             "type": "passive",
-            "metadata": "branch=FLT;tier=1;type=unlock;effect=unlock.squad.slot2",
-            "hidden_until_unlockable": false,
-            "prerequisite_logic": "AND",
-            "prerequisite_threshold": 1
-          },
-          {
-            "id": "flt_2",
-            "name": "第三编队",
-            "description": "开放第三编队槽位。",
-            "icon": null,
-            "position": { "x": 560, "y": 190 },
-            "max_rank": 1,
-            "current_rank": 0,
-            "cost_per_rank": [0],
-            "resource_costs": [[{ "resource_id": "gold", "amount": 180 }]],
-            "tags": ["branch:FLT"],
-            "type": "passive",
-            "metadata": "branch=FLT;tier=2;type=unlock;effect=unlock.squad.slot3",
-            "hidden_until_unlockable": false,
-            "prerequisite_logic": "AND",
-            "prerequisite_threshold": 1
-          },
-          {
-            "id": "flt_3",
-            "name": "预编队",
-            "description": "开局前保存并载入编队预设。",
-            "icon": null,
-            "position": { "x": 760, "y": 190 },
-            "max_rank": 1,
-            "current_rank": 0,
-            "cost_per_rank": [0],
-            "resource_costs": [[{ "resource_id": "gold", "amount": 150 }]],
-            "tags": ["branch:FLT"],
-            "type": "passive",
-            "metadata": "branch=FLT;tier=2;type=rule;effect=rule.squad.preset",
-            "hidden_until_unlockable": false,
-            "prerequisite_logic": "OR",
-            "prerequisite_threshold": 1
-          },
-          {
-            "id": "flt_4",
-            "name": "编队档案",
-            "description": "记录远征编成与通关档案。",
-            "icon": null,
-            "position": { "x": 660, "y": 380 },
-            "max_rank": 1,
-            "current_rank": 0,
-            "cost_per_rank": [0],
-            "resource_costs": [[{ "resource_id": "shard", "amount": 60 }]],
-            "tags": ["branch:FLT"],
-            "type": "passive",
-            "metadata": "branch=FLT;tier=3;type=record;effect=record.squad.archive",
+            "metadata": "branch=FLT;tier=2;type=unlock;effect=unlock.squad",
             "hidden_until_unlockable": false,
             "prerequisite_logic": "AND",
             "prerequisite_threshold": 1
           },
           {
             "id": "arc_1",
-            "name": "回廊档案",
-            "description": "开启回廊档案：记录每日 / 每周回廊的编成与成绩。",
+            "name": "档案回廊",
+            "description": "开启回廊档案：记录编成、成绩与称号。",
             "icon": null,
-            "position": { "x": 1000, "y": 0 },
+            "position": {
+              "x": 840,
+              "y": 190
+            },
             "max_rank": 1,
             "current_rank": 0,
-            "cost_per_rank": [0],
-            "resource_costs": [[{ "resource_id": "gold", "amount": 60 }]],
-            "tags": ["branch:ARC"],
+            "cost_per_rank": [
+              2
+            ],
+            "resource_costs": [],
+            "tags": [],
             "type": "passive",
-            "metadata": "branch=ARC;tier=1;type=record;effect=record.archive",
+            "metadata": "branch=ARC;tier=2;type=record;effect=record.archive",
             "hidden_until_unlockable": false,
             "prerequisite_logic": "AND",
             "prerequisite_threshold": 1
           },
           {
             "id": "arc_2",
-            "name": "战术协议",
-            "description": "3 星通关后随机抽取战术协议（完成得协议星与 +40 金币）。",
-            "icon": null,
-            "position": { "x": 900, "y": 190 },
-            "max_rank": 1,
-            "current_rank": 0,
-            "cost_per_rank": [0],
-            "resource_costs": [[{ "resource_id": "gold", "amount": 140 }]],
-            "tags": ["branch:ARC"],
-            "type": "passive",
-            "metadata": "branch=ARC;tier=2;type=rule;effect=rule.protocol.tactical",
-            "hidden_until_unlockable": false,
-            "prerequisite_logic": "AND",
-            "prerequisite_threshold": 1
-          },
-          {
-            "id": "arc_3",
-            "name": "称号陈列",
-            "description": "展示已获得的称号与协议星。",
-            "icon": null,
-            "position": { "x": 1100, "y": 190 },
-            "max_rank": 1,
-            "current_rank": 0,
-            "cost_per_rank": [0],
-            "resource_costs": [[{ "resource_id": "gold", "amount": 100 }]],
-            "tags": ["branch:ARC"],
-            "type": "passive",
-            "metadata": "branch=ARC;tier=2;type=record;effect=record.title",
-            "hidden_until_unlockable": false,
-            "prerequisite_logic": "AND",
-            "prerequisite_threshold": 1
-          },
-          {
-            "id": "arc_4",
-            "name": "档案评级",
-            "description": "按编成与漏怪结算档案评级。",
-            "icon": null,
-            "position": { "x": 1000, "y": 380 },
-            "max_rank": 1,
-            "current_rank": 0,
-            "cost_per_rank": [0],
-            "resource_costs": [[{ "resource_id": "core", "amount": 80 }]],
-            "tags": ["branch:ARC"],
-            "type": "passive",
-            "metadata": "branch=ARC;tier=3;type=rule;effect=rule.archive.rank",
-            "hidden_until_unlockable": false,
-            "prerequisite_logic": "AND",
-            "prerequisite_threshold": 1
-          },
-          {
-            "id": "log_1",
-            "name": "战前预演",
-            "description": "进入关卡前可预览全部波次与敌人特性（一级）；二级显示每波人口与补偿。",
-            "icon": null,
-            "position": { "x": 1340, "y": 0 },
-            "max_rank": 2,
-            "current_rank": 0,
-            "cost_per_rank": [0, 0],
-            "resource_costs": [
-              [{ "resource_id": "gold", "amount": 70 }],
-              [{ "resource_id": "gold", "amount": 120 }]
-            ],
-            "tags": ["branch:LOG"],
-            "type": "passive",
-            "metadata": "branch=LOG;tier=1;type=rule;effect=rule.log.preview",
-            "hidden_until_unlockable": false,
-            "prerequisite_logic": "AND",
-            "prerequisite_threshold": 1
-          },
-          {
-            "id": "log_2",
-            "name": "结算清单",
-            "description": "结算页展示逐塔伤害、漏怪明细与逐波时间线。",
-            "icon": null,
-            "position": { "x": 1340, "y": 190 },
-            "max_rank": 1,
-            "current_rank": 0,
-            "cost_per_rank": [0],
-            "resource_costs": [[{ "resource_id": "gold", "amount": 130 }]],
-            "tags": ["branch:LOG"],
-            "type": "passive",
-            "metadata": "branch=LOG;tier=2;type=rule;effect=rule.log.summary",
-            "hidden_until_unlockable": false,
-            "prerequisite_logic": "AND",
-            "prerequisite_threshold": 1
-          },
-          {
-            "id": "log_3",
             "name": "演习模式",
             "description": "开放演习模式：不结算金币与星级，用于试阵与录像。",
             "icon": null,
-            "position": { "x": 1340, "y": 380 },
+            "position": {
+              "x": 840,
+              "y": 380
+            },
             "max_rank": 1,
             "current_rank": 0,
-            "cost_per_rank": [0],
-            "resource_costs": [[{ "resource_id": "core", "amount": 100 }]],
-            "tags": ["branch:LOG"],
+            "cost_per_rank": [
+              3
+            ],
+            "resource_costs": [],
+            "tags": [],
             "type": "passive",
-            "metadata": "branch=LOG;tier=3;type=unlock;effect=unlock.log.practice",
+            "metadata": "branch=ARC;tier=3;type=unlock;effect=unlock.practice",
             "hidden_until_unlockable": false,
             "prerequisite_logic": "AND",
             "prerequisite_threshold": 1
           }
         ],
         "connections": [
-          { "id": "c_1", "from_node_id": "exp_1", "to_node_id": "exp_2", "logic": "AND", "required_rank": 1 },
-          { "id": "c_2", "from_node_id": "exp_2", "to_node_id": "exp_3", "logic": "AND", "required_rank": 1 },
-          { "id": "c_3", "from_node_id": "exp_1", "to_node_id": "exp_4", "logic": "AND", "required_rank": 1 },
-          { "id": "c_4", "from_node_id": "mod_2", "to_node_id": "exp_4", "logic": "AND", "required_rank": 1 },
-          { "id": "c_5", "from_node_id": "mod_1", "to_node_id": "mod_2", "logic": "AND", "required_rank": 1 },
-          { "id": "c_6", "from_node_id": "mod_1", "to_node_id": "mod_3", "logic": "AND", "required_rank": 1 },
-          { "id": "c_7", "from_node_id": "mod_2", "to_node_id": "mod_4", "logic": "AND", "required_rank": 1 },
-          { "id": "c_8", "from_node_id": "mod_3", "to_node_id": "mod_4", "logic": "AND", "required_rank": 1 },
-          { "id": "c_9", "from_node_id": "flt_1", "to_node_id": "flt_2", "logic": "AND", "required_rank": 1 },
-          { "id": "c_10", "from_node_id": "flt_1", "to_node_id": "flt_3", "logic": "OR", "required_rank": 1 },
-          { "id": "c_11", "from_node_id": "exp_1", "to_node_id": "flt_3", "logic": "OR", "required_rank": 1 },
-          { "id": "c_12", "from_node_id": "flt_2", "to_node_id": "flt_4", "logic": "AND", "required_rank": 1 },
-          { "id": "c_13", "from_node_id": "flt_3", "to_node_id": "flt_4", "logic": "AND", "required_rank": 1 },
-          { "id": "c_14", "from_node_id": "arc_1", "to_node_id": "arc_2", "logic": "AND", "required_rank": 1 },
-          { "id": "c_15", "from_node_id": "arc_1", "to_node_id": "arc_3", "logic": "AND", "required_rank": 1 },
-          { "id": "c_16", "from_node_id": "arc_2", "to_node_id": "arc_4", "logic": "AND", "required_rank": 1 },
-          { "id": "c_17", "from_node_id": "arc_3", "to_node_id": "arc_4", "logic": "AND", "required_rank": 1 },
-          { "id": "c_18", "from_node_id": "log_1", "to_node_id": "log_2", "logic": "AND", "required_rank": 1 },
-          { "id": "c_19", "from_node_id": "log_2", "to_node_id": "log_3", "logic": "AND", "required_rank": 1 },
-          { "id": "c_20", "from_node_id": "exp_1", "to_node_id": "log_3", "logic": "AND", "required_rank": 1 }
+          {
+            "id": "fleet_c1",
+            "from_node_id": "exp_1",
+            "to_node_id": "exp_2",
+            "logic": "AND",
+            "required_rank": 1
+          },
+          {
+            "id": "fleet_c2",
+            "from_node_id": "exp_1",
+            "to_node_id": "mod_1",
+            "logic": "AND",
+            "required_rank": 1
+          },
+          {
+            "id": "fleet_c3",
+            "from_node_id": "exp_1",
+            "to_node_id": "flt_1",
+            "logic": "AND",
+            "required_rank": 1
+          },
+          {
+            "id": "fleet_c4",
+            "from_node_id": "exp_1",
+            "to_node_id": "arc_1",
+            "logic": "AND",
+            "required_rank": 1
+          },
+          {
+            "id": "fleet_c5",
+            "from_node_id": "arc_1",
+            "to_node_id": "arc_2",
+            "logic": "AND",
+            "required_rank": 1
+          }
         ]
       }
     ]

@@ -9,6 +9,7 @@ import * as actions from "./actions.js";
 import { render_tooltip, hide_tooltip } from "./renderer.js";
 import { calculate_zoom_to_fit, calculate_center_on_node } from "./viewport_utils.js";
 import { setup_flow_handles, build_metadata } from "./vector-flow.js";
+import { NODE_RADIUS } from "./vector-edges.js";
 
 // Global interaction state
 let hovered_node_id = null;
@@ -1026,6 +1027,70 @@ function setup_connection_interactions(get_state, dispatch, elements) {
 			}
 		});
 	}
+
+	if (elements.conn_shape) {
+		elements.conn_shape.addEventListener("change", (event) => {
+			const { tree_id, connection } = current_connection();
+			if (tree_id && connection) {
+				dispatch(actions.update_connection, tree_id, connection.id, { shape: event.target.value });
+			}
+		});
+	}
+
+	if (elements.btn_conn_reset) {
+		elements.btn_conn_reset.addEventListener("click", () => {
+			const { tree_id, connection } = current_connection();
+			if (tree_id && connection) {
+				dispatch(actions.update_connection, tree_id, connection.id, {
+					from_angle: null,
+					to_angle: null
+				});
+			}
+		});
+	}
+
+	// 拖动端点：沿节点圆周调整连接位置（只有选中连线时才显示手柄）
+	elements.endpoint_layer.addEventListener("mousedown", (event) => {
+		const handle = event.target.closest(".connection_endpoint");
+		if (!handle) return;
+		const state = get_state();
+		if (state.ui_state.mode !== "edit") return;
+		const tree_id = state.ui_state.active_tree_id;
+		const tree = tree_id ? find_tree(state, tree_id) : null;
+		const connection = tree
+			? tree.connections.find((conn) => conn.id === handle.dataset.connection_id)
+			: null;
+		if (!tree || !connection) return;
+
+		event.preventDefault();
+		event.stopPropagation();
+
+		const endpoint = handle.dataset.end;
+		const anchor_node_id = endpoint === "from" ? connection.from_node_id : connection.to_node_id;
+		const anchor_node = find_node(state, tree_id, anchor_node_id);
+		if (!anchor_node) return;
+
+		const center_x = anchor_node.position.x + NODE_RADIUS;
+		const center_y = anchor_node.position.y + NODE_RADIUS;
+		const container = elements.canvas_container;
+
+		const on_move = (move_event) => {
+			const current = get_state();
+			const rect = container.getBoundingClientRect();
+			const viewport = current.ui_state.viewport;
+			const world_x = (move_event.clientX - rect.left - viewport.x) / viewport.zoom;
+			const world_y = (move_event.clientY - rect.top - viewport.y) / viewport.zoom;
+			const angle = Math.round(((Math.atan2(world_y - center_y, world_x - center_x) * 180) / Math.PI) * 10) / 10;
+			const key = endpoint === "from" ? "from_angle" : "to_angle";
+			dispatch(actions.update_connection, tree_id, connection.id, { [key]: angle });
+		};
+		const on_up = () => {
+			document.removeEventListener("mousemove", on_move);
+			document.removeEventListener("mouseup", on_up);
+		};
+		document.addEventListener("mousemove", on_move);
+		document.addEventListener("mouseup", on_up);
+	});
 }
 
 /**

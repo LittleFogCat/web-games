@@ -752,6 +752,15 @@ function update_connection(state, tree_id, connection_id, changes) {
 	if (changes.style === "solid" || changes.style === "dashed" || changes.style === "dotted") {
 		connection.style = changes.style;
 	}
+	if (changes.shape === "bezier" || changes.shape === "straight" || changes.shape === "polyline") {
+		connection.shape = changes.shape;
+	}
+	if (changes.from_angle !== undefined) {
+		connection.from_angle = changes.from_angle;
+	}
+	if (changes.to_angle !== undefined) {
+		connection.to_angle = changes.to_angle;
+	}
 
 	return new_state;
 }

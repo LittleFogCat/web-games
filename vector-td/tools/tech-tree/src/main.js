@@ -116,6 +116,7 @@ function cache_elements() {
 		connections_layer: document.getElementById("connections_layer"),
 		temp_connection_layer: document.getElementById("temp_connection_layer"),
 		nodes_layer: document.getElementById("nodes_layer"),
+		endpoint_layer: document.getElementById("endpoint_layer"),
 		empty_state: document.getElementById("empty_state"),
 		btn_create_first_tree: document.getElementById("btn_create_first_tree"),
 
@@ -157,6 +158,8 @@ function cache_elements() {
 		conn_to_name: document.getElementById("conn_to_name"),
 		conn_rank: document.getElementById("conn_rank"),
 		conn_style: document.getElementById("conn_style"),
+		conn_shape: document.getElementById("conn_shape"),
+		btn_conn_reset: document.getElementById("btn_conn_reset"),
 		btn_conn_swap: document.getElementById("btn_conn_swap"),
 		btn_conn_delete: document.getElementById("btn_conn_delete"),
 		connection_panel: document.getElementById("connection_panel"),

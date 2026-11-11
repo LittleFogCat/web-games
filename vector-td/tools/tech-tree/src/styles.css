@@ -1635,3 +1635,35 @@ body.flow_dragging .skill_node {
     font-size: var(--font-size-xs);
     color: var(--color-warning);
 }
+
+/* VECTOR：连线端点手柄（选中连线后出现，可拖动调整连接位置） */
+.connection_endpoint {
+    fill: var(--color-accent-primary);
+    stroke: #ffffff;
+    stroke-width: 1.5;
+    cursor: grab;
+    pointer-events: all;
+}
+.connection_endpoint:hover {
+    fill: #ffffff;
+    cursor: grabbing;
+}
+.connection_group.shape-polyline .connection_path,
+.connection_group.shape-polyline .connection_hit {
+    stroke-linejoin: round;
+}
+
+/* VECTOR：选中连线的端点手柄层（在节点之上） */
+.endpoint_layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 3;
+    overflow: visible;
+}
+.endpoint_layer .connection_endpoint {
+    pointer-events: all;
+}

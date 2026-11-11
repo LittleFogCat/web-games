@@ -6,7 +6,7 @@
 import { find_tree, find_node } from "./state.js";
 import * as validation from "./validation_engine.js";
 import { decorate_node_element } from "./vector-flow.js";
-import { create_connection_element } from "./vector-edges.js";
+import { create_connection_element, create_endpoint_handles } from "./vector-edges.js";
 const { get_node_status, get_all_node_statuses, NODE_STATUS, get_allocation_cost, is_connection_satisfied } = validation;
 
 /**
@@ -135,6 +135,10 @@ function render_canvas(state, elements) {
 	elements.nodes_layer.style.transformOrigin = "0 0";
 	elements.connections_layer.style.transform = transform;
 	elements.connections_layer.style.transformOrigin = "0 0";
+	if (elements.endpoint_layer) {
+		elements.endpoint_layer.style.transform = transform;
+		elements.endpoint_layer.style.transformOrigin = "0 0";
+	}
 
 	render_grid(state, elements);
 	render_connections(state, tree, elements);
@@ -258,6 +262,30 @@ function render_connections(state, tree, elements) {
 		});
 		svg.appendChild(element);
 	}
+
+	// VECTOR：选中连线的端点手柄画在独立顶层，避免被节点盖住
+	render_connection_endpoints(state, tree, elements);
+}
+
+/**
+ * 渲染当前选中连线的两个端点手柄（编辑模式）。
+ */
+function render_connection_endpoints(state, tree, elements) {
+	const layer = elements.endpoint_layer;
+	if (!layer) return;
+	layer.innerHTML = "";
+	if (state.ui_state.mode !== "edit" || !state.ui_state.selected_connection_id) return;
+
+	const index = tree.connections.findIndex((conn) => conn.id === state.ui_state.selected_connection_id);
+	if (index === -1) return;
+	const connection = tree.connections[index];
+	const from_node = find_node(state, tree.id, connection.from_node_id);
+	const to_node = find_node(state, tree.id, connection.to_node_id);
+	if (!from_node || !to_node) return;
+
+	create_endpoint_handles(connection, from_node, to_node, index).forEach((handle) => {
+		layer.appendChild(handle);
+	});
 }
 
 /**
@@ -407,6 +435,7 @@ function render_sidebar(state, elements) {
 		if (elements.conn_to_name) elements.conn_to_name.textContent = to_node ? to_node.name : "（已删除）";
 		if (elements.conn_rank) elements.conn_rank.value = selected_connection.required_rank || 1;
 		if (elements.conn_style) elements.conn_style.value = selected_connection.style || "solid";
+		if (elements.conn_shape) elements.conn_shape.value = selected_connection.shape || "bezier";
 	}
 
 	// Populate tree properties

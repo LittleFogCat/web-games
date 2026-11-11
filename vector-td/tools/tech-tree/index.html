@@ -124,6 +124,7 @@
                 <svg id="connections_layer" class="connections_layer"></svg>
                 <svg id="temp_connection_layer" class="temp_connection_layer"></svg>
                 <div id="nodes_layer" class="nodes_layer"></div>
+                <svg id="endpoint_layer" class="endpoint_layer"></svg>
                 <!-- Empty State -->
                 <div id="empty_state" class="empty_state">
                     <div class="empty_state_content">
@@ -293,7 +294,7 @@
                             <input type="number" id="conn_rank" class="input" min="1" value="1">
                         </div>
                         <div class="form_group">
-                            <label for="conn_style">线型</label>
+                            <label for="conn_style">线条虚实</label>
                             <select id="conn_style" class="input">
                                 <option value="solid">实线</option>
                                 <option value="dashed">虚线</option>
@@ -301,7 +302,22 @@
                             </select>
                         </div>
                     </div>
-                    <p class="panel_hint">箭头从「前置」指向「后续」；AND / OR / SUM 逻辑在节点属性里设置。</p>
+                    <div class="form_row">
+                        <div class="form_group">
+                            <label for="conn_shape">连线形状</label>
+                            <select id="conn_shape" class="input">
+                                <option value="bezier">贝塞尔曲线</option>
+                                <option value="straight">直线</option>
+                                <option value="polyline">折线</option>
+                            </select>
+                        </div>
+                        <div class="form_group">
+                            <label>&nbsp;</label>
+                            <button id="btn_conn_reset" class="btn btn_secondary" type="button"
+                                title="清除自定义端点角度，恢复自动朝向">重置端点</button>
+                        </div>
+                    </div>
+                    <p class="panel_hint">箭头从「前置」指向「后续」；选中连线后可拖动两个端点调整连接位置；AND / OR / SUM 逻辑在节点属性里设置。</p>
                     <div class="form_actions">
                         <button id="btn_conn_delete" class="btn btn_danger" type="button">删除连线</button>
                     </div>
